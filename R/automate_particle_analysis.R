@@ -14,8 +14,8 @@
 #' Both threshold extremes emit an informational message.
 #'
 #' @param x character vector of files, an `OpenSpecy`/`Specs` object, or a list
-#' of objects/files. H5/HDF5 paths are opened as bounded file-backed
-#' [FileSpecs][open_specs] sources rather than read into memory in full.
+#' of objects/files. H5/HDF5 paths can be analyzed as bounded file-backed
+#' [FileSpecs][open_specs] sources or materialized in memory before analysis.
 #' @param library reference `OpenSpecy` object or trained model library passed
 #' to \code{\link{match_spec}()}.
 #' @param output_dir optional directory for CSV/RDS/PNG outputs.
@@ -53,6 +53,11 @@
 #' strategies require the concrete `c("pca", "kmeans")` workflow.
 #' @param specs_centers requested K-means cluster count for clustering
 #' strategies; the effective count is clamped to the eligible data.
+#' @param file_processing file-backed execution policy. `"stream"` (the
+#' default) reads bounded chunks and supports the file-backed strategies;
+#' `"memory"` materializes every region before using the full in-memory
+#' workflow. The memory mode can be faster for smaller files but requires
+#' enough RAM for all spectra and their analysis intermediates.
 #' @param \ldots catches removed legacy arguments and otherwise is reserved.
 #'
 #' @return
@@ -94,7 +99,7 @@ automate_particle_analysis <- function(
     collapse_function = stats::median,
     outputs = c("details", "summary"),
     process_args = list(), specs_steps = c("pca", "kmeans"),
-    specs_centers = NULL, ...) {
+    specs_centers = NULL, file_processing = c("stream", "memory"), ...) {
   UseMethod("automate_particle_analysis")
 }
 
@@ -115,9 +120,10 @@ automate_particle_analysis.default <- function(
     collapse_function = stats::median,
     outputs = c("details", "summary"),
     process_args = list(), specs_steps = c("pca", "kmeans"),
-    specs_centers = NULL, ...) {
+    specs_centers = NULL, file_processing = c("stream", "memory"), ...) {
 
   .reject_removed_particle_args(list(...))
+  file_processing <- match.arg(file_processing)
   .validate_particle_sn_thresholds(sn_threshold_min, sn_threshold_max)
   particle_id_strategy <- .normalize_particle_strategy(particle_id_strategy)
   outputs <- .normalize_particle_outputs(outputs)
@@ -163,7 +169,8 @@ automate_particle_analysis.default <- function(
         remove_unknown = remove_unknown, pixel_length = pixel_length,
         metric = metric, abs = abs, collapse_function = collapse_function,
         outputs = outputs, process_args = process_args,
-        specs_steps = specs_steps, specs_centers = specs_centers
+        specs_steps = specs_steps, specs_centers = specs_centers,
+        file_processing = file_processing
       )
       region_names <- names(result$samples)
       if (length(result$samples) == 1L) {
@@ -1387,6 +1394,36 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   }
   message(text)
   invisible(NULL)
+}
+
+.particle_stream_progress <- function(sample, stage, chunk, chunks,
+                                      spectra, total_spectra, started) {
+  if (is.null(sample) || !length(sample) || !nzchar(sample)) {
+    return(invisible(NULL))
+  }
+  chunks <- as.integer(chunks)
+  chunk <- as.integer(chunk)
+  report_every <- max(1L, ceiling(chunks / 20L))
+  if (chunk != 1L && chunk != chunks && chunk %% report_every != 0L) {
+    return(invisible(NULL))
+  }
+  elapsed <- max(0, proc.time()[["elapsed"]] - started)
+  percent <- if (total_spectra > 0) {
+    min(100, floor(100 * spectra / total_spectra))
+  } else {
+    100
+  }
+  .particle_progress(
+    sample, stage,
+    sprintf(
+      "chunk %s/%s; %s/%s spectra (%s%%); elapsed %.1f s",
+      format(chunk, big.mark = ",", scientific = FALSE),
+      format(chunks, big.mark = ",", scientific = FALSE),
+      format(spectra, big.mark = ",", scientific = FALSE),
+      format(total_spectra, big.mark = ",", scientific = FALSE),
+      percent, elapsed
+    )
+  )
 }
 
 .filter_particle_matches <- function(proc_map, material_col, cor_threshold,

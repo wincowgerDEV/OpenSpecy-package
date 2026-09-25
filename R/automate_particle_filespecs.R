@@ -15,11 +15,62 @@ automate_particle_analysis.FileSpecs <- function(
     collapse_function = stats::median,
     outputs = c("details", "summary"),
     process_args = list(), specs_steps = c("pca", "kmeans"),
-    specs_centers = NULL, ...) {
+    specs_centers = NULL, file_processing = c("stream", "memory"), ...) {
   .reject_removed_particle_args(list(...))
+  file_processing <- match.arg(file_processing)
   .validate_particle_sn_thresholds(sn_threshold_min, sn_threshold_max)
   .filespec_validate_object(x)
   .filespec_validate_source(x, strong = FALSE)
+  if (identical(file_processing, "memory")) {
+    views <- split_spec(x, by = "region")
+    if (!length(views)) views <- list(source = x)
+    if (is.null(names(views)) || any(!nzchar(names(views)))) {
+      names(views) <- paste0("region_", seq_along(views))
+    }
+    counts <- vapply(views, .filespec_n_spectra, integer(1))
+    materialize_started <- proc.time()[["elapsed"]]
+    .particle_progress(
+      "file-backed source", "read into memory",
+      sprintf(
+        "%s regions; %s spectra; %s bands",
+        format(length(views), big.mark = ","),
+        format(sum(counts), big.mark = ","),
+        format(length(.filespec_axis(x)), big.mark = ",")
+      )
+    )
+    maps <- lapply(seq_along(views), function(i) {
+      sample_name <- names(views)[[i]]
+      .particle_progress(
+        sample_name, "memory materialization",
+        sprintf("region %s/%s; %s spectra", i, length(views),
+                format(counts[[i]], big.mark = ","))
+      )
+      map <- decompress_spec(views[[i]], index = seq_len(counts[[i]]))
+      .particle_progress(
+        sample_name, "memory materialization complete",
+        sprintf("elapsed %.1f s",
+                proc.time()[["elapsed"]] - materialize_started)
+      )
+      map
+    })
+    names(maps) <- names(views)
+    return(automate_particle_analysis.default(
+      x = maps, library = library, output_dir = output_dir, images = images,
+      bottom_left = bottom_left, top_right = top_right, origins = origins,
+      material_col = material_col, library_id_col = library_id_col,
+      particle_id_strategy = particle_id_strategy,
+      spectral_smooth = spectral_smooth, sigma1 = sigma1, sigma2 = sigma2,
+      close = close, close_kernel = close_kernel,
+      sn_threshold_min = sn_threshold_min, sn_threshold_max = sn_threshold_max,
+      cor_threshold = cor_threshold, area_threshold = area_threshold,
+      label_unknown = label_unknown, remove_materials = remove_materials,
+      remove_unknown = remove_unknown, pixel_length = pixel_length,
+      metric = metric, abs = abs, collapse_function = collapse_function,
+      outputs = outputs, process_args = process_args,
+      specs_steps = specs_steps, specs_centers = specs_centers,
+      file_processing = "memory"
+    ))
+  }
   strategy <- .normalize_particle_strategy(particle_id_strategy)
   if (!strategy %in% c("collapse", "all_cell_id")) {
     stop("FileSpecs particle analysis currently supports ",
@@ -147,11 +198,14 @@ automate_particle_analysis.FileSpecs <- function(
   }
 
   if (is.null(cached)) {
-    .particle_progress(sample_name, "streaming signal/noise")
+    .particle_progress(
+      sample_name, "streaming signal/noise",
+      sprintf("%s spectra", format(nrow(index), big.mark = ","))
+    )
     snr <- .filespec_particle_snr(
       x, index = index, bands = bands, metric = metric, abs = abs,
       spectral_smooth = spectral_smooth, sigma1 = sigma1,
-      chunk_size = chunk_size
+      chunk_size = chunk_size, sample = sample_name
     )
     threshold <- snr > sn_threshold_min & snr < sn_threshold_max
     threshold[is.na(threshold)] <- FALSE
@@ -172,7 +226,7 @@ automate_particle_analysis.FileSpecs <- function(
           process_args = process_args, material_col = material_col,
           library_id_col = library_id_col,
           spectral_smooth = spectral_smooth, sigma1 = sigma1,
-          chunk_size = min(chunk_size, 1000L)
+          chunk_size = min(chunk_size, 1000L), sample = sample_name
         )
         match_index <- match(index$col_id, pixel_matches$object_id)
         material <- pixel_matches[[material_col]][match_index]
@@ -185,7 +239,7 @@ automate_particle_analysis.FileSpecs <- function(
         max_cor_val = max_cor_val, area_threshold = area_threshold,
         spectral_smooth = spectral_smooth, sigma = sigma1,
         shape_kernel = sigma2, close = close, close_kernel = close_kernel,
-        chunk_size = chunk_size
+        chunk_size = chunk_size, sample = sample_name
       )
       cached <- list(
         snr = snr, threshold = threshold,
@@ -272,7 +326,7 @@ automate_particle_analysis.FileSpecs <- function(
 
 .filespec_particle_snr <- function(x, index, bands, metric, abs,
                                    spectral_smooth, sigma1, chunk_size,
-                                   process = NULL) {
+                                   process = NULL, sample = NULL) {
   if(!is.null(process) && !is.function(process)) {
     stop("'process' must be NULL or a function", call. = FALSE)
   }
@@ -288,7 +342,10 @@ automate_particle_analysis.FileSpecs <- function(
     .filespec_particle_chunks(x, index, chunk_size)
   }
   out <- rep(NA_real_, nrow(index))
-  for (rows in chunks) {
+  completed <- cumsum(lengths(chunks))
+  started <- proc.time()[["elapsed"]]
+  for (i in seq_along(chunks)) {
+    rows <- chunks[[i]]
     values <- if (isTRUE(spectral_smooth)) {
       .filespec_smoothed_values(x, index, rows, bands = bands,
                                 sigma1 = sigma1)
@@ -308,6 +365,10 @@ automate_particle_analysis.FileSpecs <- function(
     }
     out[rows] <- sig_noise(block, metric = metric, spatial_smooth = FALSE,
                           abs = abs)
+    .particle_stream_progress(
+      sample, "streaming signal/noise", i, length(chunks), completed[[i]],
+      nrow(index), started
+    )
   }
   out
 }
@@ -423,7 +484,7 @@ automate_particle_analysis.FileSpecs <- function(
 # not recreate the complete H5 spectra matrix or a library-by-map matrix.
 .filespec_particle_matches <- function(
     x, eligible, library, process_args, material_col, library_id_col,
-    spectral_smooth, sigma1, chunk_size) {
+    spectral_smooth, sigma1, chunk_size, sample = NULL) {
   index <- .filespec_index(x)
   if (!is.logical(eligible) || length(eligible) != nrow(index)) {
     stop("'eligible' must have one logical value per file-backed spectrum",
@@ -453,6 +514,8 @@ automate_particle_analysis.FileSpecs <- function(
 
   prepared <- NULL
   result <- vector("list", length(chunks))
+  completed <- cumsum(lengths(chunks))
+  started <- proc.time()[["elapsed"]]
   for (i in seq_along(chunks)) {
     rows <- chunks[[i]]
     source_rows <- positions[rows]
@@ -512,6 +575,10 @@ automate_particle_analysis.FileSpecs <- function(
     result[[i]] <- block
     rm(values, query, matches, block)
     if (i %% 5L == 0L || i == length(chunks)) invisible(gc(verbose = FALSE))
+    .particle_stream_progress(
+      sample, "streaming pixel identification", i, length(chunks),
+      completed[[i]], length(positions), started
+    )
   }
   data.table::rbindlist(result, use.names = TRUE)
 }
@@ -565,7 +632,8 @@ automate_particle_analysis.FileSpecs <- function(
 
 .filespec_mean_features <- function(x, index, feature_metadata, feature_ids,
                                     axis, spectral_smooth, sigma1,
-                                    chunk_size, unit_metadata = NULL) {
+                                    chunk_size, unit_metadata = NULL,
+                                    sample = NULL) {
   chunk_size <- .filespec_bounded_chunk_size(length(axis), chunk_size)
   .filespec_retained_mean_capacity(length(axis), length(feature_ids))
   ids <- as.character(feature_metadata$feature_id)
@@ -585,7 +653,10 @@ automate_particle_analysis.FileSpecs <- function(
     chunks <- split(selected, ceiling(seq_along(selected) /
                                         as.integer(chunk_size)))
   }
-  for (rows in chunks) {
+  completed <- cumsum(lengths(chunks))
+  started <- proc.time()[["elapsed"]]
+  for (i in seq_along(chunks)) {
+    rows <- chunks[[i]]
     block <- if (isTRUE(spectral_smooth)) {
       .filespec_smoothed_values(x, index, rows, bands = NULL,
                                 sigma1 = sigma1)
@@ -599,6 +670,10 @@ automate_particle_analysis.FileSpecs <- function(
                                                              drop = FALSE])
       counts[[group]] <- counts[[group]] + length(cols)
     }
+    .particle_stream_progress(
+      sample, "streaming particle means", i, length(chunks), completed[[i]],
+      length(selected), started
+    )
   }
   spectra <- sweep(sums, 2L, counts, "/")
   md <- if (is.null(unit_metadata)) {
@@ -631,7 +706,7 @@ automate_particle_analysis.FileSpecs <- function(
     x, eligible, material = NULL, snr = NULL, max_cor_val = NULL,
     area_threshold = 1, spectral_smooth = FALSE, sigma = c(1, 1, 1),
     shape_kernel = c(3, 3), close = FALSE, close_kernel = c(4, 4),
-    chunk_size = 8192L) {
+    chunk_size = 8192L, sample = NULL) {
   started <- proc.time()[["elapsed"]]
   .filespec_validate_object(x)
   index <- data.table::copy(.filespec_index(x))
@@ -676,7 +751,8 @@ automate_particle_analysis.FileSpecs <- function(
     feature_ids = feature_ids, axis = .filespec_axis(x),
     spectral_smooth = spectral_smooth, sigma1 = sigma,
     chunk_size = chunk_size,
-    unit_metadata = partition$analysis_units$metadata
+    unit_metadata = partition$analysis_units$metadata,
+    sample = sample
   )
   partition$settings$file_backed <- TRUE
   partition$settings$chunk_size <- .filespec_bounded_chunk_size(

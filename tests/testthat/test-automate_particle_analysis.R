@@ -111,6 +111,7 @@ test_that("automate_particle_analysis() reads a vector of file paths one at a ti
 
 test_that("H5 paths route through bounded FileSpecs analysis", {
   opened <- character()
+  routed_modes <- character()
   fake_specs <- structure(list(), class = c("FileSpecs", "Specs", "list"))
   empty <- data.table::data.table()
   sample <- list(
@@ -125,12 +126,16 @@ test_that("H5 paths route through bounded FileSpecs analysis", {
       opened <<- c(opened, path)
       fake_specs
     },
-    automate_particle_analysis.FileSpecs = function(...) structure(
-      list(samples = list(Region1 = sample),
-           particle_details_all_csv = empty,
-           particle_summary_all_csv = empty),
-      class = c("OpenSpecyParticleAnalysis", "list")
-    ),
+    automate_particle_analysis.FileSpecs = function(...) {
+      args <- list(...)
+      routed_modes <<- c(routed_modes, args$file_processing)
+      structure(
+        list(samples = list(Region1 = sample),
+             particle_details_all_csv = empty,
+             particle_summary_all_csv = empty),
+        class = c("OpenSpecyParticleAnalysis", "list")
+      )
+    },
     .read_particle_sample = function(...) {
       stop("H5 path was read eagerly")
     },
@@ -140,10 +145,16 @@ test_that("H5 paths route through bounded FileSpecs analysis", {
   result <- automate_particle_analysis(
     "large.h5", library = list(), collapse_function = mean
   )
+  memory_result <- automate_particle_analysis(
+    "large.h5", library = list(), collapse_function = mean,
+    file_processing = "memory"
+  )
 
-  expect_identical(opened, "large.h5")
+  expect_identical(opened, rep("large.h5", 2L))
+  expect_identical(routed_modes, c("stream", "memory"))
   expect_named(result$samples, "large")
   expect_identical(result$samples$large$sample_id, "large")
+  expect_named(memory_result$samples, "large")
 })
 
 test_that("automate_particle_analysis() rejects removed legacy arguments", {
@@ -375,7 +386,8 @@ test_that("removed particle arguments are absent from the public methods", {
     OpenSpecy:::automate_particle_analysis.FileSpecs
   )) {
     argument_names <- names(formals(fun))
-    expect_identical(tail(argument_names, 2L), c("specs_centers", "..."))
+    expect_identical(tail(argument_names, 3L),
+                     c("specs_centers", "file_processing", "..."))
     expect_false(any(c("spatial_smooth", "top_n") %in% argument_names))
   }
 })

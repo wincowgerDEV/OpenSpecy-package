@@ -1,5 +1,9 @@
 # OpenSpecy 2.0.0
 
+- `automate_particle_analysis()` now exposes `file_processing = "stream"` or
+  `"memory"` for file-backed inputs. Streaming remains the bounded default and
+  now reports chunk counts, processed spectra, percentages, and elapsed time
+  during signal/noise, pixel-identification, and particle-mean phases.
 - The public app, pkgdown site, canonical metadata, sitemap, and documentation
   links now use the institutional GitHub Pages route at
   `https://www.openanalysis.org/OpenSpecyV2/`.

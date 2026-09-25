@@ -168,6 +168,7 @@ pixels, and `cor_threshold` is the minimum correlation used for interpretation.
 particle_result <- automate_particle_analysis(
   map,
   library = reference_library,
+  file_processing = "stream",
   particle_id_strategy = "collapse",
   collapse_function = mean,
   spectral_smooth = FALSE,
@@ -186,18 +187,25 @@ plot(particle_result, sample = "Region1", which = "sn_histogram")
 plot(particle_result, sample = "Region1", which = "cor_histogram")
 ```
 
+For a `FileSpecs` object or H5/HDF5 path, `file_processing = "stream"` is the
+default. It reports region, chunk, spectrum-count, percentage, and elapsed-time
+milestones while reading bounded blocks. Choose `file_processing = "memory"`
+to materialize every region before analysis when the full spectra and analysis
+intermediates fit comfortably in RAM. Memory mode enables the complete
+in-memory strategy set and can be faster for smaller maps, but it removes the
+streaming memory bound.
+
 The signal heatmap uses a continuous finite minimum-to-maximum legend; the
 threshold mask remains binary. Both histograms draw the configured threshold
 lines. The pipeline retains the exact best match on each collapsed particle.
 For H5 data, requesting
 `particle_image` materializes and caches the registered visual mosaic only for
 the current region, using all intersecting tiles rather than one unrelated
-tile. This initial file-backed method supports only the `collapse` strategy,
-`mean`, non-entropy S/N, and no spectral smoothing. Whole-map correlations,
-raw-pixel matching, median/custom collapse, PCA/K-means fitting, and arbitrary
-file-backed operation chains remain intentionally unavailable. Use bounded
-materialization for those established operations, and verify equivalence on a
-representative subset before interpreting a large run.
+tile. Stream mode supports connected `collapse` with `mean` and
+`all_cell_id`, non-entropy S/N, and bounded spectral smoothing. Other
+strategies, median/custom collapse, and arbitrary whole-map operation chains
+require memory mode. Verify stream/memory equivalence on a representative
+subset before interpreting a large run.
 
 Local Shiny uses one **Choose spectra...** control: a native Windows/macOS
 multi-file dialog when available, or a mounted-filesystem browser elsewhere.

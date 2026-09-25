@@ -39,6 +39,7 @@ automate_particle_analysis(
   process_args = list(),
   specs_steps = c("pca", "kmeans"),
   specs_centers = NULL,
+  file_processing = c("stream", "memory"),
   ...
 )
 
@@ -74,6 +75,7 @@ automate_particle_analysis(
   process_args = list(),
   specs_steps = c("pca", "kmeans"),
   specs_centers = NULL,
+  file_processing = c("stream", "memory"),
   ...
 )
 
@@ -109,13 +111,14 @@ automate_particle_analysis(
   process_args = list(),
   specs_steps = c("pca", "kmeans"),
   specs_centers = NULL,
+  file_processing = c("stream", "memory"),
   ...
 )
 }
 \arguments{
 \item{x}{character vector of files, an \code{OpenSpecy}/\code{Specs} object, or a list
-of objects/files. H5/HDF5 paths are opened as bounded file-backed
-\link[=open_specs]{FileSpecs} sources rather than read into memory in full.}
+of objects/files. H5/HDF5 paths can be analyzed as bounded file-backed
+\link[=open_specs]{FileSpecs} sources or materialized in memory before analysis.}
 
 \item{library}{reference \code{OpenSpecy} object or trained model library passed
 to \code{\link{match_spec}()}.}
@@ -177,6 +180,12 @@ strategies require the concrete \code{c("pca", "kmeans")} workflow.}
 
 \item{specs_centers}{requested K-means cluster count for clustering
 strategies; the effective count is clamped to the eligible data.}
+
+\item{file_processing}{file-backed execution policy. \code{"stream"} (the
+default) reads bounded chunks and supports the file-backed strategies;
+\code{"memory"} materializes every region before using the full in-memory
+workflow. The memory mode can be faster for smaller files but requires
+enough RAM for all spectra and their analysis intermediates.}
 
 \item{\ldots}{catches removed legacy arguments and otherwise is reserved.}
 }

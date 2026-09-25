@@ -405,22 +405,33 @@ run_file_specs_benchmark <- function() {
     warm_cache <- file.path(bench_root, "particle-warm-cache")
     warm_specs <- open_specs(source_path, cache_dir = warm_cache)
     warm_view <- .bench_region_view(warm_specs, region)
-    pipeline <- function(x) {
-      do.call(automate_particle_analysis, c(list(x = x), args))
+    pipeline <- function(x, file_processing = "stream") {
+      do.call(
+        automate_particle_analysis,
+        c(list(x = x), args, list(file_processing = file_processing))
+      )
     }
     invisible(pipeline(warm_view))
     results$particle_warm <- .bench_repeat(
       paste0(pipeline_name, ":particle_warm_cache"),
       function() pipeline(warm_view), repetitions, use_peak
     )
+    results$particle_memory <- .bench_repeat(
+      paste0(pipeline_name, ":particle_memory"),
+      function() pipeline(warm_view, "memory"), repetitions, use_peak
+    )
     results$particle_cold$source_passes <- 2
     results$particle_warm$source_passes <- 0
-    for (key in c("particle_cold", "particle_warm")) {
+    results$particle_memory$source_passes <- 1
+    for (key in c("particle_cold", "particle_warm", "particle_memory")) {
       results[[key]]$source_bytes <- sum(warm_specs$source$members$size)
       results[[key]]$descriptor_bytes <- as.numeric(object.size(warm_specs))
       results[[key]]$estimated_payload_bytes <- NA_real_
       results[[key]]$cache_bytes <- .bench_dir_bytes(warm_cache)
     }
+    .bench_compare_particle_results(
+      pipeline(warm_view), pipeline(warm_view, "memory")
+    )
 
     eager <- NULL
     if (identical(pipeline_name, "tiny_envi")) {

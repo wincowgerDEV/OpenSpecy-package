@@ -63,7 +63,9 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   old_chunk <- getOption("OpenSpecy.filespec.chunk_size")
   options(OpenSpecy.filespec.chunk_size = 3L)
   on.exit(options(OpenSpecy.filespec.chunk_size = old_chunk), add = TRUE)
-  result <- do.call(automate_particle_analysis, c(list(x = specs), args))
+  messages <- capture_messages(
+    result <- do.call(automate_particle_analysis, c(list(x = specs), args))
+  )
 
   expect_s3_class(result, "OpenSpecyParticleAnalysis")
   expect_named(result$samples, "Region1")
@@ -76,10 +78,15 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_s3_class(result$samples$Region1$particles_rds, "OpenSpecy")
   expect_identical(result$samples$Region1$sn_histogram$type, "histogram")
   expect_identical(result$samples$Region1$cor_histogram$type, "histogram")
+  progress <- paste(messages, collapse = "\n")
+  expect_match(progress, "streaming signal/noise.*chunk 1/6", perl = TRUE)
+  expect_match(progress, "3/16 spectra \\(18%\\); elapsed", perl = TRUE)
+  expect_match(progress, "streaming particle means.*chunk", perl = TRUE)
 
-  eager <- decompress_spec(specs, region = "Region1")
-  eager_result <- do.call(automate_particle_analysis,
-                          c(list(x = eager), args))
+  eager_result <- do.call(
+    automate_particle_analysis,
+    c(list(x = specs), args, list(file_processing = "memory"))
+  )
   file_details <- result$particle_details_all_csv
   eager_details <- eager_result$particle_details_all_csv
   compare <- c("max_cor_val", "area_um2", "perimeter_um",
@@ -89,6 +96,23 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_equal(result$samples$Region1$particles_rds$spectra,
                eager_result$samples[[1]]$particles_rds$spectra,
                tolerance = 1e-10, ignore_attr = TRUE)
+  expect_s3_class(eager_result$samples$Region1$particles_raw_rds, "OpenSpecy")
+  memory_median <- do.call(
+    automate_particle_analysis,
+    c(
+      list(x = specs),
+      utils::modifyList(
+        args,
+        list(collapse_function = stats::median, file_processing = "memory")
+      )
+    )
+  )
+  expect_s3_class(memory_median$samples$Region1$particles_rds, "OpenSpecy")
+  expect_error(
+    do.call(automate_particle_analysis,
+            c(list(x = specs), args, list(file_processing = "invalid"))),
+    "'arg' should be one of"
+  )
 
   cache_files <- list.files(cache, recursive = TRUE, full.names = TRUE)
   cache_mtime <- file.info(cache_files)$mtime
