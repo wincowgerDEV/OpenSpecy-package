@@ -4058,8 +4058,9 @@ output$progress_bars <- renderUI({
       } else {
         0L
       }
-      map_trace_max <- 1L +
-        as.integer(!is.null(current_heatmap_data()$visual_image))
+      # The registered visual is a non-interactive layout image above the two
+      # map traces, not a data trace with its own curve number.
+      map_trace_max <- 1L
       if(is.na(curve_number) ||
          !curve_number %in% seq.int(0L, map_trace_max)) return()
       req(length(click$x), length(click$y))

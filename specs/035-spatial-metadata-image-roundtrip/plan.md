@@ -62,6 +62,7 @@
 - [x] Add focused helper/server/package tests, genuine H5/ENVI/JPG/CSV round trips, and a local no-upload browser/layout journey.
 - [x] Refine dominant red-frame registration, top-raster opacity, numeric-filter theming, and complete file-backed output basenames from maintainer fixture feedback.
 - [x] Add calibrated full-map, total, mean, and median area to per-material particle-analysis summaries.
+- [x] Correct Plotly's cross-module paint order by rendering the registered raster in the explicit above-map layout layer and keeping selection above it.
 - [ ] Run the matching-artifact browser journey after a clean commit produces the required action-built wasm artifact.
 - [x] Run local proportional gates, audit package/app size, inspect generated diffs, reconcile checkboxes, stop owned processes, inspect `git status`, and remove task scratch.
 
@@ -82,5 +83,5 @@
 ## Approval Notes
 
 - Approved by: maintainer implementation request, 2026-09-25.
-- Evidence: focused and full tests pass (4,068 assertions, 30 expected warning assertions, two opt-in AWS skips); the targeted local browser journey passes, including computed metadata-filter colors; HostedAppStatic passes 361 checks; `inst/shiny` remains 13 files (538,797 bytes) with no new static asset. Routine refinement scope did not trigger a new R CMD check.
+- Evidence: the focused app-helper regression passes; bundled `run_app` passes 865 checks and HostedAppStatic passes 361 checks. The maintainer ENVI/JPG fixture serializes its complete 460 x 446 crop as a decoded 460 x 446 RGBA PNG in Plotly's `above` layer at the 196 x 202 map-cell boundary. `inst/shiny` remains 13 files (539,689 bytes) with no new static asset. Routine refinement scope did not trigger a new full package suite or R CMD check.
 - Follow-up: the exact matching-artifact browser tier and clean wasm dependency rebuild require a clean committed SHA/action artifact and remain deferred. Push/pull remains unauthorized.

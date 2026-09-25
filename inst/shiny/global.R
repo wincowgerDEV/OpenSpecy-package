@@ -1367,6 +1367,36 @@ app_visual_trace_geometry <- function(x, y, image) {
   )
 }
 
+app_visual_layout_image <- function(x, y, image, opacity = 1) {
+  geometry <- app_visual_trace_geometry(x, y, image)
+  opacity <- suppressWarnings(as.numeric(opacity))
+  if(length(opacity) != 1L || !is.finite(opacity)) opacity <- 1
+  list(
+    source = plotly:::raster2uri(image),
+    xref = "x", yref = "y",
+    x = geometry$x_boundary[[1L]], y = geometry$y_boundary[[2L]],
+    sizex = diff(geometry$x_boundary), sizey = diff(geometry$y_boundary),
+    xanchor = "left", yanchor = "top", sizing = "stretch",
+    opacity = pmin(pmax(opacity, 0), 1), layer = "above"
+  )
+}
+
+app_selection_shape <- function(x, y, select) {
+  if(is.null(select) || length(select$x) != 1L || length(select$y) != 1L ||
+     !is.finite(select$x) || !is.finite(select$y)) return(NULL)
+  x_boundary <- app_heatmap_cell_range(x)
+  y_boundary <- app_heatmap_cell_range(y)
+  x_radius <- diff(x_boundary) / max(length(unique(x)), 1L) * 1.5
+  y_radius <- diff(y_boundary) / max(length(unique(y)), 1L) * 1.5
+  list(
+    type = "circle", xref = "x", yref = "y",
+    x0 = select$x - x_radius, x1 = select$x + x_radius,
+    y0 = select$y - y_radius, y1 = select$y + y_radius,
+    fillcolor = "#F59E0B", opacity = 1,
+    line = list(color = "#FFF7ED", width = 2), layer = "above"
+  )
+}
+
 app_particle_metadata_units <- function(metadata, pixel_size = 1,
                                         pixel_unit = "pixel") {
   calibration <- app_pixel_calibration(pixel_size, pixel_unit)
@@ -4197,9 +4227,9 @@ app_heatmap_hover_text <- function(data, legend_title, levels = NULL) {
 # R/automate_particle_analysis.R) as a themed, interactive plotly object.
 # Uses the shared heatmapA/MyPlotC Plotly theme: a heatmap trace
 # (hover-only metadata, no click popover) plus a second, always-present
-# marker trace that server.R moves via plotlyProxyInvoke("restyle", ...)
-# on selection change instead of a full redraw. `select` is the currently
-# selected point's data coordinates (list(x=, y=)) or NULL.
+# plus an optional registered raster in Plotly's explicit above-trace image
+# layer. A selected cell is drawn in the still-higher shape layer. `select` is
+# the currently selected point's data coordinates (list(x=, y=)) or NULL.
 app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   if (is.null(data) || identical(data$type, "empty")) {
     reason <- if (!is.null(data$reason)) data$reason else "no data available"
@@ -4296,9 +4326,6 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   legend_layout <- app_heatmap_legend_layout(legend_title)
   axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
 
-  select_x <- if (!is.null(select) && is.finite(select$x)) select$x else NA
-  select_y <- if (!is.null(select) && is.finite(select$y)) select$y else NA
-
   overlay_opacity <- suppressWarnings(as.numeric(data$overlay_opacity))
   if(length(overlay_opacity) != 1L || !is.finite(overlay_opacity)) {
     overlay_opacity <- 1
@@ -4320,28 +4347,21 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       hoverinfo = "text", text = rejected_text, hoverongaps = FALSE,
       name = "Rejected"
     )
+  layout_images <- list()
   if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
     image <- pmin(pmax(data$visual_image, 0), 1)
-    geometry <- app_visual_trace_geometry(data$x, data$y, image)
-    plot <- plotly::add_trace(
-      plot, z = round(image * 255), type = "image",
-      x0 = geometry$x0, y0 = geometry$y0,
-      dx = geometry$dx, dy = geometry$dy,
-      opacity = overlay_opacity,
-      hoverinfo = "skip", showlegend = FALSE, name = "Visual image"
-    )
+    layout_images <- list(app_visual_layout_image(
+      data$x, data$y, image, overlay_opacity
+    ))
   }
+  selection_shape <- app_selection_shape(data$x, data$y, select)
+  layout_shapes <- if(is.null(selection_shape)) list() else list(selection_shape)
   plot <- plot |>
-    plotly::add_trace(
-      x = select_x, y = select_y, type = "scatter", mode = "markers",
-      marker = list(color = "#F59E0B", size = 14, opacity = 1,
-                    line = list(color = "#FFF7ED", width = 2)),
-      hoverinfo = "skip", showlegend = FALSE, name = "Selected"
-    ) |>
     plotly::layout(
       xaxis = list(title = paste0("X (", axis_unit, ")")),
       yaxis = list(title = paste0("Y (", axis_unit, ")"),
                    scaleanchor = "x", scaleratio = 1),
+      images = layout_images, shapes = layout_shapes,
       showlegend = FALSE, margin = legend_layout$margin
     ) |>
     app_style_plotly()

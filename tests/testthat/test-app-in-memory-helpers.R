@@ -543,19 +543,26 @@ test_that("particle plotly places the alpha image above the heatmap boundary", {
     palette = c(PE = "#112233", PP = "#445566"),
     visual_image = array(0.5, dim = c(2, 2, 3)), overlay_opacity = 0.35
   )
-  built <- suppressWarnings(plotly::plotly_build(env$app_particle_plotly(data)))
+  built <- suppressWarnings(plotly::plotly_build(env$app_particle_plotly(
+    data, select = list(x = 1, y = 0)
+  )))
   expect_identical(built$x$data[[1L]]$type, "heatmap")
   expect_true(is.null(built$x$data[[1L]]$opacity) ||
                 identical(built$x$data[[1L]]$opacity, 1))
   expect_identical(built$x$data[[2L]]$name, "Rejected")
-  expect_identical(built$x$data[[3L]]$type, "image")
-  expect_equal(built$x$data[[3L]]$opacity, 0.35)
-  expect_equal(built$x$data[[3L]]$x0, -0.5)
-  expect_equal(built$x$data[[3L]]$y0, 1.5)
-  expect_equal(built$x$data[[3L]]$dx, 2)
-  expect_equal(built$x$data[[3L]]$dy, -2)
-  expect_identical(built$x$data[[4L]]$type, "scatter")
-  expect_identical(built$x$data[[4L]]$mode, "markers")
+  expect_length(built$x$data, 2L)
+  overlay <- built$x$layout$images[[1L]]
+  expect_match(overlay$source, "^data:image/png;base64,")
+  expect_equal(overlay$opacity, 0.35)
+  expect_equal(overlay$x, -0.5)
+  expect_equal(overlay$y, 1.5)
+  expect_equal(overlay$sizex, 2)
+  expect_equal(overlay$sizey, 2)
+  expect_identical(overlay$layer, "above")
+  selection <- built$x$layout$shapes[[1L]]
+  expect_identical(selection$type, "circle")
+  expect_identical(selection$layer, "above")
+  expect_identical(selection$fillcolor, "#F59E0B")
 })
 
 test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
