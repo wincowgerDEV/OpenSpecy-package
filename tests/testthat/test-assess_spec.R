@@ -407,7 +407,7 @@ test_that("spike assessment surfaces uncorrectable and rejected candidates", {
     attempted,
     checks = "spike",
     report = "all",
-    spike_args = list(residual_threshold = 1e9)
+    spike_args = list(method = "residual", residual_threshold = 1e9)
   )
   expect_identical(history_only$status, "warning")
   expect_match(history_only$issue, "Previous spike correction")

@@ -15,6 +15,8 @@ test_that("correct_spike() validates dispatch and method-specific inputs", {
   )
   expect_error(correct_spike(clean, residual_window = 0),
                "residual_window")
+  expect_error(correct_spike(clean, noise_multiplier = 0),
+               "noise_multiplier")
   expect_error(correct_spike(clean, rel_height = 1.1), "rel_height")
   expect_error(
     correct_spike(clean, threshold = 5),
@@ -34,7 +36,9 @@ test_that("residual correction handles both spike signs and is idempotent", {
   )
   attr(original, "source_tag") <- "residual fixture"
 
-  corrected <- correct_spike(original, interpolation_points = 5L)
+  corrected <- correct_spike(
+    original, method = "residual", interpolation_points = 5L
+  )
   diagnostic <- attr(corrected, "automatic_spike")
 
   expect_true(diagnostic$applied)
@@ -47,7 +51,7 @@ test_that("residual correction handles both spike signs and is idempotent", {
   expect_equal(unname(corrected$spectra[61, "negative"]), baseline[61],
                tolerance = 0.01)
   expect_identical(
-    correct_spike(corrected, interpolation_points = 5L),
+    correct_spike(corrected, method = "residual", interpolation_points = 5L),
     corrected
   )
 })
@@ -77,6 +81,7 @@ test_that("descending axes preserve orientation for positive and negative residu
 
     corrected <- correct_spike(
       original,
+      method = "residual",
       direction = case$direction,
       interpolation_points = 5L
     )
@@ -96,6 +101,7 @@ test_that("descending axes preserve orientation for positive and negative residu
     expect_identical(
       correct_spike(
         corrected,
+        method = "residual",
         direction = case$direction,
         interpolation_points = 5L
       ),
@@ -116,9 +122,12 @@ test_that("residual correction preserves the OpenSpecy contract", {
 
   detection <- OpenSpecy:::.detect_spikes(
     original,
+    method = "residual",
     interpolation_points = 5L
   )
-  corrected <- correct_spike(original, interpolation_points = 5L)
+  corrected <- correct_spike(
+    original, method = "residual", interpolation_points = 5L
+  )
   changed <- corrected$spectra != original$spectra
   changed[is.na(changed)] <- FALSE
 
@@ -166,6 +175,56 @@ test_that("the detector exposes a stable reusable result structure", {
   expect_identical(dim(detected$flagged), c(length(values), 1L))
   expect_equal(detected$correctable_count, 1L)
   expect_true(detected$flagged[51, 1])
+})
+
+test_that("the default MAD prominence method matches the supplied workflow", {
+  baseline <- rep(5, 101)
+  positive <- negative <- baseline
+  positive[51] <- 105
+  negative[61] <- -95
+  original <- as_OpenSpecy(
+    seq_len(101), data.frame(positive = positive, negative = negative)
+  )
+  attr(original, "source_tag") <- "NCL fixture"
+
+  corrected <- correct_spike(original)
+  diagnostic <- attr(corrected, "automatic_spike")
+
+  expect_true(diagnostic$applied)
+  expect_identical(diagnostic$method, "mad_prominence_width")
+  expect_identical(diagnostic$parameters$noise_multiplier, 10)
+  expect_identical(diagnostic$parameters$width_threshold, 10)
+  expect_setequal(diagnostic$affected_spectra, c("positive", "negative"))
+  expect_equal(corrected$spectra[49:53, "positive"], rep(5, 5))
+  expect_equal(corrected$spectra[59:63, "negative"], rep(5, 5))
+  expect_identical(corrected$metadata, original$metadata)
+  expect_identical(attr(corrected, "source_tag"), "NCL fixture")
+  expect_identical(correct_spike(corrected), corrected)
+})
+
+test_that("base peak intervals reproduce frozen pracma findpeaks results", {
+  signal <- c(0, 1, 3, 1, 0, 0, -1, -3, -1, 0)
+  positive <- OpenSpecy:::.spike_findpeak_intervals(signal, threshold = 2)
+  negative <- OpenSpecy:::.spike_findpeak_intervals(-signal, threshold = 2)
+
+  expect_equal(positive, data.frame(
+    peak = 3L, start = 1L, end = 5L, prominence = 3, width = 4
+  ))
+  expect_equal(negative, data.frame(
+    peak = 8L, start = 6L, end = 10L, prominence = 3, width = 4
+  ))
+  expect_equal(OpenSpecy:::.spike_raw_mad_diff(c(0, 1, 2, 20, 3)), 8.5)
+})
+
+test_that("default MAD correction uses conservative one-sided edge values", {
+  values <- rep(0, 31)
+  values[2] <- 50
+  corrected <- correct_spike(make_spike_test_spec(values))
+  diagnostic <- attr(corrected, "automatic_spike")
+
+  expect_true(diagnostic$applied)
+  expect_equal(corrected$spectra[1:4, 1], rep(0, 4))
+  expect_false(any(!is.finite(corrected$spectra)))
 })
 
 test_that("the Coca-Lopez manual thresholds use sample-unit width", {
@@ -289,7 +348,9 @@ test_that("narrow real bands are rejected conservatively", {
   narrow_band <- 100 * exp(-0.5 * ((axis - 101) / 1.5)^2)
   original <- make_spike_test_spec(narrow_band, axis)
 
-  residual <- correct_spike(original, interpolation_points = 5L)
+  residual <- correct_spike(
+    original, method = "residual", interpolation_points = 5L
+  )
   residual_diagnostic <- attr(residual, "automatic_spike")
   expect_identical(residual$spectra, original$spectra)
   expect_false(residual_diagnostic$applied)
@@ -340,7 +401,9 @@ test_that("correction preserves existing non-finite values and adds none", {
   values[90] <- values[90] + 30
   original <- make_spike_test_spec(values, axis)
 
-  corrected <- correct_spike(original, interpolation_points = 5L)
+  corrected <- correct_spike(
+    original, method = "residual", interpolation_points = 5L
+  )
 
   expect_identical(which(!is.finite(corrected$spectra)),
                    which(!is.finite(original$spectra)))
@@ -457,6 +520,7 @@ test_that("idempotency does not preserve stale diagnostics after method changes"
   values[c(2, 51)] <- 50
   corrected <- correct_spike(
     make_spike_test_spec(values),
+    method = "residual",
     residual_window = 5L,
     interpolation_points = 5L
   )

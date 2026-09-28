@@ -394,7 +394,15 @@ When the heatmap is thresholded correctly particles will be isolated and these r
 knitr::include_graphics("app/particle_example.jpg")
 ```
 
-Collapsing the particles will also make a particle size plot appear in the summary tab. 
+Collapsing the particles also makes a Plotly particle-size histogram appear in
+the Summary tab. Hover reports each calibrated nominal-size bin and its count.
+After material identification, the interactive material chart reports each
+class count and observed percentage with a 95% percentage confidence interval.
+Its **All Materials** row reports total count with uncertainty based on the
+total-concentration RSD, `count^(-1/2)`. The class interval is the published
+single-property random-sampling equation; it does not include laboratory,
+identification, finite-population, or concentration uncertainty and collapses
+to zero at observed percentages of exactly 0 or 100.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/particle_size.jpg")
@@ -471,9 +479,16 @@ saved-ratio and saved-measurement provenance. The MD5 field describes the displa
 `OpenSpecy` object rather than the original file bytes. The file is intended to
 help document and reproduce an analysis. In **Advanced**, upload it with
 **Load Settings** to restore recognized controls and saved ratio/measurement
-definitions. Omitted settings reset to app defaults, provenance fields remain
-read-only, and invalid files change nothing. The loaded spectra are retained,
-but the restored configuration requires **Run** before results update.
+definitions. The adjacent **Standard Settings** menu applies reusable settings
+through the same path. **Default** restores every control to its captured
+startup value and clears saved quantification definitions. **MIPPR - Thermo
+Fisher iN10 MX** enables spatial smoothing, particle collapse,
+signal-times-noise thresholding at 0.01, full-file memory, FTIR, manual Flatten
+Region, and manual 800--3200 cm^-1^ range selection while disabling correlation
+thresholding and Top N per organization. Omitted CSV settings reset to app
+defaults, provenance fields remain read-only, and invalid files change nothing.
+Neither route replaces loaded spectra; the restored configuration requires
+**Run** before results update.
 
 # Identifying Spectra 
 

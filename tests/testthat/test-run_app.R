@@ -618,9 +618,9 @@ test_that("bundled app runs corrections and identification unconditionally", {
             regexpr('"spike_decision"', ui_source, fixed = TRUE)[[1L]])
   expect_lt(regexpr('"spike_decision"', ui_source, fixed = TRUE)[[1L]],
             regexpr('"saturation_decision"', ui_source, fixed = TRUE)[[1L]])
-  expect_match(ui_source, "Robust Residual Threshold is the prediction error",
+  expect_match(ui_source, "Legacy robust local residual compares each point",
                fixed = TRUE)
-  expect_match(ui_source, "Neighbor Points per Side is the number",
+  expect_match(ui_source, "Neighbor Points per Side controls the prediction context",
                fixed = TRUE)
   expect_match(ui_source, "Detector Ceiling is expressed in the uploaded intensity units",
                fixed = TRUE)
@@ -1974,7 +1974,7 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
     fixed = TRUE
   )
   expect_match(server_source, "rejected = rejected", fixed = TRUE)
-  expect_match(server_source, "app_material_summary_plot(", fixed = TRUE)
+  expect_match(server_source, "app_material_summary_plotly(", fixed = TRUE)
   expect_match(server_source, "map_color_choices <- reactive({", fixed = TRUE)
   expect_match(server_source, "resolved_map_color <- reactive({", fixed = TRUE)
   expect_match(server_source,
@@ -2016,7 +2016,7 @@ test_that("bundled app applies spike correction through the registered API", {
   sys.source(file.path(app_path, "global.R"), envir = env)
 
   axis <- seq_len(121)
-  baseline <- sin(axis / 15)
+  baseline <- rep(5, length(axis))
   values <- baseline
   values[61] <- values[61] + 40
   spiked <- as_OpenSpecy(axis, data.frame(sample = values))
@@ -2027,8 +2027,62 @@ test_that("bundled app applies spike correction through the registered API", {
   )
   expect_true(attr(corrected, "automatic_spike")$applied)
   expect_equal(
-    unname(corrected$spectra[61, 1]), baseline[61], tolerance = 0.02
+    unname(corrected$spectra[59:63, 1]), baseline[59:63]
   )
+  expect_identical(attr(corrected, "automatic_spike")$method,
+                   "mad_prominence_width")
+})
+
+test_that("bundled app material summaries report uncertainty in Plotly", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  object <- as_OpenSpecy(
+    seq_len(3), matrix(seq_len(9), nrow = 3),
+    metadata = data.frame(
+      material_class = c("PE", "PE", "PET"), area = c(1, 4, 9)
+    )
+  )
+  summary <- env$app_particle_summary_table(object)
+  expect_contains(
+    names(summary),
+    c("particle_count", "total_particle_count", "percentage",
+      "confidence_level", "percentage_uncertainty",
+      "percentage_ci_lower", "percentage_ci_upper",
+      "total_concentration_rsd")
+  )
+  expect_equal(sum(summary$percentage), 100)
+  expect_true(all(summary$total_particle_count == 3L))
+  expect_equal(summary$total_concentration_rsd, rep(3^(-1 / 2), 2))
+
+  material_data <- env$app_material_summary_data(c("PE", "PE", "PET"))
+  expect_identical(tail(material_data$material_class, 1L), "All Materials")
+  expect_equal(tail(material_data$count, 1L), 3)
+  expect_equal(tail(material_data$count_uncertainty, 1L), sqrt(3))
+  material_widget <- env$app_material_summary_plotly(c("PE", "PE", "PET"))
+  material_build <- plotly::plotly_build(material_widget)
+  expect_s3_class(material_widget, "plotly")
+  expect_true(any(grepl("All Materials", material_build$x$data[[1]]$text,
+                        fixed = TRUE)))
+  expect_equal(as.numeric(material_build$x$data[[1]]$error_x$array),
+               material_data$count_uncertainty)
+
+  size_widget <- env$app_particle_size_plotly(object)
+  size_build <- plotly::plotly_build(size_widget)
+  expect_s3_class(size_widget, "plotly")
+  expect_match(size_build$x$data[[1]]$hovertemplate, "Bin:", fixed = TRUE)
+  expect_equal(sum(size_build$x$data[[1]]$y), 3)
 })
 
 test_that("bundled app quantifies the displayed processed spectra", {
@@ -3033,8 +3087,10 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
   sys.source(file.path(app_path, "global.R"), envir = env)
 
   expected_input_ids <- c(
-    "spike_decision", "spike_direction",
-    "spike_residual_threshold", "spike_residual_window",
+    "spike_decision", "spike_method", "spike_direction",
+    "spike_width_threshold", "spike_noise_multiplier",
+    "spike_interpolation_window", "spike_residual_threshold",
+    "spike_residual_window",
     "saturation_decision", "saturation_mode", "saturation_ceiling",
     "saturation_max_loss", "make_rel_decision", "smooth_decision",
     "smoother", "derivative_order", "smoother_window", "derivative_abs",
@@ -3098,12 +3154,57 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
   server_source <- paste(readLines(file.path(app_path, "server.R"),
                                   warn = FALSE), collapse = "\n")
   expect_match(ui_source, 'fileInput(\n      "settings_csv"', fixed = TRUE)
+  expect_match(ui_source, '"settings_preset", "Standard Settings"',
+               fixed = TRUE)
   expect_match(server_source, "observeEvent(input$settings_csv", fixed = TRUE)
+  expect_match(server_source, "observeEvent(input$settings_preset", fixed = TRUE)
   expect_match(
     server_source,
     "session$onFlushed(function() {\n    defaults <- shiny::isolate(",
     fixed = TRUE
   )
+})
+
+test_that("bundled app standard settings reset defaults and apply MIPPR", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  defaults <- stats::setNames(
+    rep(list("default-marker"), length(env$app_user_metadata_input_ids)),
+    env$app_user_metadata_input_ids
+  )
+  default <- env$app_standard_settings("default", defaults)
+  expect_identical(default$settings, defaults)
+  expect_equal(nrow(default$ratios), 0L)
+  expect_equal(nrow(default$measurements), 0L)
+
+  mippr <- env$app_standard_settings("mippr_in10_mx", defaults)$settings
+  expect_identical(mippr$spatial_decision, TRUE)
+  expect_identical(mippr$collapse_decision, TRUE)
+  expect_identical(mippr$threshold_decision, TRUE)
+  expect_identical(mippr$signal_selection, "sig_times_noise")
+  expect_identical(mippr$MinSNR, 0.01)
+  expect_identical(mippr$cor_threshold_decision, FALSE)
+  expect_identical(mippr$load_entire_map, TRUE)
+  expect_identical(mippr$id_spec_type, "ftir")
+  expect_identical(mippr$top_n_per_organization, FALSE)
+  expect_identical(mippr$co2_decision, TRUE)
+  expect_identical(mippr$co2_automate, FALSE)
+  expect_identical(mippr$range_decision, TRUE)
+  expect_identical(mippr$range_automate, FALSE)
+  expect_identical(c(mippr$MinRange, mippr$MaxRange), c(800, 3200))
+  expect_identical(mippr$spike_method, "default-marker")
 })
 
 test_that("bundled app updates the native download label without replacing it", {

@@ -35,7 +35,10 @@ test_that("automate_particle_analysis() returns details and summaries", {
   expect_contains(
     names(res$particle_summary_all_csv),
     c("count", "map_area_um2", "total_area_um2", "mean_area_um2",
-      "median_area_um2")
+      "median_area_um2", "total_particle_count", "percentage",
+      "confidence_level", "percentage_uncertainty",
+      "percentage_ci_lower", "percentage_ci_upper",
+      "total_concentration_rsd")
   )
   expected_area <- res$particle_details_all_csv[, .(
     count = .N,
@@ -50,6 +53,13 @@ test_that("automate_particle_analysis() returns details and summaries", {
   data.table::setorder(actual_area, material_class)
   expect_equal(actual_area, expected_area)
   expect_true(all(res$particle_summary_all_csv$map_area_um2 == 4 * 25^2))
+  expect_equal(sum(res$particle_summary_all_csv$percentage), 100)
+  expect_true(all(res$particle_summary_all_csv$total_particle_count ==
+                    sum(res$particle_summary_all_csv$count)))
+  expect_true(all(res$particle_summary_all_csv$total_concentration_rsd ==
+                    sum(res$particle_summary_all_csv$count)^(-1 / 2)))
+  expect_true(all(res$particle_summary_all_csv$percentage_ci_lower >= 0))
+  expect_true(all(res$particle_summary_all_csv$percentage_ci_upper <= 100))
   expect_named(
     res$samples[[1]],
     c("sample_id", "particle_details_csv", "particle_summary_csv",
@@ -304,6 +314,9 @@ test_that("automate_particle_analysis() accepts both threshold extremes", {
   expect_identical(strategy_calls, 0L)
   expect_null(removed$samples[[1]]$particles_rds)
   expect_equal(removed$particle_summary_all_csv$count, 0L)
+  expect_equal(removed$particle_summary_all_csv$total_particle_count, 0L)
+  expect_true(is.na(removed$particle_summary_all_csv$percentage_uncertainty))
+  expect_true(is.na(removed$particle_summary_all_csv$total_concentration_rsd))
   expect_equal(removed$particle_summary_all_csv$map_area_um2, 4 * 25^2)
   expect_equal(removed$particle_summary_all_csv$total_area_um2, 0)
   expect_true(is.na(removed$particle_summary_all_csv$mean_area_um2))

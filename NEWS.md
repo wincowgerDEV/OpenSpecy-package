@@ -1,5 +1,22 @@
 # OpenSpecy 2.0.0
 
+- `correct_spike()` now defaults to Nicolas Coca Lopez's dependency-free,
+  two-sided MAD-prominence-width detector (10-point width, noise multiplier,
+  and interpolation window defaults). The prior robust residual detector and
+  both prominence/FWHM modes remain selectable, and Nicolas is credited as a
+  contributor to the package and function.
+- Added `material_percentage_uncertainty()` for the published single-property
+  confidence-interval half-width for any material class. Package and app
+  particle summaries now report observed percentages, 95% confidence
+  intervals, total particle count, and total concentration RSD (`count^-1/2`).
+  The app's material summary is now an interactive Plotly count chart with
+  class uncertainty plus an **All Materials** RSD bar, and its particle-size
+  histogram is interactive with bin bounds and counts on hover.
+- The Advanced settings loader now includes reusable **Default** and
+  **MIPPR - Thermo Fisher iN10 MX** presets. Default restores every captured
+  app control and clears saved quantification definitions; MIPPR configures
+  the agreed spatial, particle, signal-times-noise, FTIR, memory, flattening,
+  range, correlation, and Top-N settings, with changes applied on the next Run.
 - H5 stage coordinates and supported ENVI origin/pixel-size metadata now drive
   physical X/Y axes in the bundled app while preserving integer pixel topology.
   A consistent square source pixel length and its known unit also populate the

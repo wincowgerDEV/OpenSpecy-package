@@ -4,12 +4,23 @@
 #' @description
 #' `correct_spike()` detects isolated positive or negative intensity artifacts
 #' and replaces only accepted spike intervals with local interpolation. The
-#' default residual method compares each point with a wavenumber-aware local
+#' default MAD-prominence-width method detects narrow positive and negative
+#' peaks, estimates noise from the raw median absolute deviation of first
+#' differences, and replaces detected intervals from nearby clean values.
+#' The legacy residual method compares each point with a wavenumber-aware local
 #' interpolation and scales the residual by a local median absolute deviation.
-#' Two paper-backed methods use peak prominence and width measured in sample
-#' (CCD-pixel) units.
+#' Two additional paper-backed methods use peak prominence and width measured
+#' in sample (CCD-pixel) units.
 #'
 #' @details
+#' `method = "mad_prominence_width"` reproduces the automated workflow supplied
+#' by Nicolas Coca Lopez without requiring `pracma`. With the defaults, peaks
+#' must be narrower than 10 sampled points and exceed 10 times the raw MAD of
+#' first differences. `prominence_threshold` may override that automatic
+#' threshold. Detected intervals receive a one-point guard on either side and
+#' use a 10-point local interpolation window; at an edge the nearest clean
+#' value is used rather than extrapolating a slope.
+#'
 #' `method = "prominence_fwhm"` requires user-supplied
 #' `prominence_threshold` and `width_threshold` values. These thresholds depend
 #' on the material, instrument, spectral resolution, and acquisition settings;
@@ -21,12 +32,14 @@
 #' Peak widths and flagged intervals follow the prominence contour definition
 #' used by `scipy.signal.peak_widths()`: FWHM is measured at
 #' `rel_height = 0.5`, while the interval replaced is measured at the requested
-#' `rel_height`. Corrections require `interpolation_points` finite, unflagged
-#' samples on both sides; boundary values are never wrapped. Close spike
-#' intervals are merged before interpolation so one spike cannot be used to
-#' repair another. Linear interpolation that materially disagrees with a local
-#' quadratic reconstruction over a multi-point interval is rejected to avoid
-#' silently truncating an underlying broad band.
+#' `rel_height`. The paper-backed modes require `interpolation_points` finite,
+#' unflagged samples on both sides; boundary values are never wrapped. The
+#' default method searches that many points on either side and uses the nearest
+#' clean value when only one side exists. Close spike intervals are merged
+#' before interpolation so one spike cannot be used to repair another. Linear
+#' interpolation that materially disagrees with a local quadratic
+#' reconstruction over a multi-point interval is rejected to avoid silently
+#' truncating an underlying broad band.
 #'
 #' Correction proceeds through bounded transactional passes while the detector's
 #' correctable count strictly decreases. This lets a newly revealed spike be
@@ -41,7 +54,8 @@
 #' polystyrene, and inspect the `automatic_spike` diagnostic attribute.
 #'
 #' @param x an `OpenSpecy` object.
-#' @param method character; detection method. One of `"residual"`,
+#' @param method character; detection method. One of
+#'   `"mad_prominence_width"` (default), `"residual"`,
 #'   `"prominence_fwhm"`, or `"prominence_fwhm_ratio"`.
 #' @param direction character; detect `"both"` positive and negative spikes,
 #'   only `"positive"` spikes, or only `"negative"` spikes.
@@ -53,9 +67,14 @@
 #'   interval accepted by the residual method. The one-point default is
 #'   deliberately conservative.
 #' @param prominence_threshold positive numeric or `NULL`; minimum peak
-#'   prominence for the manual prominence/FWHM method.
+#'   prominence. `NULL` uses `noise_multiplier` times the raw MAD of first
+#'   differences for the default method; it remains required for the manual
+#'   prominence/FWHM method.
 #' @param width_threshold positive numeric or `NULL`; maximum peak FWHM in
-#'   sample (CCD-pixel) units for the manual prominence/FWHM method.
+#'   sample (CCD-pixel) units for the manual prominence/FWHM method. `NULL`
+#'   uses 10 sampled points for the default method.
+#' @param noise_multiplier positive numeric multiplier for the automatic raw
+#'   MAD prominence threshold used by `method = "mad_prominence_width"`.
 #' @param rel_height numeric in `(0, 1]`; prominence fraction at which the
 #'   interval replaced by paper methods is measured. Coca-Lopez used `0.8` for
 #'   most examples.
@@ -92,7 +111,7 @@
 #' spectra based on peaks' prominence and width." *Analytica Chimica Acta*,
 #' **1295**, 342312. \doi{10.1016/j.aca.2024.342312}.
 #'
-#' @author Win Cowger
+#' @author Win Cowger, Nicolas Coca Lopez
 #' @export
 correct_spike <- function(x, ...) {
   UseMethod("correct_spike")
@@ -108,13 +127,15 @@ correct_spike.default <- function(x, ...) {
 #' @export
 correct_spike.OpenSpecy <- function(
     x,
-    method = c("residual", "prominence_fwhm", "prominence_fwhm_ratio"),
+    method = c("mad_prominence_width", "residual", "prominence_fwhm",
+               "prominence_fwhm_ratio"),
     direction = c("both", "positive", "negative"),
     residual_window = 5L,
     residual_threshold = 8,
     residual_max_width = 1L,
     prominence_threshold = NULL,
     width_threshold = NULL,
+    noise_multiplier = 10,
     rel_height = 0.8,
     interpolation_points = 10L,
     interpolation = c("linear", "quadratic"),
@@ -149,6 +170,7 @@ correct_spike.OpenSpecy <- function(
     residual_max_width = residual_max_width,
     prominence_threshold = prominence_threshold,
     width_threshold = width_threshold,
+    noise_multiplier = noise_multiplier,
     rel_height = rel_height,
     interpolation_points = interpolation_points,
     z_threshold = z_threshold,
@@ -200,7 +222,8 @@ correct_spike.OpenSpecy <- function(
       regions = regions,
       flagged = detection$flagged,
       interpolation_points = parameters$interpolation_points,
-      interpolation = interpolation
+      interpolation = interpolation,
+      method = method
     )
     rejected <- data.table::rbindlist(
       list(rejected, prepared$rejected), use.names = TRUE
@@ -218,7 +241,8 @@ correct_spike.OpenSpecy <- function(
     transaction_reason <- .validate_spike_transaction(
       original = current,
       trial = trial,
-      flagged = detection$flagged
+      flagged = detection$flagged,
+      method = method
     )
     after <- do.call(
       .detect_spikes,
@@ -342,6 +366,7 @@ correct_spike.OpenSpecy <- function(
     residual_max_width,
     prominence_threshold,
     width_threshold,
+    noise_multiplier,
     rel_height,
     interpolation_points,
     z_threshold,
@@ -374,6 +399,7 @@ correct_spike.OpenSpecy <- function(
     interpolation_points, "interpolation_points"
   )
   z_threshold <- positive_number(z_threshold, "z_threshold")
+  noise_multiplier <- positive_number(noise_multiplier, "noise_multiplier")
   min_peaks <- positive_integer(min_peaks, "min_peaks", minimum = 2L)
 
   if (!is.numeric(rel_height) || length(rel_height) != 1L ||
@@ -389,6 +415,14 @@ correct_spike.OpenSpecy <- function(
     prominence_threshold <- positive_number(
       prominence_threshold, "prominence_threshold"
     )
+    width_threshold <- positive_number(width_threshold, "width_threshold")
+  } else if (method == "mad_prominence_width") {
+    if (!is.null(prominence_threshold)) {
+      prominence_threshold <- positive_number(
+        prominence_threshold, "prominence_threshold"
+      )
+    }
+    if (is.null(width_threshold)) width_threshold <- 10
     width_threshold <- positive_number(width_threshold, "width_threshold")
   } else {
     if (!is.null(prominence_threshold)) {
@@ -409,6 +443,7 @@ correct_spike.OpenSpecy <- function(
     residual_max_width = residual_max_width,
     prominence_threshold = prominence_threshold,
     width_threshold = width_threshold,
+    noise_multiplier = noise_multiplier,
     rel_height = as.numeric(rel_height),
     interpolation_points = interpolation_points,
     z_threshold = z_threshold,
@@ -420,13 +455,15 @@ correct_spike.OpenSpecy <- function(
 # a stable candidate table plus a logical matrix marking correctable intervals.
 .detect_spikes <- function(
     x,
-    method = c("residual", "prominence_fwhm", "prominence_fwhm_ratio"),
+    method = c("mad_prominence_width", "residual", "prominence_fwhm",
+               "prominence_fwhm_ratio"),
     direction = c("both", "positive", "negative"),
     residual_window = 5L,
     residual_threshold = 8,
     residual_max_width = 1L,
     prominence_threshold = NULL,
     width_threshold = NULL,
+    noise_multiplier = 10,
     rel_height = 0.8,
     interpolation_points = 10L,
     z_threshold = 3.5,
@@ -442,6 +479,7 @@ correct_spike.OpenSpecy <- function(
     residual_max_width = residual_max_width,
     prominence_threshold = prominence_threshold,
     width_threshold = width_threshold,
+    noise_multiplier = noise_multiplier,
     rel_height = rel_height,
     interpolation_points = interpolation_points,
     z_threshold = z_threshold,
@@ -461,6 +499,10 @@ correct_spike.OpenSpecy <- function(
   if (method == "residual") {
     candidates <- .detect_residual_spikes(x, ids, parameters)
     reason <- if (nrow(candidates) == 0L) "no_candidates" else "detected"
+  } else if (method == "mad_prominence_width") {
+    automatic <- .detect_mad_prominence_spikes(x, ids, parameters)
+    candidates <- automatic$candidates
+    reason <- automatic$reason
   } else {
     paper <- .detect_prominence_spikes(x, ids, parameters)
     candidates <- paper$candidates
@@ -873,6 +915,130 @@ correct_spike.OpenSpecy <- function(
   )
 }
 
+.spike_raw_mad_diff <- function(values) {
+  differences <- diff(as.numeric(values))
+  differences <- differences[is.finite(differences)]
+  if (!length(differences)) return(0)
+  center <- stats::median(differences)
+  noise <- stats::median(abs(differences - center))
+  if (!is.finite(noise)) 0 else as.numeric(noise)
+}
+
+# Base-R equivalent of the pracma::findpeaks() configuration used by the
+# supplied Nicolas Coca Lopez workflow: one or more strict rises followed by
+# one or more strict falls, minpeakdistance = 1, and an endpoint threshold.
+.spike_findpeak_intervals <- function(signal, threshold = 0) {
+  finite_runs <- .logical_runs(is.finite(signal))
+  if (!nrow(finite_runs)) {
+    return(data.frame(
+      peak = integer(), start = integer(), end = integer(),
+      prominence = numeric(), width = numeric()
+    ))
+  }
+  found <- list()
+  found_index <- 0L
+  for (run_index in seq_len(nrow(finite_runs))) {
+    run_start <- finite_runs$start[[run_index]]
+    run_end <- finite_runs$end[[run_index]]
+    if (run_end - run_start + 1L < 3L) next
+    values <- signal[seq.int(run_start, run_end)]
+    signs <- sign(diff(values))
+    encoded <- paste0(ifelse(signs > 0, "+",
+                             ifelse(signs < 0, "-", "0")), collapse = "")
+    matches <- gregexpr("[+]{1,}[-]{1,}", encoded)[[1L]]
+    if (matches[[1L]] < 0L) next
+    lengths <- attr(matches, "match.length")
+    for (match_index in seq_along(matches)) {
+      local_start <- matches[[match_index]]
+      local_end <- local_start + lengths[[match_index]]
+      start <- run_start + local_start - 1L
+      end <- run_start + local_end - 1L
+      peak <- start + which.max(signal[seq.int(start, end)]) - 1L
+      prominence <- signal[[peak]] - max(signal[[start]], signal[[end]])
+      if (!is.finite(prominence) || prominence < threshold) next
+      found_index <- found_index + 1L
+      found[[found_index]] <- data.frame(
+        peak = as.integer(peak), start = as.integer(start),
+        end = as.integer(end), prominence = as.numeric(prominence),
+        width = as.numeric(end - start)
+      )
+    }
+  }
+  if (!length(found)) {
+    return(data.frame(
+      peak = integer(), start = integer(), end = integer(),
+      prominence = numeric(), width = numeric()
+    ))
+  }
+  do.call(rbind, found)
+}
+
+.detect_mad_prominence_spikes <- function(x, ids, parameters) {
+  directions <- if (parameters$direction == "both") {
+    c("positive", "negative")
+  } else {
+    parameters$direction
+  }
+  candidates <- list()
+  candidate_index <- 0L
+
+  for (spectrum_index in seq_len(ncol(x$spectra))) {
+    original <- as.numeric(x$spectra[, spectrum_index])
+    noise <- .spike_raw_mad_diff(original)
+    threshold <- if (is.null(parameters$prominence_threshold)) {
+      parameters$noise_multiplier * noise
+    } else {
+      parameters$prominence_threshold
+    }
+    for (candidate_direction in directions) {
+      signal <- if (candidate_direction == "positive") original else -original
+      peaks <- .spike_findpeak_intervals(signal, threshold = threshold)
+      if (!nrow(peaks)) next
+      peaks <- peaks[peaks$width < parameters$width_threshold, , drop = FALSE]
+      if (!nrow(peaks)) next
+      for (peak_index in seq_len(nrow(peaks))) {
+        peak <- peaks[peak_index, , drop = FALSE]
+        start <- max(1L, peak$start[[1L]] - 1L)
+        end <- min(length(signal), peak$end[[1L]] + 1L)
+        score <- if (threshold > 0) {
+          peak$prominence[[1L]] / threshold
+        } else {
+          Inf
+        }
+        candidate_index <- candidate_index + 1L
+        candidates[[candidate_index]] <- data.table::data.table(
+          spectrum_index = as.integer(spectrum_index),
+          spectrum_id = ids[[spectrum_index]],
+          direction = candidate_direction,
+          peak_index = as.integer(peak$peak[[1L]]),
+          peak_wavenumber = x$wavenumber[[peak$peak[[1L]]]],
+          start_index = as.integer(start),
+          end_index = as.integer(end),
+          region_min = min(x$wavenumber[seq.int(start, end)]),
+          region_max = max(x$wavenumber[seq.int(start, end)]),
+          residual = NA_real_,
+          score = as.numeric(score),
+          prominence = as.numeric(peak$prominence[[1L]]),
+          width = as.numeric(peak$width[[1L]]),
+          prominence_width_ratio = as.numeric(
+            peak$prominence[[1L]] / peak$width[[1L]]
+          ),
+          correctable = TRUE,
+          reason = "detected"
+        )
+      }
+    }
+  }
+  if (!length(candidates)) {
+    return(list(candidates = .empty_spike_candidates(),
+                reason = "no_candidates"))
+  }
+  list(
+    candidates = data.table::rbindlist(candidates, use.names = TRUE),
+    reason = "detected"
+  )
+}
+
 .detect_prominence_spikes <- function(x, ids, parameters) {
   directions <- if (parameters$direction == "both") {
     c("positive", "negative")
@@ -1161,7 +1327,8 @@ correct_spike.OpenSpecy <- function(
     regions,
     flagged,
     interpolation_points,
-    interpolation) {
+    interpolation,
+    method) {
   accepted <- rejected <- .empty_spike_regions()
   replacements <- list()
   replacement_index <- 0L
@@ -1172,6 +1339,53 @@ correct_spike.OpenSpecy <- function(
     rows <- seq.int(region$start_index, region$end_index)
     values <- x$spectra[, spectrum_index]
     available <- !flagged[, spectrum_index] & is.finite(values)
+
+    if (method == "mad_prominence_width" && interpolation == "linear") {
+      replacement <- rep(NA_real_, length(rows))
+      for (row_index in seq_along(rows)) {
+        row <- rows[[row_index]]
+        window <- seq.int(
+          max(1L, row - interpolation_points),
+          min(length(values), row + interpolation_points)
+        )
+        clean <- window[available[window]]
+        if (length(clean) < 2L) next
+        left <- clean[clean < row]
+        right <- clean[clean > row]
+        replacement[[row_index]] <- if (!length(left)) {
+          values[[min(clean)]]
+        } else if (!length(right)) {
+          values[[max(clean)]]
+        } else {
+          stats::approx(
+            x = clean, y = values[clean], xout = row,
+            method = "linear", ties = "ordered"
+          )$y
+        }
+      }
+      if (any(!is.finite(replacement))) {
+        region$reason <- "insufficient_interpolation_neighbors"
+        rejected <- data.table::rbindlist(list(rejected, region),
+                                          use.names = TRUE)
+        next
+      }
+      if (identical(as.numeric(values[rows]), as.numeric(replacement))) {
+        region$reason <- "interpolation_no_change"
+        rejected <- data.table::rbindlist(list(rejected, region),
+                                          use.names = TRUE)
+        next
+      }
+      accepted <- data.table::rbindlist(list(accepted, region),
+                                        use.names = TRUE)
+      replacement_index <- replacement_index + 1L
+      replacements[[replacement_index]] <- list(
+        spectrum_index = spectrum_index,
+        rows = rows,
+        values = as.numeric(replacement)
+      )
+      next
+    }
+
     left <- which(seq_along(values) < region$start_index & available)
     right <- which(seq_along(values) > region$end_index & available)
     left <- utils::tail(left, interpolation_points)
@@ -1266,7 +1480,7 @@ correct_spike.OpenSpecy <- function(
   max(abs(quadratic - linear)) > tolerance
 }
 
-.validate_spike_transaction <- function(original, trial, flagged) {
+.validate_spike_transaction <- function(original, trial, flagged, method) {
   if (!identical(original$wavenumber, trial$wavenumber)) {
     return("wavenumber_changed")
   }
@@ -1283,7 +1497,8 @@ correct_spike.OpenSpecy <- function(
   if (any(is.finite(original$spectra) & !is.finite(trial$spectra))) {
     return("new_non_finite_values")
   }
-  if (any(flagged[1L, ]) || any(flagged[nrow(flagged), ])) {
+  if (method != "mad_prominence_width" &&
+      (any(flagged[1L, ]) || any(flagged[nrow(flagged), ]))) {
     return("boundary_value_flagged")
   }
   NULL

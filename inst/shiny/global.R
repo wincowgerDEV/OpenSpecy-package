@@ -1602,7 +1602,13 @@ app_particle_summary_table <- function(object, pixel_size = 1,
   md <- app_particle_metadata_units(
     object$metadata, pixel_size = pixel_size, pixel_unit = pixel_unit
   )
-  if(!nrow(md)) return(data.table::data.table())
+  if(!nrow(md)) return(data.table::data.table(
+    material_class = character(), particle_count = integer(),
+    total_particle_count = integer(), percentage = numeric(),
+    confidence_level = numeric(), percentage_uncertainty = numeric(),
+    percentage_ci_lower = numeric(), percentage_ci_upper = numeric(),
+    total_concentration_rsd = numeric()
+  ))
   material <- if(!is.null(material)) {
     if(length(material) != nrow(md)) {
       stop("Particle summary material classes do not align with particles.",
@@ -1623,6 +1629,18 @@ app_particle_summary_table <- function(object, pixel_size = 1,
     mean_area = mean(area, na.rm = TRUE),
     median_area = stats::median(area, na.rm = TRUE)
   ), by = material_class][order(-particle_count, material_class)]
+  total_count <- sum(result$particle_count)
+  percentage <- 100 * result$particle_count / total_count
+  uncertainty <- material_percentage_uncertainty(total_count, percentage)
+  result <- cbind(result, data.table::data.table(
+    total_particle_count = rep(as.integer(total_count), nrow(result)),
+    percentage = percentage,
+    confidence_level = rep(0.95, nrow(result)),
+    percentage_uncertainty = uncertainty,
+    percentage_ci_lower = pmax(0, percentage - uncertainty),
+    percentage_ci_upper = pmin(100, percentage + uncertainty),
+    total_concentration_rsd = rep(total_count^(-1 / 2), nrow(result))
+  ))
   data.table::setnames(
     result, c("total_area", "mean_area", "median_area"),
     paste0(c("total_area_", "mean_area_", "median_area_"),
@@ -1633,6 +1651,23 @@ app_particle_summary_table <- function(object, pixel_size = 1,
 
 app_particle_size_plot <- function(object, pixel_size = 1,
                                    pixel_unit = "pixel") {
+  data <- app_particle_size_data(object, pixel_size, pixel_unit)
+  ggplot2::ggplot(data) +
+    ggplot2::geom_rect(
+      ggplot2::aes(
+        xmin = bin_min, xmax = bin_max, ymin = 0, ymax = count
+      ),
+      fill = app_plot_palette$primary, color = app_plot_palette$panel
+    ) +
+    theme_black_minimal(base_size = 15) +
+    ggplot2::labs(
+      x = paste0("Nominal Particle Size (", attr(data, "unit"), ")"),
+      y = "Count"
+    )
+}
+
+app_particle_size_data <- function(object, pixel_size = 1,
+                                   pixel_unit = "pixel", bins = 30L) {
   calibration <- app_pixel_calibration(pixel_size, pixel_unit)
   md <- app_particle_metadata_units(
     object$metadata, pixel_size = pixel_size, pixel_unit = pixel_unit
@@ -1640,38 +1675,166 @@ app_particle_size_plot <- function(object, pixel_size = 1,
   area_column <- paste0("area_", calibration$area_suffix)
   area <- if(area_column %in% names(md)) as.numeric(md[[area_column]]) else
     numeric()
-  ggplot2::ggplot(data.frame(size = sqrt(area)), ggplot2::aes(x = size)) +
-    ggplot2::geom_histogram(
-      bins = 30L, fill = app_plot_palette$primary,
-      color = app_plot_palette$panel
-    ) +
-    theme_black_minimal(base_size = 15) +
-    ggplot2::labs(
-      x = paste0("Nominal Particle Size (", calibration$unit, ")"),
-      y = "Count"
+  size <- sqrt(area[is.finite(area) & area >= 0])
+  if(!length(size)) {
+    result <- data.frame(
+      bin_min = numeric(), bin_max = numeric(), bin_mid = numeric(),
+      count = integer()
     )
+  } else {
+    histogram <- graphics::hist(size, breaks = bins, plot = FALSE,
+                                include.lowest = TRUE, right = TRUE)
+    result <- data.frame(
+      bin_min = utils::head(histogram$breaks, -1L),
+      bin_max = utils::tail(histogram$breaks, -1L),
+      bin_mid = histogram$mids,
+      count = as.integer(histogram$counts)
+    )
+  }
+  attr(result, "unit") <- calibration$unit
+  result
+}
+
+app_particle_size_plotly <- function(object, pixel_size = 1,
+                                     pixel_unit = "pixel") {
+  data <- app_particle_size_data(object, pixel_size, pixel_unit)
+  unit <- attr(data, "unit")
+  plotly::plot_ly(
+    data,
+    x = ~bin_mid,
+    y = ~count,
+    width = as.numeric(data$bin_max - data$bin_min),
+    type = "bar",
+    marker = list(
+      color = app_plot_palette$primary,
+      line = list(color = app_plot_palette$panel, width = 1)
+    ),
+    customdata = ~cbind(bin_min, bin_max),
+    hovertemplate = paste0(
+      "Bin: %{customdata[0]:.4g} to %{customdata[1]:.4g} ", unit,
+      "<br>Count: %{y}<extra></extra>"
+    )
+  ) |>
+    plotly::layout(
+      xaxis = list(title = paste0("Nominal Particle Size (", unit, ")")),
+      yaxis = list(title = "Count", rangemode = "tozero"),
+      paper_bgcolor = app_theme$panel,
+      plot_bgcolor = app_theme$panel,
+      font = list(color = app_theme$text),
+      showlegend = FALSE
+    ) |>
+    plotly::config(displaylogo = FALSE)
+}
+
+app_material_summary_data <- function(material, confidence = 0.95) {
+  values <- app_standardize_material_class(material)
+  values[is.na(values) | !nzchar(values)] <- "unknown"
+  counts <- sort(table(values), decreasing = FALSE)
+  total_count <- sum(counts)
+  percentage <- 100 * as.numeric(counts) / total_count
+  uncertainty <- material_percentage_uncertainty(
+    total_count, percentage, confidence
+  )
+  class_data <- data.frame(
+    material_class = names(counts), count = as.numeric(counts),
+    percentage = percentage, confidence_level = confidence,
+    percentage_uncertainty = uncertainty,
+    percentage_ci_lower = pmax(0, percentage - uncertainty),
+    percentage_ci_upper = pmin(100, percentage + uncertainty),
+    total_concentration_rsd = total_count^(-1 / 2),
+    uncertainty_type = "Material percentage CI",
+    stringsAsFactors = FALSE
+  )
+  class_data$count_uncertainty <-
+    total_count * class_data$percentage_uncertainty / 100
+  all_data <- data.frame(
+    material_class = "All Materials", count = total_count, percentage = 100,
+    confidence_level = confidence, percentage_uncertainty = NA_real_,
+    percentage_ci_lower = NA_real_, percentage_ci_upper = NA_real_,
+    total_concentration_rsd = total_count^(-1 / 2),
+    uncertainty_type = "Total concentration RSD",
+    count_uncertainty = sqrt(total_count), stringsAsFactors = FALSE
+  )
+  result <- rbind(class_data, all_data)
+  result$count_lower <- pmax(0, result$count - result$count_uncertainty)
+  result$count_upper <- result$count + result$count_uncertainty
+  result
 }
 
 app_material_summary_plot <- function(material, palette = NULL) {
-  values <- app_standardize_material_class(material)
-  values[is.na(values) | !nzchar(values)] <- "unknown"
+  data <- app_material_summary_data(material)
+  values <- data$material_class
   if(is.null(palette)) palette <- app_category_palette(values)
   missing_levels <- setdiff(unique(values), names(palette))
   if(length(missing_levels)) {
     palette <- c(palette, app_category_palette(missing_levels))
   }
-  counts <- table(values)
-  levels <- names(sort(counts, decreasing = FALSE))
-  frame <- data.frame(material_class = factor(values, levels = levels))
-  ggplot2::ggplot(frame, ggplot2::aes(y = material_class,
-                                      fill = material_class)) +
-    ggplot2::geom_bar() +
+  data$material_class <- factor(data$material_class, levels = values)
+  ggplot2::ggplot(data, ggplot2::aes(y = material_class, x = count,
+                                     fill = material_class)) +
+    ggplot2::geom_col() +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = count_lower, xend = count_upper,
+                   y = material_class, yend = material_class),
+      inherit.aes = FALSE, color = app_theme$text, linewidth = 0.8
+    ) +
     ggplot2::scale_fill_manual(
       values = palette, na.value = app_theme$muted, drop = FALSE
     ) +
     theme_black_minimal(base_size = 15) +
     ggplot2::theme(legend.position = "none") +
     ggplot2::labs(x = "Count", y = "Material Class")
+}
+
+app_material_summary_plotly <- function(material, palette = NULL) {
+  data <- app_material_summary_data(material)
+  if(is.null(palette)) palette <- app_category_palette(data$material_class)
+  missing_levels <- setdiff(unique(data$material_class), names(palette))
+  if(length(missing_levels)) {
+    palette <- c(palette, app_category_palette(missing_levels))
+  }
+  colors <- unname(palette[data$material_class])
+  material_hover <- paste0(
+    "Material: ", data$material_class,
+    "<br>Count: ", format(data$count, trim = TRUE),
+    "<br>Percentage: ", format(signif(data$percentage, 4), trim = TRUE), "%",
+    ifelse(
+      is.finite(data$percentage_uncertainty),
+      paste0(
+        "<br>", format(100 * data$confidence_level, trim = TRUE),
+        "% CI: ", format(signif(data$percentage_ci_lower, 4), trim = TRUE),
+        "% to ", format(signif(data$percentage_ci_upper, 4), trim = TRUE), "%",
+        "<br>Half-width: ",
+        format(signif(data$percentage_uncertainty, 4), trim = TRUE),
+        " percentage points"
+      ),
+      ""
+    ),
+    "<br>Total concentration RSD: ",
+    format(signif(data$total_concentration_rsd, 4), trim = TRUE),
+    "<br>Uncertainty shown: ", data$uncertainty_type
+  )
+  plotly::plot_ly(
+    data,
+    x = ~count,
+    y = ~factor(material_class, levels = material_class),
+    type = "bar", orientation = "h",
+    marker = list(color = colors),
+    error_x = list(
+      type = "data", array = data$count_uncertainty,
+      symmetric = TRUE, visible = TRUE, color = app_theme$text
+    ),
+    text = material_hover,
+    hovertemplate = "%{text}<extra></extra>"
+  ) |>
+    plotly::layout(
+      xaxis = list(title = "Count", rangemode = "tozero"),
+      yaxis = list(title = "Material Class"),
+      paper_bgcolor = app_theme$panel,
+      plot_bgcolor = app_theme$panel,
+      font = list(color = app_theme$text), showlegend = FALSE
+    ) |>
+    plotly::config(displaylogo = FALSE)
 }
 
 app_histogram_ggplot <- function(values, thresholds = numeric(), xlab) {
@@ -2334,8 +2497,10 @@ app_empty_measurement_definitions <- function() {
 # readable beside the app source without promising a future import contract.
 app_user_metadata_input_ids <- c(
   # Preprocessing
-  "spike_decision", "spike_direction",
-  "spike_residual_threshold", "spike_residual_window",
+  "spike_decision", "spike_method", "spike_direction",
+  "spike_width_threshold", "spike_noise_multiplier",
+  "spike_interpolation_window", "spike_residual_threshold",
+  "spike_residual_window",
   "saturation_decision", "saturation_mode", "saturation_ceiling",
   "saturation_max_loss", "make_rel_decision", "smooth_decision",
   "smoother", "derivative_order", "smoother_window", "derivative_abs",
@@ -2387,7 +2552,9 @@ app_logical_setting_ids <- c(
 )
 
 app_numeric_setting_ids <- c(
-  "spike_residual_threshold", "spike_residual_window", "saturation_ceiling",
+  "spike_width_threshold", "spike_noise_multiplier",
+  "spike_interpolation_window", "spike_residual_threshold",
+  "spike_residual_window", "saturation_ceiling",
   "saturation_max_loss", "derivative_order", "smoother_window",
   "conform_res", "baseline", "baseline_lambda", "baseline_hwi",
   "iterations", "range_artifact_ratio", "MinRange", "MaxRange",
@@ -2705,6 +2872,48 @@ app_parse_saved_definitions <- function(value, template) {
     }
   }
   as.data.frame(out[, required, with = FALSE], stringsAsFactors = FALSE)
+}
+
+app_standard_settings_choices <- c(
+  "Default" = "default",
+  "MIPPR - Thermo Fisher iN10 MX" = "mippr_in10_mx"
+)
+
+app_standard_settings <- function(preset, defaults) {
+  preset <- match.arg(preset, unname(app_standard_settings_choices))
+  if(!is.list(defaults) ||
+     !all(app_user_metadata_input_ids %in% names(defaults))) {
+    stop("App defaults are not ready; wait for the controls to finish loading.",
+         call. = FALSE)
+  }
+  settings <- defaults[app_user_metadata_input_ids]
+  if(identical(preset, "mippr_in10_mx")) {
+    overrides <- list(
+      spatial_decision = TRUE,
+      collapse_decision = TRUE,
+      threshold_decision = TRUE,
+      signal_selection = "sig_times_noise",
+      MinSNR = 0.01,
+      cor_threshold_decision = FALSE,
+      load_entire_map = TRUE,
+      id_spec_type = "ftir",
+      top_n_per_organization = FALSE,
+      co2_decision = TRUE,
+      co2_automate = FALSE,
+      range_decision = TRUE,
+      range_automate = FALSE,
+      MinRange = 800,
+      MaxRange = 3200
+    )
+    settings[names(overrides)] <- overrides
+  }
+  list(
+    settings = settings,
+    ratios = app_empty_ratio_definitions(),
+    measurements = app_empty_measurement_definitions(),
+    unknown = character(),
+    preset = preset
+  )
 }
 
 app_user_metadata_import <- function(snapshot, defaults) {

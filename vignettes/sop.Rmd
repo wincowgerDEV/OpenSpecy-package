@@ -492,21 +492,22 @@ uses this order when they are enabled:
 
 ```{r eval=FALSE}
 quality_ready <- raman_hdpe |>
-  correct_spike(method = "residual", direction = "both") |>
+  correct_spike(direction = "both") |>
   restrict_range(saturation = "auto", make_rel = FALSE) |>
   process_spec(correct_spike = FALSE)
 ```
 
-The default residual method is deliberately limited to isolated points and
-uses the actual wavenumber coordinates for its local interpolation. For Raman
-work, `correct_spike()` also implements the prominence/FWHM procedures described
-by [Coca-Lopez (2024)](https://doi.org/10.1016/j.aca.2024.342312). The manual
-paper mode requires prominence and width thresholds calibrated for the
-material, instrument, resolution, and acquisition conditions. Its automated
-prominence/FWHM-ratio mode uses an upper outlier threshold of 3.5 standard
-deviations only when enough peaks are available. Width is measured in sampled
-CCD-pixel units, not cm^-1^; the paper reference correction flags intervals at
-`rel_height = 0.8` and interpolates from `m = 10` unflagged points on each side.
+The default method, contributed by Nicolas Coca Lopez, detects positive and
+negative narrow peaks using prominence against the raw median absolute
+deviation of first differences. Its width threshold, noise multiplier, and
+interpolation window each default to 10 sampled points or units as applicable.
+It is implemented in base R, without `pracma`. The previous conservative,
+wavenumber-aware detector remains available as `method = "residual"`.
+`correct_spike()` also retains the manual and ratio-based prominence/FWHM
+procedures described by
+[Coca-Lopez (2024)](https://doi.org/10.1016/j.aca.2024.342312). Manual thresholds
+must be calibrated for the material, instrument, resolution, and acquisition
+conditions. Width is measured in sampled CCD-pixel units, not cm^-1^.
 
 No single-spectrum detector can always distinguish a cosmic-ray spike from a
 genuine narrow band. Inspect correction diagnostics, calibrate on representative

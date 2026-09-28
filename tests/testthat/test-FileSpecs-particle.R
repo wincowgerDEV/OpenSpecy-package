@@ -75,6 +75,12 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_equal(result$particle_summary_all_csv$total_area_um2, 4 * 25^2)
   expect_equal(result$particle_summary_all_csv$mean_area_um2, 4 * 25^2)
   expect_equal(result$particle_summary_all_csv$median_area_um2, 4 * 25^2)
+  expect_equal(result$particle_summary_all_csv$total_particle_count,
+               result$particle_summary_all_csv$count)
+  expect_equal(result$particle_summary_all_csv$percentage, 100)
+  expect_equal(result$particle_summary_all_csv$percentage_uncertainty, 0)
+  expect_equal(result$particle_summary_all_csv$total_concentration_rsd,
+               result$particle_summary_all_csv$count^(-1 / 2))
   expect_equal(result$particle_details_all_csv$material_class, "polymer")
   expect_equal(result$samples$Region1$particles_rds$metadata$max_cor_name,
                "particle")
@@ -329,6 +335,9 @@ test_that("FileSpecs particle automation accepts both threshold extremes", {
   )
   expect_null(removed$samples$Region1$particles_rds)
   expect_equal(removed$particle_summary_all_csv$count, 0L)
+  expect_equal(removed$particle_summary_all_csv$total_particle_count, 0L)
+  expect_true(is.na(removed$particle_summary_all_csv$percentage_uncertainty))
+  expect_true(is.na(removed$particle_summary_all_csv$total_concentration_rsd))
   expect_equal(removed$particle_summary_all_csv$map_area_um2, 16 * 25^2)
   expect_equal(removed$particle_summary_all_csv$total_area_um2, 0)
   expect_true(is.na(removed$particle_summary_all_csv$mean_area_um2))

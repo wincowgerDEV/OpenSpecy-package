@@ -68,8 +68,10 @@
 #' A list with `samples`, `particle_details_all_csv`, and
 #' `particle_summary_all_csv`. Each per-sample entry has `particle_details_csv`,
 #' `particle_summary_csv`, `particles_raw_rds`, `particles_rds`, and `time_rds`,
-#' with summary rows reporting full map area, particle count, and total, mean,
-#' and median particle area in square micrometres for each material class,
+#' with summary rows reporting full map area, particle count, observed
+#' percentage, 95% percentage confidence-interval half-width and bounds, total
+#' concentration RSD, and total, mean, and median particle area in square
+#' micrometres for each material class,
 #' plus one plot-data list for each requested plot output: `particle_image`,
 #' `particle_heatmap`, `particle_heatmap_thresholded`, `cor_heatmap`,
 #' `sn_histogram`, and `cor_histogram`. Each plot-data list carries the grid or
@@ -1618,6 +1620,10 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     mean_area_um2 = mean(.particle_area_um2, na.rm = TRUE),
     median_area_um2 = stats::median(.particle_area_um2, na.rm = TRUE)
   ), by = material_col]
+  out <- cbind(
+    out,
+    .particle_uncertainty_columns(out$count)
+  )
   out$sample_id <- sample_name
   out
 }
@@ -1982,6 +1988,13 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   summary <- if ("summary" %in% outputs) {
     data.table::data.table(sample_id = sample_name,
                            material_class = NA_character_, count = 0L,
+                           total_particle_count = 0L,
+                           percentage = NA_real_,
+                           confidence_level = 0.95,
+                           percentage_uncertainty = NA_real_,
+                           percentage_ci_lower = NA_real_,
+                           percentage_ci_upper = NA_real_,
+                           total_concentration_rsd = NA_real_,
                            map_area_um2 = .particle_map_area_um2(
                              map, pixel_length
                            ),

@@ -494,8 +494,8 @@
 
 <div class="node trigger" style="left:1650px;top:500px" tabindex="0">
   &#9654; Click Run
-  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. Advanced <strong>Load Settings</strong> first validates a versioned one-row User Metadata CSV atomically, resets omitted controls to defaults, restores saved quantification definitions, and invalidates results without replacing the staged spectra; this Run is what applies it. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire File into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Its Identification Batch Size bounds query spectra per correlation allocation on both paths. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display, image overlay/transparency, and simple metadata remain live presentation controls. Every later output derives from this snapshot.
-  <span class="loc">Plans 018/030/034/035 &middot; server.R: settings_csv + run gate priorities and canonical_state_gate()</span></div>
+  <div class="tip">Snapshots every scientific setting and owns canonical analysis publication. Advanced <strong>Load Settings</strong> first validates a versioned one-row User Metadata CSV atomically, resets omitted controls to defaults, restores saved quantification definitions, and invalidates results without replacing the staged spectra. The adjacent <strong>Standard Settings</strong> action uses the same validated path: Default restores every captured control and clears quantification definitions, while MIPPR - Thermo Fisher iN10 MX applies its named workflow. This Run is what applies either route. A staged source is read here unless Recalculate Preview already did so. Advanced <strong>Load Entire File into Memory</strong> explicitly chooses dense <code>OpenSpecy</code>; off keeps supported maps descriptor-backed. Its Identification Batch Size bounds query spectra per correlation allocation on both paths. Threshold S/N alone enables the background-filter policy, while Spatial Smooth independently decides whether classification receives halo-smoothed or unsmoothed spectra. Scientific settings remain passive until the next Run; peak display, image overlay/transparency, and simple metadata remain live presentation controls. Every later output derives from this snapshot.
+  <span class="loc">Plans 018/030/034/035/036 &middot; server.R: settings/preset restoration + run gate priorities and canonical_state_gate()</span></div>
 </div>
 
 <div class="node trigger" style="left:1650px;top:610px" tabindex="0">
@@ -550,8 +550,8 @@
 <div class="node function" style="left:250px;top:1590px" tabindex="0">
   Ordinary Process
   <div class="sub">process_spec() + corrections &middot; foreground values once</div>
-  <div class="tip">The !collapse branch applies the existing correction and processing sequence. Compact in-memory maps process retained stored values while keeping source mappings aligned. A <code>FileSpecs</code> map uses bounded, halo-aware processed chunks only to derive S/N and rank-1 map summaries, then applies the Run-captured sequence to the selected one-spectrum view; changing the heatmap selection performs another bounded indexed read and Top-N match, never whole-map decompression. This remains the only stage that changes retained spectral values.
-  <span class="loc">Plans 018/033 &middot; server.R: ordinary_process()/active_spectrum_view() &middot; R/{process_spec,Specs_methods}.R</span></div>
+  <div class="tip">The !collapse branch applies the existing correction and processing sequence. When spike removal is enabled, the default dependency-free MAD-prominence-width method detects positive and negative narrow peaks using 10-point width, noise-multiplier, and interpolation-window defaults; the previous residual method remains selectable. Compact in-memory maps process retained stored values while keeping source mappings aligned. A <code>FileSpecs</code> map uses bounded, halo-aware processed chunks only to derive S/N and rank-1 map summaries, then applies the Run-captured sequence to the selected one-spectrum view; changing the heatmap selection performs another bounded indexed read and Top-N match, never whole-map decompression. This remains the only stage that changes retained spectral values.
+  <span class="loc">Plans 018/033/036 &middot; server.R: ordinary_process()/active_spectrum_view() &middot; R/{correct_spike,process_spec,Specs_methods}.R</span></div>
 </div>
 <div class="node function" style="left:250px;top:1760px" tabindex="0">
   Identity Pixel Mapping
@@ -695,8 +695,8 @@
 <div class="node output tip-left" style="left:2250px;top:1370px" tabindex="0">
   Particle Size Plot
   <div class="depends">depends on: Collapse particles = on</div>
-  <div class="tip">output$particle_plot reads canonical_final()$metadata$area, which only exists when particles were collapsed into units; empty for a non-collapsed map or single spectrum.
-  <span class="loc">server.R:2592</span></div>
+  <div class="tip"><code>output$particle_plot</code> renders a Plotly histogram from calibrated <code>canonical_final()$metadata$area</code>, which exists only when particles were collapsed into units. Hover reports the same nominal-size bin bounds and counts used by the static ZIP figure; the plot is empty for a non-collapsed map or single spectrum.
+  <span class="loc">Plan 036 &middot; server.R: particle_plot &middot; global.R: app_particle_size_data()/app_particle_size_plotly()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:1430px" tabindex="0">
@@ -709,8 +709,8 @@
 <div class="node output tip-left" style="left:2250px;top:1490px" tabindex="0">
   Download: Thresholded Particles (zip)
   <div class="depends">depends on: Collapse, Signal/Noise, Identification/AI</div>
-  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The processed RDS also carries canonical x/y aliases and its spatial-unit attribute, so uploading it again reproduces a selectable map without discarding the reported unit-bearing columns. The correlation and greatest-first material-summary figures use the committed rank-1 library or standardized model identities. Heatmap PNGs use the same calibrated pixel projection, omit inline legends so every heatmap canvas stays 8 by 7 inches, and write each useful bounded legend to a companion PNG. Spectrum Index is not an export choice.
-  <span class="loc">server.R:2781-2843</span></div>
+  <div class="tip">Details/processed/summary/particle-size figures come from canonical_final() + snr_preview(). The summary CSV reports each material's observed percentage, 95% percentage-point uncertainty and clipped interval, total particle count, and total-concentration RSD. Live pixel calibration scales length/coordinate fields, areas, and area^(3/2) volume into unit-bearing metadata and figure axes without mutating canonical spectra. The processed RDS also carries canonical x/y aliases and its spatial-unit attribute, so uploading it again reproduces a selectable map without discarding the reported unit-bearing columns. The correlation and greatest-first material-summary figures use the committed rank-1 library or standardized model identities; static material and size figures use the same derived data as their Plotly views. Heatmap PNGs use the same calibrated pixel projection, omit inline legends so every heatmap canvas stays 8 by 7 inches, and write each useful bounded legend to a companion PNG. Spectrum Index is not an export choice.
+  <span class="loc">Plan 036 &middot; server.R: particle ZIP handler &middot; global.R: app_particle_summary_table()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:1590px" tabindex="0">
@@ -744,8 +744,8 @@
 <div class="node output tip-left" style="left:2250px;top:2330px" tabindex="0">
   Material Class Plot
   <div class="depends">depends on: Attach Best Matches (or Collapse grouping)</div>
-  <div class="tip">output$material_plot reads metadata$material_class (collapse) or max_cor_identity() (non-collapse) &mdash; either way it needs Library Identification (or AI Model Classification, via max_cor_identity()) to have run.
-  <span class="loc">server.R:2600</span></div>
+  <div class="tip"><code>output$material_plot</code> reads metadata$material_class (collapse) or max_cor_identity() (non-collapse), so Library Identification or AI Model Classification must have run. Plotly count bars show each material's published single-property percentage confidence interval converted to count units; <strong>All Materials</strong> shows total count with <code>sqrt(count)</code> uncertainty from the total-concentration RSD. Hover reports count, percentage, interval, and RSD without adding All Materials to exported per-material rows.
+  <span class="loc">Plan 036 &middot; server.R: material_plot &middot; global.R: app_material_summary_data()/app_material_summary_plotly()</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2440px" tabindex="0">

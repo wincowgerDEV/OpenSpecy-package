@@ -197,8 +197,10 @@ enough RAM for all spectra and their analysis intermediates.}
 A list with \code{samples}, \code{particle_details_all_csv}, and
 \code{particle_summary_all_csv}. Each per-sample entry has \code{particle_details_csv},
 \code{particle_summary_csv}, \code{particles_raw_rds}, \code{particles_rds}, and \code{time_rds},
-with summary rows reporting full map area, particle count, and total, mean,
-and median particle area in square micrometres for each material class,
+with summary rows reporting full map area, particle count, observed
+percentage, 95\% percentage confidence-interval half-width and bounds, total
+concentration RSD, and total, mean, and median particle area in square
+micrometres for each material class,
 plus one plot-data list for each requested plot output: \code{particle_image},
 \code{particle_heatmap}, \code{particle_heatmap_thresholded}, \code{cor_heatmap},
 \code{sn_histogram}, and \code{cor_histogram}. Each plot-data list carries the grid or

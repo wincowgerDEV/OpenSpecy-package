@@ -931,7 +931,9 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
 test_that("material summary bars place the greatest count on top", {
   env <- .source_in_memory_app_helpers()
   plot <- env$app_material_summary_plot(c("common", "rare", "common"))
-  expect_identical(levels(plot$data$material_class), c("rare", "common"))
+  expect_identical(
+    levels(plot$data$material_class), c("rare", "common", "All Materials")
+  )
 })
 
 test_that("exported heatmaps separate bounded legends from fixed canvases", {

@@ -12,13 +12,15 @@ correct_spike(x, ...)
 
 \method{correct_spike}{OpenSpecy}(
   x,
-  method = c("residual", "prominence_fwhm", "prominence_fwhm_ratio"),
+  method = c("mad_prominence_width", "residual", "prominence_fwhm",
+    "prominence_fwhm_ratio"),
   direction = c("both", "positive", "negative"),
   residual_window = 5L,
   residual_threshold = 8,
   residual_max_width = 1L,
   prominence_threshold = NULL,
   width_threshold = NULL,
+  noise_multiplier = 10,
   rel_height = 0.8,
   interpolation_points = 10L,
   interpolation = c("linear", "quadratic"),
@@ -30,7 +32,8 @@ correct_spike(x, ...)
 \arguments{
 \item{x}{an \code{OpenSpecy} object.}
 
-\item{method}{character; detection method. One of \code{"residual"},
+\item{method}{character; detection method. One of
+\code{"mad_prominence_width"} (default), \code{"residual"},
 \code{"prominence_fwhm"}, or \code{"prominence_fwhm_ratio"}.}
 
 \item{direction}{character; detect \code{"both"} positive and negative spikes,
@@ -47,10 +50,16 @@ interval accepted by the residual method. The one-point default is
 deliberately conservative.}
 
 \item{prominence_threshold}{positive numeric or \code{NULL}; minimum peak
-prominence for the manual prominence/FWHM method.}
+prominence. \code{NULL} uses \code{noise_multiplier} times the raw MAD of first
+differences for the default method; it remains required for the manual
+prominence/FWHM method.}
 
 \item{width_threshold}{positive numeric or \code{NULL}; maximum peak FWHM in
-sample (CCD-pixel) units for the manual prominence/FWHM method.}
+sample (CCD-pixel) units for the manual prominence/FWHM method. \code{NULL}
+uses 10 sampled points for the default method.}
+
+\item{noise_multiplier}{positive numeric multiplier for the automatic raw
+MAD prominence threshold used by \code{method = "mad_prominence_width"}.}
 
 \item{rel_height}{numeric in \verb{(0, 1]}; prominence fraction at which the
 interval replaced by paper methods is measured. Coca-Lopez used \code{0.8} for
@@ -84,12 +93,23 @@ returned unchanged.
 \description{
 \code{correct_spike()} detects isolated positive or negative intensity artifacts
 and replaces only accepted spike intervals with local interpolation. The
-default residual method compares each point with a wavenumber-aware local
+default MAD-prominence-width method detects narrow positive and negative
+peaks, estimates noise from the raw median absolute deviation of first
+differences, and replaces detected intervals from nearby clean values.
+The legacy residual method compares each point with a wavenumber-aware local
 interpolation and scales the residual by a local median absolute deviation.
-Two paper-backed methods use peak prominence and width measured in sample
-(CCD-pixel) units.
+Two additional paper-backed methods use peak prominence and width measured
+in sample (CCD-pixel) units.
 }
 \details{
+\code{method = "mad_prominence_width"} reproduces the automated workflow supplied
+by Nicolas Coca Lopez without requiring \code{pracma}. With the defaults, peaks
+must be narrower than 10 sampled points and exceed 10 times the raw MAD of
+first differences. \code{prominence_threshold} may override that automatic
+threshold. Detected intervals receive a one-point guard on either side and
+use a 10-point local interpolation window; at an edge the nearest clean
+value is used rather than extrapolating a slope.
+
 \code{method = "prominence_fwhm"} requires user-supplied
 \code{prominence_threshold} and \code{width_threshold} values. These thresholds depend
 on the material, instrument, spectral resolution, and acquisition settings;
@@ -101,12 +121,14 @@ requires at least \code{min_peaks} measurable peaks.
 Peak widths and flagged intervals follow the prominence contour definition
 used by \code{scipy.signal.peak_widths()}: FWHM is measured at
 \code{rel_height = 0.5}, while the interval replaced is measured at the requested
-\code{rel_height}. Corrections require \code{interpolation_points} finite, unflagged
-samples on both sides; boundary values are never wrapped. Close spike
-intervals are merged before interpolation so one spike cannot be used to
-repair another. Linear interpolation that materially disagrees with a local
-quadratic reconstruction over a multi-point interval is rejected to avoid
-silently truncating an underlying broad band.
+\code{rel_height}. The paper-backed modes require \code{interpolation_points} finite,
+unflagged samples on both sides; boundary values are never wrapped. The
+default method searches that many points on either side and uses the nearest
+clean value when only one side exists. Close spike intervals are merged
+before interpolation so one spike cannot be used to repair another. Linear
+interpolation that materially disagrees with a local quadratic
+reconstruction over a multi-point interval is rejected to avoid silently
+truncating an underlying broad band.
 
 Correction proceeds through bounded transactional passes while the detector's
 correctable count strictly decreases. This lets a newly revealed spike be
@@ -134,5 +156,5 @@ spectra based on peaks' prominence and width." \emph{Analytica Chimica Acta},
 \strong{1295}, 342312. \doi{10.1016/j.aca.2024.342312}.
 }
 \author{
-Win Cowger
+Win Cowger, Nicolas Coca Lopez
 }

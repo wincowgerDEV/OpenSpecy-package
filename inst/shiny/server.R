@@ -676,6 +676,47 @@ output$settings_import_status <- renderUI({
          status$message)
 })
 
+apply_restored_settings <- function(parsed, message) {
+  for(id in app_user_metadata_input_ids) {
+    update_imported_setting(id, parsed$settings[[id]])
+  }
+  ratio_definitions(parsed$ratios)
+  measurement_definitions(parsed$measurements)
+  analysis_dirty(TRUE)
+  analysis_needs_reset(TRUE)
+  canonical_state_gate$clear()
+  quantified_data_gate$clear()
+  automatic_report_gate$clear()
+  ai_output_gate$clear()
+  pixel_projection_gate$clear()
+  warning_text <- if(length(parsed$unknown)) {
+    paste0(" Unknown columns ignored: ",
+           paste(parsed$unknown, collapse = ", "), ".")
+  } else ""
+  settings_import_status(list(
+    ok = TRUE,
+    message = paste0(message, " Click Run to apply them.", warning_text)
+  ))
+}
+
+observeEvent(input$settings_preset, {
+  preset <- as.character(input$settings_preset)[1L]
+  if(is.na(preset) || !nzchar(preset)) return(NULL)
+  parsed <- tryCatch(
+    app_standard_settings(preset, settings_defaults()),
+    error = identity
+  )
+  if(inherits(parsed, "error")) {
+    settings_import_status(list(ok = FALSE, message = conditionMessage(parsed)))
+    return(NULL)
+  }
+  label <- names(app_standard_settings_choices)[
+    match(preset, app_standard_settings_choices)
+  ]
+  apply_restored_settings(parsed, paste0(label, " settings loaded."))
+  updateSelectInput(session, "settings_preset", selected = "")
+}, ignoreInit = TRUE)
+
 observeEvent(input$settings_csv, {
   upload <- input$settings_csv
   req(!is.null(upload), nrow(upload) == 1L)
@@ -690,25 +731,7 @@ observeEvent(input$settings_csv, {
     settings_import_status(list(ok = FALSE, message = conditionMessage(parsed)))
     return(NULL)
   }
-  for(id in app_user_metadata_input_ids) {
-    update_imported_setting(id, parsed$settings[[id]])
-  }
-  ratio_definitions(parsed$ratios)
-  measurement_definitions(parsed$measurements)
-  analysis_dirty(TRUE)
-  analysis_needs_reset(TRUE)
-  canonical_state_gate$clear()
-  quantified_data_gate$clear()
-  automatic_report_gate$clear()
-  ai_output_gate$clear()
-  pixel_projection_gate$clear()
-  warning_text <- if(length(parsed$unknown)) {
-    paste0(" Unknown columns ignored: ", paste(parsed$unknown, collapse = ", "), ".")
-  } else ""
-  settings_import_status(list(
-    ok = TRUE,
-    message = paste0("Settings restored. Click Run to apply them.", warning_text)
-  ))
+  apply_restored_settings(parsed, "Settings restored.")
 }, ignoreInit = TRUE)
 
 observeEvent(input$run_analysis, {
@@ -896,18 +919,36 @@ observeEvent(input$run_analysis, {
     {
       spike_enabled <- isTRUE(value("spike_decision"))
       spike_args <- if(spike_enabled) {
-        list(
-          method = "residual",
-          direction = if(is.null(value("spike_direction"))) {
-            "both"
-          } else value("spike_direction"),
-          residual_threshold = if(is.null(value("spike_residual_threshold"))) {
-            8
-          } else value("spike_residual_threshold"),
-          residual_window = if(is.null(value("spike_residual_window"))) {
-            5L
-          } else as.integer(value("spike_residual_window"))
+        spike_method <- if(is.null(value("spike_method"))) {
+          "mad_prominence_width"
+        } else value("spike_method")
+        shared <- list(
+          method = spike_method,
+          direction = if(is.null(value("spike_direction"))) "both" else
+            value("spike_direction")
         )
+        if(identical(spike_method, "residual")) {
+          c(shared, list(
+            residual_threshold = if(is.null(
+              value("spike_residual_threshold")
+            )) 8 else value("spike_residual_threshold"),
+            residual_window = if(is.null(value("spike_residual_window"))) {
+              5L
+            } else as.integer(value("spike_residual_window"))
+          ))
+        } else {
+          c(shared, list(
+            width_threshold = if(is.null(value("spike_width_threshold"))) {
+              10
+            } else value("spike_width_threshold"),
+            noise_multiplier = if(is.null(value("spike_noise_multiplier"))) {
+              10
+            } else value("spike_noise_multiplier"),
+            interpolation_points = if(is.null(
+              value("spike_interpolation_window")
+            )) 10L else as.integer(value("spike_interpolation_window"))
+          ))
+        }
       } else {
         list()
       }
@@ -2814,17 +2855,31 @@ observeEvent(input$run_analysis, {
         input$range_artifact_ratio
       } else 2
       quality_spike_args <- list(
-        method = "residual",
+        method = if(is.null(input$spike_method)) {
+          "mad_prominence_width"
+        } else input$spike_method,
         direction = if(is.null(input$spike_direction)) {
           "both"
-        } else input$spike_direction,
-        residual_threshold = if(is.null(input$spike_residual_threshold)) {
-          8
-        } else input$spike_residual_threshold,
-        residual_window = if(is.null(input$spike_residual_window)) {
-          5L
-        } else as.integer(input$spike_residual_window)
+        } else input$spike_direction
       )
+      if(identical(quality_spike_args$method, "residual")) {
+        quality_spike_args$residual_threshold <- if(is.null(
+          input$spike_residual_threshold
+        )) 8 else input$spike_residual_threshold
+        quality_spike_args$residual_window <- if(is.null(
+          input$spike_residual_window
+        )) 5L else as.integer(input$spike_residual_window)
+      } else {
+        quality_spike_args$width_threshold <- if(is.null(
+          input$spike_width_threshold
+        )) 10 else input$spike_width_threshold
+        quality_spike_args$noise_multiplier <- if(is.null(
+          input$spike_noise_multiplier
+        )) 10 else input$spike_noise_multiplier
+        quality_spike_args$interpolation_points <- if(is.null(
+          input$spike_interpolation_window
+        )) 10L else as.integer(input$spike_interpolation_window)
+      }
       # low_snr is deliberately not in app_quality_checks/requested here --
       # it would be redundant with the app's existing separate "SNR
       # Threshold" finding (app_threshold_quality_report() below, tied to
@@ -3784,12 +3839,12 @@ output$progress_bars <- renderUI({
     if(isTRUE(settings$collapse) && !is.null(canonical_state()$object)) {
       plot_items[[length(plot_items) + 1L]] <- div(
         id = "particle_summary_panel",
-        plotOutput("particle_plot", height = "25vh")
+        plotlyOutput("particle_plot", height = "25vh")
       )
     }
     plot_items[[length(plot_items) + 1L]] <- div(
       id = "material_summary_panel",
-      plotOutput("material_plot", height = "25vh")
+      plotlyOutput("material_plot", height = "25vh")
     )
 
     req(length(metric_items) + length(plot_items) > 0L)
@@ -4089,18 +4144,18 @@ output$progress_bars <- renderUI({
   })
   
   #Summary Plots ----
-  output$particle_plot <- renderPlot({
+  output$particle_plot <- renderPlotly({
       req(!is.null(preprocessed$data))
       req(isTRUE(canonical_state()$settings$collapse))
       particles <- canonical_final()
       req(particles$metadata$area)
       calibration <- pixel_calibration()
-      app_particle_size_plot(
+      app_particle_size_plotly(
         particles, calibration$size, calibration$unit
       )
   })
   
-  output$material_plot <- renderPlot({
+  output$material_plot <- renderPlotly({
       req(!is.null(preprocessed$data))
       settings <- canonical_state()$settings
       if(isTRUE(settings$identification_active)) {
@@ -4123,7 +4178,7 @@ output$progress_bars <- renderUI({
           match_names <- max_cor_identity()
       }
 
-      app_material_summary_plot(match_names, match_name_palette())
+      app_material_summary_plotly(match_names, match_name_palette())
   })
 
   # Data Download options ----

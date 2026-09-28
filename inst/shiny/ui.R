@@ -139,25 +139,51 @@ preprocessing_controls <- tagList(
   app_control_box(
     "spike_decision", "Remove Isolated Spikes", FALSE,
     selectInput(
+      "spike_method", "Detection Method",
+      choices = c(
+        "Automatic MAD prominence and width" = "mad_prominence_width",
+        "Legacy robust local residual" = "residual"
+      ),
+      selected = "mad_prominence_width"
+    ),
+    selectInput(
       "spike_direction", "Spike Direction",
       choices = c("Positive and negative" = "both",
                   "Positive only" = "positive",
                   "Negative only" = "negative"),
       selected = "both"
     ),
-    numericInput(
-      "spike_residual_threshold", "Robust Residual Threshold",
-      value = 8, min = 3, step = 0.5
+    conditionalPanel(
+      condition = "input.spike_method == 'mad_prominence_width'",
+      numericInput(
+        "spike_width_threshold", "Maximum Spike Width (sampled points)",
+        value = 10, min = 1, step = 1
+      ),
+      numericInput(
+        "spike_noise_multiplier", "Noise Multiplier",
+        value = 10, min = 0.1, step = 0.5
+      ),
+      numericInput(
+        "spike_interpolation_window", "Interpolation Window (points)",
+        value = 10, min = 1, step = 1
+      )
     ),
-    numericInput(
-      "spike_residual_window", "Neighbor Points per Side",
-      value = 5, min = 2, step = 1
+    conditionalPanel(
+      condition = "input.spike_method == 'residual'",
+      numericInput(
+        "spike_residual_threshold", "Robust Residual Threshold",
+        value = 8, min = 3, step = 0.5
+      ),
+      numericInput(
+        "spike_residual_window", "Neighbor Points per Side",
+        value = 5, min = 2, step = 1
+      )
     ),
     note = c(
-      "Spike Direction tests upward impulses, downward impulses, or both relative to a wavenumber-aware prediction from neighboring samples.",
-      "Robust Residual Threshold is the prediction error scaled by local median absolute deviation: higher values are more conservative, while lower values admit more candidates.",
-      "Neighbor Points per Side is the number of finite samples used on each side of a candidate; larger windows add context but can span narrow real bands.",
-      "Only one-point candidates that pass boundary, interpolation, and band-protection safeguards are replaced. Safeguarded candidates remain unchanged and are explained under Automatic Corrections Made."
+      "Detection Method defaults to Nicolas Coca Lopez's automatic two-sided method. It estimates noise as the raw median absolute deviation of first differences, accepts peaks narrower than Maximum Spike Width, and requires prominence above Noise Multiplier times that noise. Higher multipliers and lower widths are more conservative.",
+      "Interpolation Window is the number of sampled points searched on either side of each marked point. Detected points are excluded; a boundary uses the nearest clean value rather than a wrapped or sloped extrapolation.",
+      "Legacy robust local residual compares each point with a wavenumber-aware neighbor prediction. Higher Robust Residual Threshold values are more conservative; Neighbor Points per Side controls the prediction context.",
+      "Spike Direction limits detection to upward impulses, downward impulses, or both. The correction is a no-op while Remove Isolated Spikes is off, regardless of child values. Inspect Automatic Corrections Made because narrow real bands can resemble acquisition spikes."
     )
   ),
   app_control_box(
@@ -419,13 +445,21 @@ advanced_controls <- tagList(
   bs4Dash::box(
     width = 12,
     title = "Load Settings",
+    selectInput(
+      "settings_preset", "Standard Settings",
+      choices = c(
+        "Select standard settings..." = "",
+        app_standard_settings_choices
+      ),
+      selected = ""
+    ),
     fileInput(
       "settings_csv", "User Metadata CSV", accept = c(".csv", "text/csv")
     ),
     uiOutput("settings_import_status"),
     footer = footnote(
       "Restore app controls",
-      "Upload the one-row User Metadata CSV downloaded from this app. Recognized controls and saved quantification definitions are restored; omitted controls reset to their app defaults. The current spectra remain loaded, and Run is required before results update."
+      "Choose Default to reset every recognized control and saved quantification definition, or choose MIPPR - Thermo Fisher iN10 MX for the standard FTIR-map workflow. You may instead upload the one-row User Metadata CSV downloaded from this app. Presets and CSV files leave the current spectra loaded and require Run before results update."
     )
   )
 )

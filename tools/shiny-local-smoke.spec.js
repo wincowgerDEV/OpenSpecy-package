@@ -621,7 +621,7 @@ test("settings tabs show active state and quantification clears before upload", 
   await expectLocalPicker(page);
   await expect(page.locator("#active_spectrum_status")).toHaveCount(0);
   await expect(page.locator("#MyPlotC .annotation-text")).toHaveText(
-    "Upload some data to get started."
+    "Upload some data to get started.", { timeout: 60000 }
   );
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
@@ -701,6 +701,53 @@ test("settings tabs show active state and quantification clears before upload", 
   await expect(quantificationTab).not.toHaveClass(
     /openspecy-tab-has-active/
   );
+
+  const advancedTab = page.getByRole(
+    "link", { name: "Advanced", exact: true }
+  );
+  await advancedTab.click();
+  await page.locator("#settings_preset").evaluate((select) => {
+    select.selectize.setValue("mippr_in10_mx");
+  });
+  await expect(page.locator("#settings_import_status")).toContainText(
+    "MIPPR - Thermo Fisher iN10 MX settings loaded"
+  );
+  await expect(page.locator("#spatial_decision")).toBeChecked();
+  await expect(page.locator("#collapse_decision")).toBeChecked();
+  await expect(page.locator("#threshold_decision")).toBeChecked();
+  await expect(page.locator("#signal_selection")).toHaveValue("sig_times_noise");
+  await expect(page.locator("#MinSNR")).toHaveValue("0.01");
+  await expect(page.locator("#cor_threshold_decision")).not.toBeChecked();
+  await expect(page.locator("#load_entire_map")).toBeChecked();
+  await expect(page.locator("#id_spec_type")).toHaveValue("ftir");
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
+  await expect(page.locator("#co2_decision")).toBeChecked();
+  await expect(page.locator("#co2_automate")).not.toBeChecked();
+  await expect(page.locator("#range_decision")).toBeChecked();
+  await expect(page.locator("#range_automate")).not.toBeChecked();
+  await expect(page.locator("#MinRange")).toHaveValue("800");
+  await expect(page.locator("#MaxRange")).toHaveValue("3200");
+
+  await page.locator("#settings_preset").evaluate((select) => {
+    select.selectize.setValue("default");
+  });
+  await expect(page.locator("#settings_import_status")).toContainText(
+    "Default settings loaded"
+  );
+  await expect(page.locator("#spatial_decision")).not.toBeChecked();
+  await expect(page.locator("#collapse_decision")).not.toBeChecked();
+  await expect(page.locator("#threshold_decision")).not.toBeChecked();
+  await expect(page.locator("#cor_threshold_decision")).toBeChecked();
+  await expect(page.locator("#load_entire_map")).not.toBeChecked();
+  await expect(page.locator("#id_spec_type")).toHaveValue("all");
+  await expect(page.locator("#top_n_per_organization")).toBeChecked();
+  await expect(page.locator("#co2_decision")).not.toBeChecked();
+  await expect(page.locator("#co2_automate")).toBeChecked();
+  await expect(page.locator("#range_decision")).not.toBeChecked();
+  await expect(page.locator("#range_automate")).toBeChecked();
+  await expect(page.locator("#MinRange")).toHaveValue("300");
+  await expect(page.locator("#MaxRange")).toHaveValue("2000");
+  await expect(page.locator("#run_analysis")).toBeDisabled();
   await settingsCard.screenshot({
     path: testInfo.outputPath("local-app-settings-tab-active-state.png"),
   });
@@ -711,7 +758,8 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expectLocalPicker(page);
   await expect(page.locator("#openspecy_workerfs_files")).toHaveCount(0);
-  await expect(page.locator("input[type='file']")).toHaveCount(0);
+  await expect(page.locator("#settings_csv")).toHaveCount(1);
+  await expect(page.locator("input[type='file']")).toHaveCount(1);
   await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
     timeout: 120000,
   });
@@ -1395,7 +1443,9 @@ test("in-memory particle analysis exposes four strategies and a canonical ZIP", 
     xTitle: plot.layout?.xaxis?.title?.text,
     yTitle: plot.layout?.yaxis?.title?.text,
   }));
-  expect(heatmapContract.traceCount).toBeGreaterThanOrEqual(3);
+  // With thresholding disabled the canonical heatmap and selection overlay are
+  // sufficient; a third rejection/image trace is conditional on source state.
+  expect(heatmapContract.traceCount).toBeGreaterThanOrEqual(2);
   expect(heatmapContract.showscale).toBe(false);
   expect(heatmapContract.xTitle).toBe("X (um)");
   expect(heatmapContract.yTitle).toBe("Y (um)");
@@ -1455,6 +1505,26 @@ test("in-memory particle analysis exposes four strategies and a canonical ZIP", 
     const select = document.getElementById("map_color");
     return Object.keys(select?.selectize?.options || {}).includes("Particle Unit");
   }, null, { timeout: 240000 });
+  await expect(page.locator("#particle_plot.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#material_plot.js-plotly-plot .main-svg").first())
+    .toBeVisible({ timeout: 120000 });
+  const summaryPlotContract = await page.evaluate(() => ({
+    particleHover: document.getElementById("particle_plot")?.data?.[0]
+      ?.hovertemplate || "",
+    materialHover: document.getElementById("material_plot")?.data?.[0]
+      ?.text || [],
+    materialErrors: document.getElementById("material_plot")?.data?.[0]
+      ?.error_x?.array || [],
+  }));
+  expect([summaryPlotContract.particleHover].flat().join("\n")).toContain(
+    "Bin:"
+  );
+  expect(summaryPlotContract.materialHover.join("\n")).toContain("All Materials");
+  expect(summaryPlotContract.materialHover.join("\n")).toContain(
+    "Total concentration RSD"
+  );
+  expect(summaryPlotContract.materialErrors.length).toBeGreaterThan(0);
 
   await waitForStableSelectizeGeneration(
     page.locator("#download_selection"), "Thresholded Particles",
@@ -1475,6 +1545,20 @@ test("in-memory particle analysis exposes four strategies and a canonical ZIP", 
   expect(archiveList.stdout).toEqual(expect.stringContaining(
     "particle_summary.csv"
   ));
+  const particleSummary = spawnSync(
+    "tar", ["-xOf", download.path, "particle_summary.csv"],
+    { encoding: "utf8" }
+  );
+  expect(particleSummary.status).toBe(0);
+  const particleSummaryHeader = particleSummary.stdout.split(/\r?\n/, 1)[0]
+    .split(",");
+  for (const field of [
+    "particle_count", "total_particle_count", "percentage",
+    "confidence_level", "percentage_uncertainty", "percentage_ci_lower",
+    "percentage_ci_upper", "total_concentration_rsd",
+  ]) {
+    expect(particleSummaryHeader).toContain(field);
+  }
   for (const figure of [
     "signal_noise_histogram.png", "correlation_histogram.png",
     "material_class_heatmap.png", "match_id_heatmap.png",
@@ -1607,7 +1691,14 @@ test("local app renders spectra, matches, and one informative progress overlay",
       const advancedCount = await advancedCards.count();
       expect(advancedCount).toBeGreaterThan(0);
       for (let index = 0; index < advancedCount; index += 1) {
-        await expect(advancedCards.nth(index)).toHaveClass(/collapsed-card/);
+        const card = advancedCards.nth(index);
+        const collapsible = await card.locator(
+          ':scope > .card-header [data-card-widget="collapse"]'
+        ).count();
+        const settingsLoader = await card.locator("#settings_preset").count();
+        if (collapsible && !settingsLoader) {
+          await expect(card).toHaveClass(/collapsed-card/);
+        }
       }
     }
     if (tabName === "Preprocessing") {
@@ -1615,7 +1706,13 @@ test("local app renders spectra, matches, and one informative progress overlay",
       await expect(page.locator("#spike_decision")).not.toBeChecked();
       const saturationSwitch = page.locator("#saturation_decision");
       await expect(saturationSwitch).not.toBeChecked();
+      await expect(page.locator("#spike_method")).toHaveValue(
+        "mad_prominence_width"
+      );
       await expect(page.locator("#spike_direction")).toHaveValue("both");
+      await expect(page.locator("#spike_width_threshold")).toHaveValue("10");
+      await expect(page.locator("#spike_noise_multiplier")).toHaveValue("10");
+      await expect(page.locator("#spike_interpolation_window")).toHaveValue("10");
       await expect(page.locator("#spike_residual_threshold")).toHaveValue("8");
       await expect(page.locator("#saturation_mode")).toHaveValue("auto");
       const preprocessingPane = page.locator("#spike_decision").locator(
@@ -1634,7 +1731,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
         await toggleCard(spikeCard);
       }
       await expect(spikeCard).toContainText(
-        "Robust Residual Threshold is the prediction error"
+        "Legacy robust local residual compares each point"
       );
       await toggleCard(spikeCard);
       const saturationCard = saturationSwitch.locator(

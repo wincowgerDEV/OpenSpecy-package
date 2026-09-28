@@ -162,7 +162,9 @@ test_that("process_spec() can correct spikes before other processing", {
   values <- baseline
   values[51] <- values[51] + 20
   os <- as_OpenSpecy(axis, data.frame(sample = values))
-  expected <- correct_spike(os, interpolation_points = 5L)
+  expected <- correct_spike(
+    os, method = "residual", interpolation_points = 5L
+  )
   expected$spectra <- make_rel(expected$spectra)
   processed <- process_spec(
     os,
