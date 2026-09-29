@@ -57,6 +57,9 @@
 #'   "Polystyrene"}
 #'   \item{`material_form`}{Form of the material analyzed, e.g. textile fiber,
 #'   rubber band, sphere, granule }
+#'   \item{`common_use`}{Curated predominant global end-market: consumer,
+#'   industrial, mixed, or missing. Review evidence may be quantitative mass
+#'   shares or a cited qualitative application source }
 #'   \item{`material_phase`}{Phase of the material analyzed (liquid, gas, solid) }
 #'   \item{`material_producer`}{Producer of the material analyzed, e.g. Dow }
 #'   \item{`material_purity`}{Purity of the material analyzed, e.g. 99.98%}

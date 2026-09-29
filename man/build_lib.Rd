@@ -446,10 +446,19 @@ tails are trimmed and reassessed, failed corrections are removed, and
 spectra with running signal-to-noise below two are removed before pruning.
 Full artifacts are then partitioned into Raman (200--4000), FTIR
 (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
+After pruning and class reassignment, the official workflow derives
+\code{material_form} from the curated form-regex CSV and all atomic metadata
+values, then joins evidence-backed \code{common_use} by final material class.
+Existing form values take precedence when uniquely standardized; conflicting
+form categories remain missing and are audited. Common use may be
+\code{"consumer"}, \code{"industrial"}, \code{"mixed"}, or missing;
+quantitative mass shares are retained when available, while sourced
+qualitative proposals remain explicit in the review table.
 After full and medoid libraries are complete, metadata columns containing
-only missing values are removed and the remainder are stably ordered from
-the fewest to the most missing values. Spectra, metadata rows, identifiers,
-axes, and object attributes are unchanged.
+only missing values are removed, except that these two standardized fields
+are retained, and the remainder are stably ordered from the fewest to the
+most missing values. Spectra, metadata rows, identifiers, axes, and object
+attributes are unchanged.
 Official class completion temporarily assigns unresolved identities to
 \code{"other"}. By default, spectra with a blank identity or that unresolved
 literal class are removed before quality control and retained in the

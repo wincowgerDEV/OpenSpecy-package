@@ -72,10 +72,19 @@
 #' spectra with running signal-to-noise below two are removed before pruning.
 #' Full artifacts are then partitioned into Raman (200--4000), FTIR
 #' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
+#' After pruning and class reassignment, the official workflow derives
+#' \code{material_form} from the curated form-regex CSV and all atomic metadata
+#' values, then joins evidence-backed \code{common_use} by final material class.
+#' Existing form values take precedence when uniquely standardized; conflicting
+#' form categories remain missing and are audited. Common use may be
+#' \code{"consumer"}, \code{"industrial"}, \code{"mixed"}, or missing;
+#' quantitative mass shares are retained when available, while sourced
+#' qualitative proposals remain explicit in the review table.
 #' After full and medoid libraries are complete, metadata columns containing
-#' only missing values are removed and the remainder are stably ordered from
-#' the fewest to the most missing values. Spectra, metadata rows, identifiers,
-#' axes, and object attributes are unchanged.
+#' only missing values are removed, except that these two standardized fields
+#' are retained, and the remainder are stably ordered from the fewest to the
+#' most missing values. Spectra, metadata rows, identifiers, axes, and object
+#' attributes are unchanged.
 #' Official class completion temporarily assigns unresolved identities to
 #' \code{"other"}. By default, spectra with a blank identity or that unresolved
 #' literal class are removed before quality control and retained in the
@@ -4431,7 +4440,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!is.null(nested)) return(nested)
   keep <- c(
     "lookup_coverage", "identity_cleanup", "class_prediction",
-    "class_coverage", "type_coverage", "exclusions_deduplication",
+    "class_coverage", "type_coverage", "material_form_enrichment",
+    "material_form_matches", "material_form_clashes",
+    "common_use_enrichment", "common_use_coverage",
+    "exclusions_deduplication",
     "other_review", "other_filter", "filters", "metadata_drop",
     "metadata_finalization", "pruning", "pruning_excluded_classes",
     "pruning_reassignments",
@@ -4462,7 +4474,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   required <- c(
     "classes_reference.csv", "classes_regex.csv", "library_types.csv",
     "material_hierarchy.csv", "known_bad_ids.csv",
-    "metadata_drop_columns.csv"
+    "metadata_drop_columns.csv", "material_form_regex.csv",
+    "common_use_reference.csv"
   )
   complete <- vapply(candidates, function(path) {
     dir.exists(path) && all(file.exists(file.path(path, required)))
@@ -4489,7 +4502,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     library_types = "library_types.csv",
     material_hierarchy = "material_hierarchy.csv",
     known_bad_ids = "known_bad_ids.csv",
-    metadata_drop = "metadata_drop_columns.csv"
+    metadata_drop = "metadata_drop_columns.csv",
+    material_form_regex = "material_form_regex.csv",
+    common_use_reference = "common_use_reference.csv"
   )
   paths <- stats::setNames(file.path(workflow_data, unname(files)), names(files))
   missing <- !file.exists(paths)
@@ -4553,7 +4568,338 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("material_hierarchy material keys must be nonblank and unique",
          call. = FALSE)
   }
+  .lib_validate_material_form_regex(tables$material_form_regex)
+  .lib_validate_common_use_reference(
+    tables$common_use_reference, tables$material_hierarchy
+  )
   invisible(TRUE)
+}
+
+.lib_validate_material_form_regex <- function(regex_reference) {
+  .lib_require_cols(
+    regex_reference, c("pattern", "material_form"), "material_form_regex"
+  )
+  pattern <- trimws(as.character(regex_reference$pattern))
+  material_form <- trimws(as.character(regex_reference$material_form))
+  if (any(is.na(pattern) | !nzchar(pattern)) || anyDuplicated(pattern)) {
+    stop("material_form_regex patterns must be nonblank and unique",
+         call. = FALSE)
+  }
+  allowed <- c(
+    "paint", "rubber", "hard plastic", "fiber", "pellet",
+    "film plastic", "fragment", "foam", "sphere/bead"
+  )
+  invalid_form <- is.na(material_form) | !material_form %in% allowed
+  if (any(invalid_form)) {
+    stop(
+      "material_form_regex has unsupported material_form values: ",
+      paste(unique(material_form[invalid_form]), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  invalid_pattern <- vapply(pattern, function(value) {
+    inherits(try(grepl(value, "", perl = TRUE), silent = TRUE), "try-error")
+  }, logical(1L))
+  if (any(invalid_pattern)) {
+    stop("material_form_regex contains invalid regular expressions: ",
+         paste(pattern[invalid_pattern], collapse = ", "), call. = FALSE)
+  }
+  empty_match <- vapply(pattern, grepl, logical(1L), x = "", perl = TRUE)
+  if (any(empty_match)) {
+    stop("material_form_regex patterns may not match empty text: ",
+         paste(pattern[empty_match], collapse = ", "), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.lib_validate_common_use_reference <- function(reference, hierarchy) {
+  required <- c(
+    "material_class", "common_use", "consumer_mass_share",
+    "industrial_mass_share", "unclassified_mass_share", "basis_year",
+    "geography", "source_url", "retrieved_date", "evidence_notes"
+  )
+  .lib_require_cols(reference, required, "common_use_reference")
+  material_class <- trimws(as.character(reference$material_class))
+  if (any(is.na(material_class) | !nzchar(material_class)) ||
+      anyDuplicated(material_class)) {
+    stop("common_use_reference material_class keys must be nonblank and unique",
+         call. = FALSE)
+  }
+  hierarchy_classes <- sort(unique(trimws(
+    as.character(hierarchy$material_class)
+  )))
+  if (!setequal(material_class, hierarchy_classes)) {
+    stop(
+      "common_use_reference must contain every hierarchy class exactly once; ",
+      "missing: ", paste(setdiff(hierarchy_classes, material_class),
+                          collapse = ", "),
+      "; stale: ", paste(setdiff(material_class, hierarchy_classes),
+                          collapse = ", "),
+      call. = FALSE
+    )
+  }
+  common_use <- trimws(as.character(reference$common_use))
+  common_use[is.na(common_use) | !nzchar(common_use)] <- NA_character_
+  invalid_use <- !is.na(common_use) &
+    !common_use %in% c("consumer", "industrial", "mixed")
+  if (any(invalid_use)) {
+    stop("common_use_reference has unsupported common_use values: ",
+         paste(unique(common_use[invalid_use]), collapse = ", "),
+         call. = FALSE)
+  }
+  shares <- data.frame(
+    consumer = suppressWarnings(as.numeric(reference$consumer_mass_share)),
+    industrial = suppressWarnings(as.numeric(reference$industrial_mass_share)),
+    unclassified = suppressWarnings(as.numeric(
+      reference$unclassified_mass_share
+    ))
+  )
+  invalid_share <- vapply(shares, function(value) {
+    any(!is.na(value) & (!is.finite(value) | value < 0 | value > 1))
+  }, logical(1L))
+  if (any(invalid_share)) {
+    stop("common_use_reference shares must be proportions in [0, 1]",
+         call. = FALSE)
+  }
+  share_sum <- rowSums(shares, na.rm = TRUE)
+  if (any(share_sum > 1 + 1e-8)) {
+    stop("common_use_reference shares may not sum above one", call. = FALSE)
+  }
+  labelled <- !is.na(common_use)
+  share_present <- rowSums(!is.na(shares)) > 0L
+  complete_share <- stats::complete.cases(shares)
+  if (any(share_present & !complete_share)) {
+    stop(
+      "common_use_reference shares must be either all missing or all present",
+      call. = FALSE
+    )
+  }
+  if (any(!labelled & share_present)) {
+    stop("common_use_reference shares require a common_use label",
+         call. = FALSE)
+  }
+  valid_label <- rep(TRUE, nrow(reference))
+  consumer <- common_use == "consumer" & labelled & complete_share
+  industrial <- common_use == "industrial" & labelled & complete_share
+  mixed <- common_use == "mixed" & labelled & complete_share
+  valid_label[consumer] <- shares$consumer[consumer] > 0.5
+  valid_label[industrial] <- shares$industrial[industrial] > 0.5
+  valid_label[mixed] <-
+    shares$consumer[mixed] >= 0.25 & shares$industrial[mixed] >= 0.25 &
+    shares$consumer[mixed] <= 0.5 & shares$industrial[mixed] <= 0.5 &
+    shares$consumer[mixed] + shares$industrial[mixed] >= 0.75
+  source_provenance <- c("source_url", "retrieved_date", "evidence_notes")
+  source_ok <- lapply(source_provenance, function(column) {
+    value <- trimws(as.character(reference[[column]]))
+    !is.na(value) & nzchar(value)
+  })
+  source_complete <- Reduce(`&`, source_ok)
+  quantitative_provenance <- lapply(c("basis_year", "geography"),
+                                    function(column) {
+    value <- trimws(as.character(reference[[column]]))
+    !is.na(value) & nzchar(value)
+  })
+  quantitative_complete <- Reduce(`&`, quantitative_provenance)
+  invalid <- labelled & (
+    !valid_label | !source_complete |
+      (complete_share & !quantitative_complete)
+  )
+  if (any(invalid)) {
+    stop(
+      "common_use_reference labels require source provenance and, when ",
+      "quantitative shares are supplied, valid threshold shares and complete ",
+      "quantitative provenance: ",
+      paste(material_class[invalid], collapse = ", "),
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
+.lib_normalize_enrichment_text <- function(value) {
+  value <- suppressWarnings(as.character(value))
+  value[is.na(value)] <- ""
+  ascii <- iconv(value, from = "", to = "ASCII//TRANSLIT")
+  ascii[is.na(ascii)] <- value[is.na(ascii)]
+  trimws(gsub("[[:space:]]+", " ", tolower(ascii), perl = TRUE))
+}
+
+.lib_regex_row_hits <- function(text, patterns) {
+  hits <- vector("list", length(text))
+  for (pattern_index in seq_along(patterns)) {
+    matched <- which(grepl(patterns[[pattern_index]], text, perl = TRUE))
+    for (row_index in matched) {
+      hits[[row_index]] <- c(hits[[row_index]], pattern_index)
+    }
+  }
+  hits
+}
+
+.lib_enrich_material_form <- function(metadata, regex_reference) {
+  out <- data.table::copy(data.table::as.data.table(metadata))
+  row_count <- nrow(out)
+  atomic <- vapply(out, function(value) {
+    is.atomic(value) && length(value) == row_count
+  }, logical(1L))
+  searchable <- out[, names(out)[atomic], with = FALSE]
+  search_values <- lapply(searchable, function(value) {
+    value <- suppressWarnings(as.character(value))
+    value[is.na(value)] <- ""
+    value
+  })
+  if (length(search_values)) {
+    corpus <- .lib_normalize_enrichment_text(do.call(
+      paste, c(search_values, list(sep = "\u001f"))
+    ))
+  } else {
+    corpus <- rep("", row_count)
+  }
+  direct <- if ("material_form" %in% names(out)) {
+    .lib_normalize_enrichment_text(out[["material_form"]])
+  } else {
+    rep("", row_count)
+  }
+  patterns <- as.character(regex_reference$pattern)
+  forms <- as.character(regex_reference$material_form)
+  direct_hits <- .lib_regex_row_hits(direct, patterns)
+  direct_forms <- lapply(direct_hits, function(index) unique(forms[index]))
+  use_corpus <- lengths(direct_forms) == 0L
+  selected_hits <- direct_hits
+  evidence_source <- rep("material_form", row_count)
+  if (any(use_corpus)) {
+    corpus_hits <- .lib_regex_row_hits(corpus[use_corpus], patterns)
+    selected_hits[use_corpus] <- corpus_hits
+    evidence_source[use_corpus] <- "all_metadata"
+  }
+  matched_forms <- lapply(selected_hits, function(index) unique(forms[index]))
+  form_count <- lengths(matched_forms)
+  result <- rep(NA_character_, row_count)
+  unique_match <- form_count == 1L
+  result[unique_match] <- vapply(
+    matched_forms[unique_match], `[[`, character(1L), 1L
+  )
+  conflict <- form_count > 1L
+  out[, material_form := result]
+
+  matched_rows <- which(form_count > 0L)
+  normalized_matches <- lapply(search_values, function(value) {
+    .lib_normalize_enrichment_text(value[matched_rows])
+  })
+  evidence <- vapply(seq_along(matched_rows), function(match_position) {
+    row_index <- matched_rows[[match_position]]
+    if (identical(evidence_source[[row_index]], "material_form")) {
+      return(paste0("material_form=", direct[[row_index]]))
+    }
+    values <- character()
+    for (pattern_index in selected_hits[[row_index]]) {
+      for (column_name in names(normalized_matches)) {
+        value <- normalized_matches[[column_name]][[match_position]]
+        if (nzchar(value) && grepl(patterns[[pattern_index]], value,
+                                   perl = TRUE)) {
+          values <- c(values, paste0(
+            column_name, "=", substr(value, 1L, 160L)
+          ))
+          break
+        }
+      }
+    }
+    paste(unique(values), collapse = " | ")
+  }, character(1L))
+  matches <- data.table::data.table(
+    row_id = as.integer(matched_rows),
+    sample_name = if ("sample_name" %in% names(out)) {
+      as.character(out[["sample_name"]][matched_rows])
+    } else {
+      rep(NA_character_, length(matched_rows))
+    },
+    material_form = result[matched_rows],
+    evidence_source = evidence_source[matched_rows],
+    matched_forms = vapply(
+      matched_forms[matched_rows], paste, character(1L), collapse = " | "
+    ),
+    matched_patterns = vapply(selected_hits[matched_rows], function(index) {
+      paste(patterns[index], collapse = " | ")
+    }, character(1L)),
+    evidence = evidence,
+    conflict = conflict[matched_rows]
+  )
+  category <- sort(unique(stats::na.omit(result)))
+  category_metric <- if (length(category)) {
+    paste0("material_form:", category)
+  } else {
+    character()
+  }
+  summary <- data.table::data.table(
+    metric = c(
+      "total", "populated", "unmatched", "conflicting",
+      category_metric
+    ),
+    value = as.integer(c(
+      row_count, sum(!is.na(result)), sum(form_count == 0L), sum(conflict),
+      vapply(
+        category, function(value) sum(result == value, na.rm = TRUE),
+        integer(1L)
+      )
+    ))
+  )
+  list(
+    data = out, summary = summary, matches = matches,
+    clashes = matches[matches[["conflict"]]]
+  )
+}
+
+.lib_enrich_common_use <- function(metadata, reference) {
+  out <- data.table::copy(data.table::as.data.table(metadata))
+  common_use <- trimws(as.character(reference$common_use))
+  common_use[is.na(common_use) | !nzchar(common_use)] <- NA_character_
+  material_class <- if ("material_class" %in% names(out)) {
+    as.character(out[["material_class"]])
+  } else {
+    rep(NA_character_, nrow(out))
+  }
+  reference_index <- match(material_class, as.character(reference$material_class))
+  result <- common_use[reference_index]
+  out[, common_use := result]
+  category <- sort(unique(stats::na.omit(result)))
+  category_metric <- if (length(category)) {
+    paste0("common_use:", category)
+  } else {
+    character()
+  }
+  summary <- data.table::data.table(
+    metric = c(
+      "total", "populated", "unmatched", category_metric
+    ),
+    value = as.integer(c(
+      nrow(out), sum(!is.na(result)), sum(is.na(result)),
+      vapply(
+        category, function(value) sum(result == value, na.rm = TRUE),
+        integer(1L)
+      )
+    ))
+  )
+  classes <- sort(unique(stats::na.omit(material_class)))
+  class_index <- match(classes, as.character(reference$material_class))
+  coverage <- data.table::data.table(
+    material_class = classes,
+    spectra = vapply(
+      classes, function(value) {
+        sum(!is.na(material_class) & material_class == value)
+      }, integer(1L)
+    ),
+    common_use = common_use[class_index],
+    consumer_mass_share = as.numeric(reference$consumer_mass_share[class_index]),
+    industrial_mass_share = as.numeric(reference$industrial_mass_share[class_index]),
+    unclassified_mass_share = as.numeric(
+      reference$unclassified_mass_share[class_index]
+    ),
+    basis_year = as.character(reference$basis_year[class_index]),
+    geography = as.character(reference$geography[class_index]),
+    source_url = as.character(reference$source_url[class_index]),
+    retrieved_date = as.character(reference$retrieved_date[class_index]),
+    evidence_notes = as.character(reference$evidence_notes[class_index])
+  )
+  list(data = out, summary = summary, coverage = coverage)
 }
 
 .lib_regex_is_exact_literal <- function(pattern) {
@@ -5055,6 +5401,44 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
   }
 
+  material_form_rows <- list()
+  material_form_match_rows <- list()
+  material_form_clash_rows <- list()
+  common_use_rows <- list()
+  common_use_coverage_rows <- list()
+  for (name in names(libraries)) {
+    report(paste0("enriching material form and common use (", name, ")"))
+    form <- .lib_enrich_material_form(
+      libraries[[name]]$metadata, tables$material_form_regex
+    )
+    libraries[[name]]$metadata <- form$data
+    attr(libraries[[name]], "material_form_enrichment_report") <- form[
+      c("summary", "matches", "clashes")
+    ]
+    material_form_rows[[name]] <- data.table::copy(form$summary)
+    material_form_rows[[name]][, artifact := name]
+    if (nrow(form$matches)) {
+      material_form_match_rows[[name]] <- data.table::copy(form$matches)
+      material_form_match_rows[[name]][, artifact := name]
+    }
+    if (nrow(form$clashes)) {
+      material_form_clash_rows[[name]] <- data.table::copy(form$clashes)
+      material_form_clash_rows[[name]][, artifact := name]
+    }
+
+    use <- .lib_enrich_common_use(
+      libraries[[name]]$metadata, tables$common_use_reference
+    )
+    libraries[[name]]$metadata <- use$data
+    attr(libraries[[name]], "common_use_enrichment_report") <- use[
+      c("summary", "coverage")
+    ]
+    common_use_rows[[name]] <- data.table::copy(use$summary)
+    common_use_rows[[name]][, artifact := name]
+    common_use_coverage_rows[[name]] <- data.table::copy(use$coverage)
+    common_use_coverage_rows[[name]][, artifact := name]
+  }
+
   superseded_drop <- c(
     "x", "y", "xunits", "interpretation", "form_factor", "shape",
     "x_unit", "spectrumid", "locationdescription", "datatype"
@@ -5179,6 +5563,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       class_prediction = data.table::rbindlist(prediction_rows, fill = TRUE),
       class_coverage = data.table::rbindlist(coverage_rows, fill = TRUE),
       type_coverage = type_coverage,
+      material_form_enrichment = data.table::rbindlist(
+        material_form_rows, fill = TRUE
+      ),
+      material_form_matches = data.table::rbindlist(
+        material_form_match_rows, fill = TRUE
+      ),
+      material_form_clashes = data.table::rbindlist(
+        material_form_clash_rows, fill = TRUE
+      ),
+      common_use_enrichment = data.table::rbindlist(
+        common_use_rows, fill = TRUE
+      ),
+      common_use_coverage = data.table::rbindlist(
+        common_use_coverage_rows, fill = TRUE
+      ),
       other_review = other_policy$review,
       other_filter = other_policy$summary,
       pruning = data.table::rbindlist(prune_rows, fill = TRUE),
@@ -5434,6 +5833,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       all(is.na(column))
     }
   }, logical(1))
+  blank[names(blank) %in% c("material_form", "common_use")] <- FALSE
   if (any(blank)) x$metadata[, (names(blank)[blank]) := NULL]
   x
 }
@@ -5815,6 +6215,32 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_recover_library_assessments <- function(libraries, tables) {
+  artifacts <- .lib_named_typed_objects(libraries)
+  collect_enrichment <- function(attribute, field) {
+    data.table::rbindlist(lapply(names(artifacts), function(name) {
+      report <- attr(artifacts[[name]], attribute, exact = TRUE)
+      if (is.null(report) || is.null(report[[field]]) ||
+          !nrow(report[[field]])) return(NULL)
+      out <- data.table::copy(report[[field]])
+      out[, artifact := name]
+      out
+    }), fill = TRUE)
+  }
+  material_form_enrichment <- collect_enrichment(
+    "material_form_enrichment_report", "summary"
+  )
+  material_form_matches <- collect_enrichment(
+    "material_form_enrichment_report", "matches"
+  )
+  material_form_clashes <- collect_enrichment(
+    "material_form_enrichment_report", "clashes"
+  )
+  common_use_enrichment <- collect_enrichment(
+    "common_use_enrichment_report", "summary"
+  )
+  common_use_coverage <- collect_enrichment(
+    "common_use_enrichment_report", "coverage"
+  )
   prediction <- data.table::rbindlist(lapply(names(libraries), function(name) {
     report <- attr(libraries[[name]], "class_prediction_report")
     if (is.null(report) || is.null(report$summary)) return(NULL)
@@ -5920,6 +6346,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     class_prediction = prediction,
     class_coverage = coverage,
     type_coverage = type_coverage,
+    material_form_enrichment = material_form_enrichment,
+    material_form_matches = material_form_matches,
+    material_form_clashes = material_form_clashes,
+    common_use_enrichment = common_use_enrichment,
+    common_use_coverage = common_use_coverage,
     other_review = other_review,
     other_filter = other_filter,
     pruning = pruning,
@@ -6132,6 +6563,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     class_prediction = data.table::data.table(),
     class_coverage = data.table::data.table(),
     type_coverage = data.table::data.table(),
+    material_form_enrichment = data.table::data.table(),
+    material_form_matches = data.table::data.table(),
+    material_form_clashes = data.table::data.table(),
+    common_use_enrichment = data.table::data.table(),
+    common_use_coverage = data.table::data.table(),
     other_review = .lib_other_review_schema(),
     other_filter = .lib_other_filter_schema(),
     exclusions_deduplication = exclusions,
@@ -6393,7 +6829,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   cleanup_names <- c(
     "lookup_coverage", "identity_cleanup", "class_prediction", "class_coverage",
-    "type_coverage", "other_review", "other_filter", "exclusions_deduplication",
+    "type_coverage", "material_form_enrichment", "material_form_matches",
+    "material_form_clashes", "common_use_enrichment", "common_use_coverage",
+    "other_review", "other_filter", "exclusions_deduplication",
     "filters", "metadata_drop", "metadata_finalization", "pruning",
     "pruning_excluded_classes", "pruning_reassignments", "quality_control",
     "library_retention"
@@ -6530,6 +6968,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   } else {
     character()
   }
+  fully_missing <- setdiff(
+    fully_missing, c("material_form", "common_use")
+  )
   if (length(fully_missing)) metadata[, (fully_missing) := NULL]
   remaining_missing <- missing[setdiff(names(missing), fully_missing)]
   if (length(remaining_missing)) {

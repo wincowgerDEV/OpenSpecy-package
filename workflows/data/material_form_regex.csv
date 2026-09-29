@@ -1,0 +1,10 @@
+pattern,material_form
+"(^|[^[:alnum:]])(?:paints?|coatings?|lacquers?|varnishes?|enamels?)([^[:alnum:]]|$)",paint
+"(^|[^[:alnum:]])(?:rubbers?|elastomers?|latex|tires?|tyres?)([^[:alnum:]]|$)",rubber
+"(^|[^[:alnum:]])(?:hard|rigid)[[:space:]_-]*plastics?([^[:alnum:]]|$)",hard plastic
+"(^|[^[:alnum:]])(?:fibers?|fibres?|filaments?|threads?|yarns?)([^[:alnum:]]|$)",fiber
+"(^|[^[:alnum:]])(?:pellets?|nurdles?|granules?)([^[:alnum:]]|$)",pellet
+"(^|[^[:alnum:]])(?:plastic[[:space:]_-]*)?(?:films?|sheets?|foils?)([^[:alnum:]]|$)",film plastic
+"(^|[^[:alnum:]])(?:fragments?)([^[:alnum:]]|$)",fragment
+"(^|[^[:alnum:]])(?:foams?|foamed|sponges?)([^[:alnum:]]|$)",foam
+"(^|[^[:alnum:]])(?:beads?|spheres?|microspheres?)([^[:alnum:]]|$)",sphere/bead

@@ -5,7 +5,7 @@ cellulose nitrate,cellulose derivatives,plastic
 ethyl cellulose,cellulose derivatives,plastic
 methyl cellulose,cellulose derivatives,plastic
 rayon,cellulose derivatives,plastic
-epdm rubber (ethylene propylene diene monomer rubber),polyethylene-propylene-diene rubber,plastic
+epdm rubber (ethylene propylene diene monomer rubber),ethylene-propylene-diene-monomer rubber,plastic
 ethylene-propylene,polyethylene-propylene,plastic
 poly(ethylene-vinyl acetate) (EVA),polyethylene-vinyl acetate,plastic
 isobutylene-isoprene,polyisobutylene-isoprene,plastic
@@ -16,6 +16,9 @@ other,other,other
 other material,other material,not plastic
 other plastic,other plastic,plastic
 paint,paint,plastic
+acrylic paint,acrylic paint,plastic
+alkyd paint,alkyd paint,plastic
+urethane paint,urethane paint,plastic
 phenol formaldehyde,polyphenol-formaldehyde,plastic
 peek - poly(ether ether ketone),polyetherketones,plastic
 pek - poly(ether ketone),polyetherketones,plastic
@@ -260,7 +263,7 @@ poly(vinyl methyl sulfide),polyvinylsulfides,plastic
 poly(vinyl phenyl sulfide),polyvinylsulfides,plastic
 poly(vinyl propyl sulfide),polyvinylsulfides,plastic
 styrene-acrylonitrile (san),polystyrene-acrylonitrile,plastic
-styrene-butadiene,polystyrene-butadiene,plastic
+styrene-butadiene,styrene-butadiene rubber,plastic
 styrene-isoprene,polystyrene-isoprene,plastic
 styrene-maleic,polystyrene-maleic,plastic
 urea-formaldehyde,polyurea-formaldehyde,plastic

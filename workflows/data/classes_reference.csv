@@ -653,10 +653,10 @@ alginic acid sodium salt,other material
 alginic_acid_aldrich,other material
 alizarin 23600_532,other material
 alizarin 23600_785,other material
-alkyd varnish,other plastic
-alkyd varnish_ref,other plastic
-alkyd.resin,other plastic
-alkyd_varnish,other plastic
+alkyd varnish,alkyd paint
+alkyd varnish_ref,alkyd paint
+alkyd.resin,alkyd paint
+alkyd_varnish,alkyd paint
 allabogdanite,mineral
 allactite,mineral
 allactite__r070175-1__infrared__infrared_data_processed__1046,mineral
@@ -3260,7 +3260,7 @@ crookesite,mineral
 crookesite__r061025__raman__532__0__unoriented__raman_data_processed__14848,mineral
 crookesite__r061025__raman__785__0__unoriented__raman_data_processed__14440,mineral
 crotonyl fentanyl (lot #0511357-12),other material
-crumb rubber from used tires,other plastic
+crumb rubber from used tires,styrene-butadiene
 cryolite,mineral
 cryolite__r050287-1__infrared__infrared_data_processed__763,mineral
 cryolite__r050287__raman__514__0__unoriented__raman_data_processed__10718,mineral
@@ -6355,7 +6355,7 @@ lac dye 36020_638,other material
 "lactose  (4 cm-1, 256, medium, 400 mw)",other material
 lactose (anhydrous),other material
 lactose_monohydrate_unilab,other material
-lahmian medium acrylic paint,other plastic
+lahmian medium acrylic paint,acrylic paint
 laihunite,mineral
 laihunite__r110051__raman__532__0__unoriented__raman_data_processed__35924,mineral
 lammerite,mineral
@@ -9102,7 +9102,7 @@ poly(ethylene),poly(ethylene)
 poly(ethylene) + fouling,poly(ethylene)
 poly(ethylene) like,poly(ethylene)
 poly(ethylene-vinyl acetate) (EVA),poly(ethylene-vinyl acetate) (EVA)
-poly(ethylene:propylene:diene),other plastic
+poly(ethylene:propylene:diene),epdm rubber (ethylene propylene diene monomer rubber)
 poly(ethylene_terephthalate),poly(ethylene terephthalate)
 poly(ethyleneketone),poly(ethyleneketone)
 poly(glycolic acid) (PGA),poly(glycolic acid) (PGA)
@@ -9929,10 +9929,10 @@ r 14. green rubber fragment,other plastic
 r 15. yellow rubber fragment,other plastic
 r 16. black rubber paving,other plastic
 r 17. grey rubber paving,other plastic
-r 4. black bridgestone tire fragment,other plastic
-r 5. black michelin tire fragment,other plastic
-r 6. black bike tire fragment,other plastic
-r 8. white bike tire fragment,other plastic
+r 4. black bridgestone tire fragment,styrene-butadiene
+r 5. black michelin tire fragment,styrene-butadiene
+r 6. black bike tire fragment,styrene-butadiene
+r 8. white bike tire fragment,styrene-butadiene
 r 9. grey rubber fragment,other plastic
 r-17a iii bf,other material
 racemorphan hbr  (lot #a75a),other material
@@ -12272,7 +12272,7 @@ variscite__r100222__raman__532__0__unoriented__raman_data_processed__35162,miner
 variscite__r100222__raman__780__0__unoriented__raman_data_processed__35164,mineral
 variscite__r110139__raman__532__0__unoriented__raman_data_processed__35680,mineral
 variscite__r110139__raman__780__0__unoriented__raman_data_processed__35685,mineral
-varnish,other plastic
+varnish,paint
 varulite,mineral
 varulite__r060740__raman__532__0__unoriented__raman_data_processed__12463,mineral
 varulite__r060740__raman__785__0__unoriented__raman_data_processed__14523,mineral

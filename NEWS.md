@@ -1,5 +1,13 @@
 # OpenSpecy 2.0.0
 
+- Official `build_lib()` outputs now retain standardized `material_form` and
+  evidence-backed `common_use` metadata from reviewable CSV tables. Full-row
+  form matching is conflict-safe, common use supports reviewable
+  consumer/industrial/mixed decisions with quantitative shares when available
+  or cited qualitative application evidence otherwise, and
+  build assessments retain coverage and match evidence. Reference taxonomy now
+  separates SBR and EPDM rubber classes and uses binder-form paint classes only
+  for explicit acrylic, alkyd, or urethane identities.
 - `correct_spike()` now defaults to Nicolas Coca Lopez's dependency-free,
   two-sided MAD-prominence-width detector (maximum width 2 points, noise
   multiplier 10, and 5-point interpolation window defaults). The prior robust residual detector and

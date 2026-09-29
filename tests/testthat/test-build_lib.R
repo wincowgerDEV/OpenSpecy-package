@@ -1422,6 +1422,12 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   known_bad <- data.table::fread(
     reference_workflow_data_path("known_bad_ids.csv")
   )
+  form_regex <- data.table::fread(
+    reference_workflow_data_path("material_form_regex.csv")
+  )
+  common_use <- data.table::fread(
+    reference_workflow_data_path("common_use_reference.csv")
+  )
 
   expect_false(anyNA(classes$spectrum_identity))
   expect_false(any(classes$spectrum_identity == ""))
@@ -1445,6 +1451,15 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   expect_identical(anyDuplicated(known_bad$sample_name), 0L)
   expect_true(all(grepl("^[[:xdigit:]]{32}$", known_bad$sample_name)))
   expect_identical(anyDuplicated(hierarchy$material), 0L)
+  expect_silent(OpenSpecy:::.lib_validate_material_form_regex(form_regex))
+  expect_silent(OpenSpecy:::.lib_validate_common_use_reference(
+    common_use, hierarchy
+  ))
+  expect_setequal(
+    common_use$material_class, unique(hierarchy$material_class)
+  )
+  expect_true(all(c("consumer", "industrial", "mixed") %in%
+                    stats::na.omit(common_use$common_use)))
   expect_equal(hierarchy[material == "other", material_class], "other")
   expect_equal(hierarchy[material == "other", material_type], "other")
   expect_equal(classes[spectrum_identity == "pa", material], "polyamides")
@@ -1467,6 +1482,25 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
     classes[spectrum_identity == "plc008_label tape_unknown", material],
     "other plastic"
   )
+  expect_true(all(
+    classes[spectrum_identity %in% c(
+      "crumb rubber from used tires", "r 4. black bridgestone tire fragment",
+      "r 5. black michelin tire fragment", "r 6. black bike tire fragment",
+      "r 8. white bike tire fragment"
+    ), material] == "styrene-butadiene"
+  ))
+  expect_equal(
+    classes[spectrum_identity == "poly(ethylene:propylene:diene)", material],
+    "epdm rubber (ethylene propylene diene monomer rubber)"
+  )
+  expect_equal(
+    classes[spectrum_identity == "lahmian medium acrylic paint", material],
+    "acrylic paint"
+  )
+  expect_true(all(
+    classes[spectrum_identity %in% c("alkyd varnish", "alkyd_varnish"),
+            material] == "alkyd paint"
+  ))
   organic_recommendations <- c(
     "1,5-pentanediol", "11-aminoundecanoic acid", "1-bromobutane",
     "1-vinyl-2-pyrolidinone", "2-bromopropanoic acid", "2-butanone",
@@ -1524,6 +1558,110 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
                     "spectrumid", "locationdescription", "v1",
                     "3997_91411", "polymer_hit_3_labs") %in%
                   drops$metadata_column))
+})
+
+test_that("reference metadata enrichment is ordered and conservative", {
+  form_regex <- data.table::fread(
+    reference_workflow_data_path("material_form_regex.csv")
+  )
+  common_use <- data.table::fread(
+    reference_workflow_data_path("common_use_reference.csv")
+  )
+  metadata <- data.table::data.table(
+    sample_name = paste0("s", seq_len(7)),
+    spectrum_identity = c(
+      "paint chip", "clear plastic film", "fiber pellet", "profile edge",
+      "hard plastic", "EPDM gasket", "tyre fragment"
+    ),
+    material_form = c("rubber", rep(NA_character_, 6)),
+    notes = c("paint", "sheet", "fiber and pellet", "filmography",
+              "rigid plastic", "seal", "road wear"),
+    material_class = c(
+      "styrene-butadiene rubber", "polyethylene", "polypropylene",
+      "other plastic", "polyethylene",
+      "ethylene-propylene-diene-monomer rubber",
+      "styrene-butadiene rubber"
+    )
+  )
+
+  form <- OpenSpecy:::.lib_enrich_material_form(metadata, form_regex)
+  expect_identical(
+    form$data$material_form,
+    c("rubber", "film plastic", NA, NA, "hard plastic", "rubber", NA)
+  )
+  expect_equal(form$summary[metric == "conflicting", value], 2L)
+  expect_equal(form$summary[metric == "unmatched", value], 1L)
+  expect_true(all(c("matched_patterns", "evidence", "conflict") %in%
+                    names(form$matches)))
+  expect_match(form$matches[row_id == 1L, evidence], "material_form=rubber")
+
+  expect_silent(empty_form <- OpenSpecy:::.lib_enrich_material_form(
+    data.table::data.table(spectrum_identity = "profile"), form_regex
+  ))
+  expect_identical(empty_form$summary$metric,
+                   c("total", "populated", "unmatched", "conflicting"))
+
+  use <- OpenSpecy:::.lib_enrich_common_use(form$data, common_use)
+  expect_identical(
+    use$data$common_use,
+    c("mixed", "consumer", "consumer", NA, "consumer", "mixed", "mixed")
+  )
+  expect_true(all(c(
+    "consumer_mass_share", "industrial_mass_share", "source_url",
+    "retrieved_date"
+  ) %in% names(use$coverage)))
+  expect_silent(empty_use <- OpenSpecy:::.lib_enrich_common_use(
+    data.table::data.table(material_class = "other plastic"), common_use
+  ))
+  expect_identical(empty_use$summary$metric,
+                   c("total", "populated", "unmatched"))
+
+  mixed_hierarchy <- data.table::data.table(
+    material = "example", material_class = "example", material_type = "plastic"
+  )
+  mixed_reference <- data.table::data.table(
+    material_class = "example", common_use = "mixed",
+    consumer_mass_share = 0.4, industrial_mass_share = 0.4,
+    unclassified_mass_share = 0.2, basis_year = 2020,
+    geography = "global", source_url = "https://example.org/source",
+    retrieved_date = "2026-09-29",
+    evidence_notes = "review fixture"
+  )
+  expect_silent(OpenSpecy:::.lib_validate_common_use_reference(
+    mixed_reference, mixed_hierarchy
+  ))
+  mixed_reference$consumer_mass_share <- 0.2
+  expect_error(
+    OpenSpecy:::.lib_validate_common_use_reference(
+      mixed_reference, mixed_hierarchy
+    ),
+    "valid threshold shares"
+  )
+  qualitative_reference <- data.table::copy(mixed_reference)
+  qualitative_reference[, `:=`(
+    consumer_mass_share = NA_real_, industrial_mass_share = NA_real_,
+    unclassified_mass_share = NA_real_, basis_year = NA_integer_,
+    geography = "general"
+  )]
+  expect_silent(OpenSpecy:::.lib_validate_common_use_reference(
+    qualitative_reference, mixed_hierarchy
+  ))
+  qualitative_reference$source_url <- NA_character_
+  expect_error(
+    OpenSpecy:::.lib_validate_common_use_reference(
+      qualitative_reference, mixed_hierarchy
+    ),
+    "source provenance"
+  )
+  partial_reference <- data.table::copy(qualitative_reference)
+  partial_reference$source_url <- "https://example.org/source"
+  partial_reference$consumer_mass_share <- 0.6
+  expect_error(
+    OpenSpecy:::.lib_validate_common_use_reference(
+      partial_reference, mixed_hierarchy
+    ),
+    "either all missing or all present"
+  )
 })
 
 test_that("predict_class_reference() fills only blanks and audits overlaps", {
@@ -1999,6 +2137,25 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   data.table::fwrite(data.table::data.table(
     metadata_column = "unused_legacy_column"
   ), file.path(workflow_data, "metadata_drop_columns.csv"))
+  data.table::fwrite(data.table::data.table(
+    pattern = "(^|[^[:alnum:]])paint([^[:alnum:]]|$)",
+    material_form = "paint"
+  ), file.path(workflow_data, "material_form_regex.csv"))
+  use_classes <- sort(unique(data.table::fread(
+    file.path(workflow_data, "material_hierarchy.csv")
+  )$material_class))
+  data.table::fwrite(data.table::data.table(
+    material_class = use_classes,
+    common_use = rep(NA_character_, length(use_classes)),
+    consumer_mass_share = rep(NA_real_, length(use_classes)),
+    industrial_mass_share = rep(NA_real_, length(use_classes)),
+    unclassified_mass_share = rep(NA_real_, length(use_classes)),
+    basis_year = rep(NA_integer_, length(use_classes)),
+    geography = rep(NA_character_, length(use_classes)),
+    source_url = rep(NA_character_, length(use_classes)),
+    retrieved_date = rep(NA_character_, length(use_classes)),
+    evidence_notes = rep(NA_character_, length(use_classes))
+  ), file.path(workflow_data, "common_use_reference.csv"))
   fixture_prune <- list(
     derivative = list(min_n = 10, progress = FALSE),
     nobaseline = list(min_n = 10, progress = FALSE)
@@ -2039,8 +2196,18 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_true(all(c("library_name", "prepared_n", "final_n", "status",
                     "reason") %in% names(retention)))
   expect_true(all(vapply(first$libraries$raw, function(object) {
-    "library_name" %in% names(object$metadata)
+    all(c("library_name", "material_form", "common_use") %in%
+          names(object$metadata))
   }, logical(1))))
+  expect_true(all(vapply(first$libraries$raw, function(object) {
+    is.list(attr(object, "material_form_enrichment_report", exact = TRUE)) &&
+      is.list(attr(object, "common_use_enrichment_report", exact = TRUE))
+  }, logical(1))))
+  upstream <- attr(first$assessments, "upstream_assessments", exact = TRUE)
+  expect_true(all(c(
+    "material_form_enrichment", "material_form_matches",
+    "material_form_clashes", "common_use_enrichment", "common_use_coverage"
+  ) %in% names(upstream)))
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
     release_dir,
@@ -2680,6 +2847,24 @@ test_that("reference regex table contains only genuinely variable rules", {
     "poly(amide)", "poly(styrene)", "poly(vinylchloride)",
     "polyethylene glycol"
   ) %in% exact$spectrum_identity))
+  predicted <- predict_class_reference(
+    data.table::data.table(
+      spectrum_identity = c(
+        "sample sbr rubber", "sample epdm gasket", "sample acrylic paint",
+        "sample urethane paint", "sample alkyd varnish"
+      ),
+      material = NA_character_
+    ),
+    regex_reference, return = "table"
+  )
+  expect_identical(
+    predicted$material,
+    c(
+      "styrene-butadiene",
+      "epdm rubber (ethylene propylene diene monomer rubber)",
+      "acrylic paint", "urethane paint", "alkyd paint"
+    )
+  )
 })
 
 test_that("official material hierarchy uses concise reviewed polymer classes", {
@@ -2706,7 +2891,14 @@ test_that("official material hierarchy uses concise reviewed polymer classes", {
   )
   expect_identical(
     hierarchy[material == "styrene-butadiene", material_class],
-    "polystyrene-butadiene"
+    "styrene-butadiene rubber"
+  )
+  expect_identical(
+    hierarchy[
+      material == "epdm rubber (ethylene propylene diene monomer rubber)",
+      material_class
+    ],
+    "ethylene-propylene-diene-monomer rubber"
   )
   expect_identical(
     hierarchy[material == "poly(ethylene glycol)", material_class],
@@ -2717,7 +2909,9 @@ test_that("official material hierarchy uses concise reviewed polymer classes", {
   )
   expect_identical(parenthetical_classes, "polyhydroxy(meth)acrylates")
   exceptions <- c(
-    "cellulose derivatives", "paint", "silicones", "other plastic"
+    "acrylic paint", "alkyd paint", "cellulose derivatives",
+    "ethylene-propylene-diene-monomer rubber", "paint", "silicones",
+    "styrene-butadiene rubber", "urethane paint", "other plastic"
   )
   polymer_classes <- unique(hierarchy[material_type == "plastic", material_class])
   expect_true(all(startsWith(setdiff(polymer_classes, exceptions), "poly")))

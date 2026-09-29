@@ -258,9 +258,8 @@ script retains the source and output path finders and passes those paths to one
 `build_lib()` call. The complete visual flow,
 including checkpoint reuse and old/new assessments, is maintained in
 [`.specify/memory/build-lib-diagram.html`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/.specify/memory/build-lib-diagram.html).
-Canonically named
-exact-class, regex-class, library-type, material-hierarchy, and known-bad-ID
-tables live under
+Canonically named exact-class, regex-class, library-type, material-hierarchy,
+known-bad-ID, material-form-regex, and common-use tables live under
 `workflows/data/`. Raw-data corrections are completed externally before this
 workflow runs. The source-library paths and output directory are explicit
 inputs. When `workflow_data` is not supplied, `build_lib()` looks for the
@@ -280,8 +279,34 @@ blank materials. Exact/regex overlaps are audited without overwriting exact
 values, and conflicting regex predictions stop for review. Material classes
 use concise polymer-family names, with polyethylene and polypropylene separated
 and `polyhydroxy(meth)acrylates` retaining its chemically meaningful optional
-group notation. Remaining uncertain identities follow the selected generic-row
-review policy. Derivative and
+group notation. Styrene-butadiene rubber and EPDM have distinct classes.
+Binder-specific acrylic, alkyd, and urethane paint classes are available, but
+only identities that explicitly name a binder leave the generic `paint` class.
+Remaining uncertain identities follow the selected generic-row review policy.
+
+The official workflow also standardizes two enrichment fields. It normalizes
+and concatenates all atomic metadata values once per spectrum, then evaluates
+the reviewable `material_form_regex.csv`. A uniquely matching existing
+`material_form` takes precedence; otherwise the full metadata row is searched.
+Cross-category matches remain `NA` and are retained in the clash audit. The
+controlled vocabulary currently covers paint, rubber, hard plastic, fiber,
+pellet, film plastic, fragment, foam, and sphere/bead.
+`common_use_reference.csv` is a material-class lookup for the proposed
+predominant global ultimate end-market. Quantitative rows retain consumer,
+industrial, and unresolved mass shares: `consumer` and `industrial` require
+more than 50%, while `mixed` requires at least 25% on each side, at least 75%
+classified, and neither side above 50%. Where comparable mass shares do not
+exist, a qualitative proposal is allowed only with a cited application source,
+retrieval date, and explicit review note; share cells remain blank. Consumer
+endpoints include products used directly by individuals, such as passenger
+tires, household goods, clothing, and patient-facing healthcare products.
+Classes with substantial consumer and industrial endpoints use `mixed`.
+Ambiguous catch-alls and poorly supported specialty groups remain `NA`.
+Commodity shares use the [OECD 2019 polymer-by-application mass
+dataset](https://data-explorer.oecd.org/vis?df%5Bag%5D=OECD.ENV.EEI&df%5Bid%5D=DSD_PU_2019%40DF_PU_2019);
+PTFE uses a separate material-specific end-use source recorded in the CSV.
+Coverage, provenance, matched evidence, and clashes are retained with the
+upstream build assessments. Derivative and
 nobaseline spectra pass three quality gates before pruning: FTIR CO2 is
 flattened when the 2200--2420 maximum divided by the 2420--2550 silent-region
 maximum is greater than two; high-tail detection ignores NA padding, trims each
@@ -302,6 +327,8 @@ and NIR uses 4000--12000 cm^-1^. FTIR/Raman medoids and models use 800--3200;
 the NIR identification interval is derived from the longest region with at
 least 90% finite coverage (falling back to available coverage) and recorded on
 the object. All-blank metadata columns are dropped independently by type.
+The enrichment columns are retained even when every value for one type is
+missing; other all-blank metadata columns are dropped independently by type.
 Each spectrum must observe at least 10% of its type-specific identification
 axis to enter medoid selection or model fitting. PAM operates on a temporary
 relative matrix where each spectrum's missing values are filled by that

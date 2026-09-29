@@ -18,7 +18,7 @@ if (getRversion() >= "2.15.1") {
     "intensity_units", "is_protected", "level", "library_id", "library_name",
     "match_identity",
     "macro_class_accuracy", "macro_class_accuracy_pct", "match_val", "matched",
-    "material", "material_class",
+    "material", "material_class", "material_form", "common_use",
     "material_temperature_k", "material_type", "materials", "metric",
     "misidentified", "model", "n", "name", "object_id", "observed_n",
     "original", "path", "patterns", "physical_id", "pool", "populated_class",
