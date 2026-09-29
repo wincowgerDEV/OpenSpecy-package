@@ -1276,6 +1276,32 @@ app_source_pixel_calibration <- function(source) {
   if(isTruthy(spatial_unit)) app_pixel_calibration(1, spatial_unit) else NULL
 }
 
+app_coordinate_calibration <- function(calibration) {
+  if(!is.list(calibration) || is.null(calibration$x_origin)) return(NULL)
+  values <- suppressWarnings(as.numeric(c(
+    calibration$x_origin, calibration$y_origin,
+    calibration$x_step, calibration$y_step
+  )))
+  if(length(values) != 4L || any(!is.finite(values)) ||
+     any(values[3:4] == 0)) return(NULL)
+  unit <- if(isTruthy(calibration$unit)) {
+    trimws(as.character(calibration$unit)[[1L]])
+  } else "map unit"
+  list(
+    x_origin = values[[1L]], y_origin = values[[2L]],
+    x_step = values[[3L]], y_step = values[[4L]], unit = unit,
+    source = if(isTruthy(calibration$source)) {
+      as.character(calibration$source)[[1L]]
+    } else "source metadata"
+  )
+}
+
+app_source_coordinate_calibration <- function(source) {
+  app_coordinate_calibration(
+    attr(source, "spatial_calibration", exact = TRUE)
+  )
+}
+
 # Particle RDS downloads use unit-bearing metadata names (for example,
 # x_pixel/y_pixel or x_um/y_um). Restore the canonical x/y aliases needed by
 # the map pipeline when one of those downloads is uploaded again, while
@@ -1339,19 +1365,17 @@ app_project_source_coordinates <- function(source, metadata,
       return(list(metadata = result, unit = "nm", source = "H5 stage"))
     }
   }
-  calibration <- attr(source, "spatial_calibration", exact = TRUE)
-  if(is.list(calibration) && !is.null(calibration$x_origin)) {
+  calibration <- app_source_coordinate_calibration(source)
+  if(!is.null(calibration)) {
     result[, `:=`(
       grid_x = x, grid_y = y,
       x = calibration$x_origin + as.numeric(x) * calibration$x_step,
       y = calibration$y_origin + as.numeric(y) * calibration$y_step
     )]
-    unit <- if(isTruthy(calibration$unit)) calibration$unit else "map unit"
+    unit <- calibration$unit
     attr(result, "openspecy_spatial_unit") <- unit
     return(list(metadata = result, unit = unit,
-                source = if(isTruthy(calibration$source)) {
-                  calibration$source
-                } else "source metadata"))
+                source = calibration$source))
   }
   fallback <- app_calibrate_spatial_metadata(result, pixel_size, pixel_unit)
   list(metadata = fallback, unit = attr(fallback, "openspecy_spatial_unit"),
@@ -1431,28 +1455,54 @@ app_selection_shape <- function(x, y, select) {
      !is.finite(select$x) || !is.finite(select$y)) return(NULL)
   x_boundary <- app_heatmap_cell_range(x)
   y_boundary <- app_heatmap_cell_range(y)
-  x_radius <- diff(x_boundary) / max(length(unique(x)), 1L) * 1.5
-  y_radius <- diff(y_boundary) / max(length(unique(y)), 1L) * 1.5
+  x_radius <- diff(x_boundary) / max(length(unique(x)), 1L) * 0.4
+  y_radius <- diff(y_boundary) / max(length(unique(y)), 1L) * 0.4
   list(
     type = "circle", xref = "x", yref = "y",
     x0 = select$x - x_radius, x1 = select$x + x_radius,
     y0 = select$y - y_radius, y1 = select$y + y_radius,
-    fillcolor = "#F59E0B", opacity = 1,
-    line = list(color = "#FFF7ED", width = 2), layer = "above"
+    fillcolor = "#FFFFFF", opacity = 1,
+    line = list(color = "#FFFFFF", width = 2), layer = "above"
   )
 }
 
 app_particle_metadata_units <- function(metadata, pixel_size = 1,
-                                        pixel_unit = "pixel") {
-  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
+                                        pixel_unit = "pixel",
+                                        coordinate_calibration = NULL) {
+  coordinate_calibration <- app_coordinate_calibration(
+    coordinate_calibration
+  )
+  report_unit <- if(is.null(coordinate_calibration)) {
+    pixel_unit
+  } else coordinate_calibration$unit
+  calibration <- app_pixel_calibration(pixel_size, report_unit)
   result <- data.table::copy(data.table::as.data.table(metadata))
-  linear <- intersect(
-    c("x", "y", "centroid_x", "centroid_y", "first_x", "first_y",
-      "perimeter", "rectangular_min", "feret_min", "feret_max"),
+  x_coordinates <- intersect(c("x", "centroid_x", "first_x", "rand_x"),
+                             names(result))
+  y_coordinates <- intersect(c("y", "centroid_y", "first_y", "rand_y"),
+                             names(result))
+  dimensions <- intersect(
+    c("perimeter", "rectangular_min", "feret_min", "feret_max"),
     names(result)
   )
+  coordinates <- c(x_coordinates, y_coordinates)
+  linear <- c(coordinates, dimensions)
   area <- intersect(c("area", "convex_hull_area"), names(result))
-  for(column in linear) {
+  if(is.null(coordinate_calibration)) {
+    for(column in coordinates) {
+      result[[column]] <- as.numeric(result[[column]]) * calibration$size
+    }
+  } else {
+    for(column in x_coordinates) {
+      result[[column]] <- coordinate_calibration$x_origin +
+        as.numeric(result[[column]]) * coordinate_calibration$x_step
+    }
+    for(column in y_coordinates) {
+      result[[column]] <- coordinate_calibration$y_origin +
+        as.numeric(result[[column]]) * coordinate_calibration$y_step
+    }
+  }
+  for(column in dimensions) {
     result[[column]] <- as.numeric(result[[column]]) * calibration$size
   }
   for(column in area) {
@@ -1514,10 +1564,19 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
                                            library = FALSE,
                                            pixel_size = 1,
                                            pixel_unit = "pixel",
+                                           coordinate_calibration = NULL,
                                            match_label = "Correlation",
                                            signal_label = "Signal to Noise") {
-  calibration <- app_pixel_calibration(pixel_size, pixel_unit)
-  result <- app_particle_metadata_units(metadata, pixel_size, pixel_unit)
+  coordinate_calibration <- app_coordinate_calibration(
+    coordinate_calibration
+  )
+  report_unit <- if(is.null(coordinate_calibration)) {
+    pixel_unit
+  } else coordinate_calibration$unit
+  calibration <- app_pixel_calibration(pixel_size, report_unit)
+  result <- app_particle_metadata_units(
+    metadata, pixel_size, pixel_unit, coordinate_calibration
+  )
   result <- app_round_reported_metadata(result)
   if("material_class" %in% names(result)) {
     result$material_class <- app_standardize_material_class(
@@ -1681,6 +1740,14 @@ app_particle_size_data <- function(object, pixel_size = 1,
       bin_min = numeric(), bin_max = numeric(), bin_mid = numeric(),
       count = integer()
     )
+  } else if(length(size) == 1L) {
+    half_width <- if(size[[1L]] == 0) 0.5 else
+      max(abs(size[[1L]]) * 0.05, sqrt(.Machine$double.eps))
+    result <- data.frame(
+      bin_min = size[[1L]] - half_width,
+      bin_max = size[[1L]] + half_width,
+      bin_mid = size[[1L]], count = 1L
+    )
   } else {
     histogram <- graphics::hist(size, breaks = bins, plot = FALSE,
                                 include.lowest = TRUE, right = TRUE)
@@ -1699,6 +1766,12 @@ app_particle_size_plotly <- function(object, pixel_size = 1,
                                      pixel_unit = "pixel") {
   data <- app_particle_size_data(object, pixel_size, pixel_unit)
   unit <- attr(data, "unit")
+  xaxis <- list(title = paste0("Nominal Particle Size (", unit, ")"))
+  if(nrow(data) == 1L && data$count[[1L]] == 1L) {
+    padding <- (data$bin_max[[1L]] - data$bin_min[[1L]]) / 2
+    xaxis$range <- c(data$bin_min[[1L]] - padding,
+                     data$bin_max[[1L]] + padding)
+  }
   plotly::plot_ly(
     data,
     x = ~bin_mid,
@@ -1716,7 +1789,7 @@ app_particle_size_plotly <- function(object, pixel_size = 1,
     )
   ) |>
     plotly::layout(
-      xaxis = list(title = paste0("Nominal Particle Size (", unit, ")")),
+      xaxis = xaxis,
       yaxis = list(title = "Count", rangemode = "tozero"),
       paper_bgcolor = app_theme$panel,
       plot_bgcolor = app_theme$panel,
@@ -1825,6 +1898,7 @@ app_material_summary_plotly <- function(material, palette = NULL) {
       symmetric = TRUE, visible = TRUE, color = app_theme$text
     ),
     text = material_hover,
+    textposition = "none",
     hovertemplate = "%{text}<extra></extra>"
   ) |>
     plotly::layout(

@@ -156,8 +156,8 @@ preprocessing_controls <- tagList(
     conditionalPanel(
       condition = "input.spike_method == 'mad_prominence_width'",
       numericInput(
-        "spike_width_threshold", "Maximum Spike Width (sampled points)",
-        value = 10, min = 1, step = 1
+        "spike_width_threshold", "Maximum Spike Width (points)",
+        value = 2, min = 1, step = 1
       ),
       numericInput(
         "spike_noise_multiplier", "Noise Multiplier",
@@ -165,7 +165,7 @@ preprocessing_controls <- tagList(
       ),
       numericInput(
         "spike_interpolation_window", "Interpolation Window (points)",
-        value = 10, min = 1, step = 1
+        value = 5, min = 1, step = 1
       )
     ),
     conditionalPanel(
@@ -180,8 +180,8 @@ preprocessing_controls <- tagList(
       )
     ),
     note = c(
-      "Detection Method defaults to Nicolas Coca Lopez's automatic two-sided method. It estimates noise as the raw median absolute deviation of first differences, accepts peaks narrower than Maximum Spike Width, and requires prominence above Noise Multiplier times that noise. Higher multipliers and lower widths are more conservative.",
-      "Interpolation Window is the number of sampled points searched on either side of each marked point. Detected points are excluded; a boundary uses the nearest clean value rather than a wrapped or sloped extrapolation.",
+      "Detection Method defaults to Nicolas Coca Lopez's automatic two-sided method. It estimates noise as the raw median absolute deviation of first differences, accepts peaks no wider than Maximum Spike Width, and requires prominence above Noise Multiplier times that noise. Higher multipliers and lower widths are more conservative.",
+      "Maximum Spike Width and Interpolation Window are measured in points. The window is the number of points searched on either side of each marked point. Detected points are excluded; a boundary uses the nearest clean value rather than a wrapped or sloped extrapolation.",
       "Legacy robust local residual compares each point with a wavenumber-aware neighbor prediction. Higher Robust Residual Threshold values are more conservative; Neighbor Points per Side controls the prediction context.",
       "Spike Direction limits detection to upward impulses, downward impulses, or both. The correction is a no-op while Remove Isolated Spikes is off, regardless of child values. Inspect Automatic Corrections Made because narrow real bands can resemble acquisition spikes."
     )

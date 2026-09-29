@@ -1604,6 +1604,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 
 .particle_summary_table <- function(proc_map, sample_name, material_col,
                                     pixel_length, map) {
+  .particle_area_um2 <- NULL
   dt <- data.table::as.data.table(proc_map$metadata)
   if (!material_col %in% names(dt)) return(data.table::data.table())
   area_um2 <- if ("area" %in% names(dt)) {

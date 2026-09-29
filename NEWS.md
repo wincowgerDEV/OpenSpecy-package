@@ -1,8 +1,8 @@
 # OpenSpecy 2.0.0
 
 - `correct_spike()` now defaults to Nicolas Coca Lopez's dependency-free,
-  two-sided MAD-prominence-width detector (10-point width, noise multiplier,
-  and interpolation window defaults). The prior robust residual detector and
+  two-sided MAD-prominence-width detector (maximum width 2 points, noise
+  multiplier 10, and 5-point interpolation window defaults). The prior robust residual detector and
   both prominence/FWHM modes remain selectable, and Nicolas is credited as a
   contributor to the package and function.
 - Added `material_percentage_uncertainty()` for the published single-property
@@ -11,7 +11,9 @@
   intervals, total particle count, and total concentration RSD (`count^-1/2`).
   The app's material summary is now an interactive Plotly count chart with
   class uncertainty plus an **All Materials** RSD bar, and its particle-size
-  histogram is interactive with bin bounds and counts on hover.
+  histogram is interactive with bin bounds and counts on hover, including a
+  readable single-particle bar. Material labels appear on hover rather than
+  inside the bars.
 - The Advanced settings loader now includes reusable **Default** and
   **MIPPR - Thermo Fisher iN10 MX** presets. Default restores every captured
   app control and clears saved quantification definitions; MIPPR configures

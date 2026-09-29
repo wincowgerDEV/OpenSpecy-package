@@ -499,15 +499,15 @@ quality_ready <- raman_hdpe |>
 
 The default method, contributed by Nicolas Coca Lopez, detects positive and
 negative narrow peaks using prominence against the raw median absolute
-deviation of first differences. Its width threshold, noise multiplier, and
-interpolation window each default to 10 sampled points or units as applicable.
+deviation of first differences. Its maximum spike width defaults to 2 points,
+its noise multiplier to 10, and its interpolation window to 5 points per side.
 It is implemented in base R, without `pracma`. The previous conservative,
 wavenumber-aware detector remains available as `method = "residual"`.
 `correct_spike()` also retains the manual and ratio-based prominence/FWHM
 procedures described by
 [Coca-Lopez (2024)](https://doi.org/10.1016/j.aca.2024.342312). Manual thresholds
 must be calibrated for the material, instrument, resolution, and acquisition
-conditions. Width is measured in sampled CCD-pixel units, not cm^-1^.
+conditions. Width and interpolation windows are measured in points, not cm^-1^.
 
 No single-spectrum detector can always distinguish a cosmic-ray spike from a
 genuine narrow band. Inspect correction diagnostics, calibrate on representative

@@ -601,7 +601,10 @@ test_that("particle plotly places the alpha image above the heatmap boundary", {
   selection <- built$x$layout$shapes[[1L]]
   expect_identical(selection$type, "circle")
   expect_identical(selection$layer, "above")
-  expect_identical(selection$fillcolor, "#F59E0B")
+  expect_identical(selection$fillcolor, "#FFFFFF")
+  expect_identical(selection$line$color, "#FFFFFF")
+  expect_equal(c(selection$x0, selection$x1), c(0.6, 1.4))
+  expect_equal(c(selection$y0, selection$y1), c(-0.4, 0.4))
 })
 
 test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
@@ -867,6 +870,32 @@ test_that("spatial calibration preserves geometry and creates unit-bearing metad
   expect_equal(converted$volume_um3, 64)
   expect_identical(metadata, original)
   expect_error(env$app_pixel_calibration(0, "um"), "positive finite")
+})
+
+test_that("particle coordinates use the uploaded origin and signed steps", {
+  env <- .source_in_memory_app_helpers()
+  metadata <- data.frame(
+    x = 2, y = 3, centroid_x = 2.5, centroid_y = 2.5,
+    first_x = 1, first_y = 2, area = 4, perimeter = 8
+  )
+  coordinate_calibration <- list(
+    x_origin = 100, y_origin = 200, x_step = 2, y_step = -3,
+    unit = "um", source = "map info"
+  )
+
+  converted <- env$app_particle_metadata_units(
+    metadata, pixel_size = 2, pixel_unit = "um",
+    coordinate_calibration = coordinate_calibration
+  )
+
+  expect_equal(converted$x_um, 104)
+  expect_equal(converted$y_um, 191)
+  expect_equal(converted$centroid_x_um, 105)
+  expect_equal(converted$centroid_y_um, 192.5)
+  expect_equal(converted$first_x_um, 102)
+  expect_equal(converted$first_y_um, 194)
+  expect_equal(converted$perimeter_um, 16)
+  expect_equal(converted$area_um2, 16)
 })
 
 test_that("simple selection metadata is friendly, ordered, and model-neutral", {

@@ -2075,6 +2075,7 @@ test_that("bundled app material summaries report uncertainty in Plotly", {
   expect_s3_class(material_widget, "plotly")
   expect_true(any(grepl("All Materials", material_build$x$data[[1]]$text,
                         fixed = TRUE)))
+  expect_true(all(material_build$x$data[[1]]$textposition == "none"))
   expect_equal(as.numeric(material_build$x$data[[1]]$error_x$array),
                material_data$count_uncertainty)
 
@@ -2083,6 +2084,21 @@ test_that("bundled app material summaries report uncertainty in Plotly", {
   expect_s3_class(size_widget, "plotly")
   expect_match(size_build$x$data[[1]]$hovertemplate, "Bin:", fixed = TRUE)
   expect_equal(sum(size_build$x$data[[1]]$y), 3)
+
+  one_particle <- as_OpenSpecy(
+    seq_len(3), matrix(seq_len(3), nrow = 3),
+    metadata = data.frame(material_class = "PE", area = 25)
+  )
+  one_data <- env$app_particle_size_data(one_particle)
+  expect_equal(one_data$bin_mid, 5)
+  expect_equal(one_data$count, 1L)
+  expect_gt(one_data$bin_max - one_data$bin_min, 0)
+  one_build <- plotly::plotly_build(
+    env$app_particle_size_plotly(one_particle)
+  )
+  expect_equal(as.numeric(one_build$x$data[[1]]$x), 5)
+  expect_equal(as.numeric(one_build$x$data[[1]]$y), 1)
+  expect_true(diff(one_build$x$layout$xaxis$range) > 0)
 })
 
 test_that("bundled app quantifies the displayed processed spectra", {

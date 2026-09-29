@@ -939,14 +939,14 @@ observeEvent(input$run_analysis, {
         } else {
           c(shared, list(
             width_threshold = if(is.null(value("spike_width_threshold"))) {
-              10
+              2
             } else value("spike_width_threshold"),
             noise_multiplier = if(is.null(value("spike_noise_multiplier"))) {
               10
             } else value("spike_noise_multiplier"),
             interpolation_points = if(is.null(
               value("spike_interpolation_window")
-            )) 10L else as.integer(value("spike_interpolation_window"))
+            )) 5L else as.integer(value("spike_interpolation_window"))
           ))
         }
       } else {
@@ -2872,13 +2872,13 @@ observeEvent(input$run_analysis, {
       } else {
         quality_spike_args$width_threshold <- if(is.null(
           input$spike_width_threshold
-        )) 10 else input$spike_width_threshold
+        )) 2 else input$spike_width_threshold
         quality_spike_args$noise_multiplier <- if(is.null(
           input$spike_noise_multiplier
         )) 10 else input$spike_noise_multiplier
         quality_spike_args$interpolation_points <- if(is.null(
           input$spike_interpolation_window
-        )) 10L else as.integer(input$spike_interpolation_window)
+        )) 5L else as.integer(input$spike_interpolation_window)
       }
       # low_snr is deliberately not in app_quality_checks/requested here --
       # it would be redundant with the app's existing separate "SNR
@@ -3474,6 +3474,7 @@ match_metadata <- reactive({
         result
     }
     display_calibration <- pixel_calibration()
+    coordinate_calibration <- NULL
     projection <- pixel_projection()
     if(!isTRUE(settings$collapse) && !is.null(projection) &&
        isTruthy(projection$axis_unit)) {
@@ -3482,6 +3483,10 @@ match_metadata <- reactive({
         result$x <- projection$metadata$x[[selected_index]]
         result$y <- projection$metadata$y[[selected_index]]
       }
+    } else if(isTRUE(settings$collapse)) {
+      coordinate_calibration <- app_source_coordinate_calibration(
+        preprocessed$data
+      )
     }
     app_selection_metadata_display(
       result,
@@ -3489,6 +3494,7 @@ match_metadata <- reactive({
       particle = isTRUE(settings$collapse),
       pixel_size = display_calibration$size,
       pixel_unit = display_calibration$unit,
+      coordinate_calibration = coordinate_calibration,
       match_label = simple_match_label(),
       signal_label = simple_signal_label()
     )
@@ -4399,6 +4405,9 @@ output$progress_bars <- renderUI({
         on.exit(unlink(archive_root, recursive = TRUE, force = TRUE), add = TRUE)
         files <- character()
         calibration <- pixel_calibration()
+        coordinate_calibration <- app_source_coordinate_calibration(
+          preprocessed$data
+        )
         if("details" %in% selected) {
           path <- file.path(archive_root, "particle_details.csv")
           details <- data.table::copy(
@@ -4411,6 +4420,7 @@ output$progress_bars <- renderUI({
           details <- app_selection_metadata_display(
             details, simple = isTRUE(input$simple_metadata), particle = TRUE,
             pixel_size = calibration$size, pixel_unit = calibration$unit,
+            coordinate_calibration = coordinate_calibration,
             match_label = simple_match_label(),
             signal_label = simple_signal_label()
           )
@@ -4421,13 +4431,16 @@ output$progress_bars <- renderUI({
           path <- file.path(archive_root, "particles_processed.rds")
           processed_particles <- canonical_final()
           processed_particles$metadata <- app_particle_metadata_units(
-            processed_particles$metadata, calibration$size, calibration$unit
+            processed_particles$metadata, calibration$size, calibration$unit,
+            coordinate_calibration = coordinate_calibration
           )
           processed_particles <- app_restore_spatial_coordinates(
             processed_particles
           )
           attr(processed_particles, "openspecy_spatial_unit") <-
-            calibration$unit
+            if(is.null(coordinate_calibration)) calibration$unit else
+              coordinate_calibration$unit
+          attr(processed_particles, "spatial_calibration") <- NULL
           processed_particles$metadata <- app_round_reported_metadata(
             processed_particles$metadata
           )

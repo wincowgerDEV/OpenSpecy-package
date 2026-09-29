@@ -1710,9 +1710,9 @@ test("local app renders spectra, matches, and one informative progress overlay",
         "mad_prominence_width"
       );
       await expect(page.locator("#spike_direction")).toHaveValue("both");
-      await expect(page.locator("#spike_width_threshold")).toHaveValue("10");
+      await expect(page.locator("#spike_width_threshold")).toHaveValue("2");
       await expect(page.locator("#spike_noise_multiplier")).toHaveValue("10");
-      await expect(page.locator("#spike_interpolation_window")).toHaveValue("10");
+      await expect(page.locator("#spike_interpolation_window")).toHaveValue("5");
       await expect(page.locator("#spike_residual_threshold")).toHaveValue("8");
       await expect(page.locator("#saturation_mode")).toHaveValue("auto");
       const preprocessingPane = page.locator("#spike_decision").locator(

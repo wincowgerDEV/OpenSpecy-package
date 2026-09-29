@@ -22,7 +22,7 @@ correct_spike(x, ...)
   width_threshold = NULL,
   noise_multiplier = 10,
   rel_height = 0.8,
-  interpolation_points = 10L,
+  interpolation_points = 5L,
   interpolation = c("linear", "quadratic"),
   z_threshold = 3.5,
   min_peaks = 20L,
@@ -56,7 +56,7 @@ prominence/FWHM method.}
 
 \item{width_threshold}{positive numeric or \code{NULL}; maximum peak FWHM in
 sample (CCD-pixel) units for the manual prominence/FWHM method. \code{NULL}
-uses 10 sampled points for the default method.}
+uses 2 points for the default method.}
 
 \item{noise_multiplier}{positive numeric multiplier for the automatic raw
 MAD prominence threshold used by \code{method = "mad_prominence_width"}.}
@@ -104,10 +104,10 @@ in sample (CCD-pixel) units.
 \details{
 \code{method = "mad_prominence_width"} reproduces the automated workflow supplied
 by Nicolas Coca Lopez without requiring \code{pracma}. With the defaults, peaks
-must be narrower than 10 sampled points and exceed 10 times the raw MAD of
+must span no more than 2 points and exceed 10 times the raw MAD of
 first differences. \code{prominence_threshold} may override that automatic
 threshold. Detected intervals receive a one-point guard on either side and
-use a 10-point local interpolation window; at an edge the nearest clean
+use a 5-point local interpolation window; at an edge the nearest clean
 value is used rather than extrapolating a slope.
 
 \code{method = "prominence_fwhm"} requires user-supplied
