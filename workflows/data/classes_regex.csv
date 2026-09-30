@@ -21,12 +21,12 @@ pattern,material
 ^plc[0-9]+_.*_natural rubber(?:[.][0-9]+)?$,other plastic
 ^plc[0-9]+_.*_nitrile(?:[.][0-9]+)?$,polyacrylonitriles
 ^plc[0-9]+_.*_nylon(?:[.][0-9]+)?$,polyamides
-^plc[0-9]+_.*_paint(?:[.][0-9]+)?$,paint
+^plc[0-9]+_.*_paint(?:[.][0-9]+)?$,other plastic
 (?:^|[[:space:]_(-])(?:sbr|styrene[[:space:]_-]*butadiene(?:[[:space:]_-]*(?:rubber|copolymer))?|styrol[[:space:]_-]*butadien[[:space:]_-]*rubber)(?:[[:space:]_)-]|$),styrene-butadiene
 (?:^|[[:space:]_(-])epdm(?:[[:space:]_)-]|$),epdm rubber (ethylene propylene diene monomer rubber)
-(?:^|[[:space:]_-])acrylic[[:space:]_-]*paint(?:[[:space:]_-]|$),acrylic paint
-(?:^|[[:space:]_-])(?:poly)?urethane[[:space:]_-]*paint(?:[[:space:]_-]|$),urethane paint
-(?:^|[[:space:]_-])alkyd[[:space:]_-]*(?:paint|varnish)(?:[[:space:]_-]|$),alkyd paint
+(?:^|[[:space:]_-])acrylic[[:space:]_-]*paint(?:[[:space:]_-]|$),polyacrylates
+(?:^|[[:space:]_-])(?:poly)?urethane[[:space:]_-]*paint(?:[[:space:]_-]|$),polyurethanes
+(?:^|[[:space:]_-])alkyd[[:space:]_-]*(?:paint|varnish)(?:[[:space:]_-]|$),polyesters
 ^plc[0-9]+_.*_pc(?:[.][0-9]+)?$,polycarbonates
 ^plc[0-9]+_.*_pe(?:[.][0-9]+)?$,poly(ethylene)
 ^plc[0-9]+_.*_pest(?:[.][0-9]+)?$,polyesters
@@ -36,7 +36,7 @@ pattern,material
 ^plc[0-9]+_.*_ps(?:[.][0-9]+)?$,polystyrene
 ^plc[0-9]+_.*_rubber(?:[.][0-9]+)?$,other plastic
 ^plc[0-9]+_.*_sealant(?:[.][0-9]+)?$,other material
-^plc[0-9]+_.*_silicone(?:[.][0-9]+)?$,silicones
+^plc[0-9]+_.*_silicone(?:[.][0-9]+)?$,polysiloxanes
 ^plc[0-9]+_.*_teflon(?:[.][0-9]+)?$,poly(tetrafluoroethylene)
 ^plc[0-9]+_.*_tpe(?:[.][0-9]+)?$,other plastic
 ^polyamide(?:[[:space:](]|$),polyamides

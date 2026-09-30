@@ -318,12 +318,12 @@ automate_particle_analysis.FileSpecs <- function(
   )
   display <- .join_particle_display_matches(display, proc_map, material_col)
   details <- if ("details" %in% outputs) {
-    .particle_details_table(proc_map, sample_name, material_col,
+    .particle_details_table(proc_map, output_name, material_col,
                             cor_threshold, pixel_length, origin)
   } else NULL
   summary <- if ("summary" %in% outputs) {
     .particle_summary_table(
-      proc_map, sample_name, material_col, pixel_length, display
+      proc_map, output_name, material_col, pixel_length, display
     )
   } else NULL
   plot_outputs <- utils::modifyList(
@@ -342,7 +342,7 @@ automate_particle_analysis.FileSpecs <- function(
     )
   }
   result <- list(
-    sample_id = sample_name,
+    sample_id = output_name,
     particle_details_csv = details,
     particle_summary_csv = summary,
     particles_raw_rds = if ("raw" %in% outputs) x else NULL,

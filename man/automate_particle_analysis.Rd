@@ -197,6 +197,8 @@ enough RAM for all spectra and their analysis intermediates.}
 A list with \code{samples}, \code{particle_details_all_csv}, and
 \code{particle_summary_all_csv}. Each per-sample entry has \code{particle_details_csv},
 \code{particle_summary_csv}, \code{particles_raw_rds}, \code{particles_rds}, and \code{time_rds},
+and uses the same filename-based \code{sample_id} stem as its per-source output
+files (including an appended region for multi-region sources),
 with summary rows reporting full map area, particle count, observed
 percentage, 95\% percentage confidence-interval half-width and bounds, total
 concentration RSD, and total, mean, and median particle area in square

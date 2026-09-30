@@ -1167,6 +1167,119 @@ test_that("prune_lib() orders classes, preserves floors, and audits removals", {
   expect_true(all(abs(legacy_at_actual - legacy_best) <= tolerance))
 })
 
+test_that("cross-class pruning uses independent-library evidence and removes ties", {
+  normalized <- rbind(
+    high = c(1, 0, 0, 0),
+    b_l2 = c(1, 0, 0, 0),
+    b_l3 = c(1, 0, 0, 0),
+    tie_c = c(0, 1, 0, 0),
+    tie_d = c(0, 1, 0, 0),
+    same_source_e = c(0, 0, 1, 0),
+    same_source_f = c(0, 0, 1, 0),
+    generic = c(1, 0, 0, 0)
+  )
+  ids <- rownames(normalized)
+  classes <- c("class_a", "class_b", "class_b", "class_c", "class_d",
+               "class_e", "class_f", "other plastic")
+  libraries <- c("lib_1", "lib_2", "lib_3", "lib_4", "lib_5",
+                 "lib_6", "lib_6", "lib_7")
+  pools <- rep("infrared", length(ids))
+
+  first <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes, pools, normalized, ids, libraries, threshold = 0.9,
+    block_size = 2L
+  )
+  second <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes, pools, normalized, ids, libraries, threshold = 0.9,
+    block_size = 5L
+  )
+
+  expect_identical(first$removed_rows, c(1L, 4L, 5L))
+  expect_equal(first$removals, second$removals)
+  expect_equal(first$removals[spectrum_id == "high", evidence_libraries], 2L)
+  expect_equal(first$removals[spectrum_id == "high", decision_round], 1L)
+  expect_true(all(
+    first$removals[spectrum_id %in% c("tie_c", "tie_d"), reason] ==
+      "cross_class_equal_library_evidence"
+  ))
+  expect_false(any(first$removals$spectrum_id %in%
+                     c("same_source_e", "same_source_f", "generic")))
+})
+
+test_that("cross-class pruning uses a strict threshold", {
+  normalized <- rbind(c(1, 0), c(0.9, sqrt(1 - 0.9^2)))
+  args <- list(
+    classes = c("class_a", "class_b"), pools = c("infrared", "infrared"),
+    normalized = normalized, ids = c("a", "b"),
+    library_names = c("lib_a", "lib_b")
+  )
+
+  exact <- do.call(
+    OpenSpecy:::.lib_prune_cross_class_conflicts,
+    c(args, list(threshold = 0.9))
+  )
+  below <- do.call(
+    OpenSpecy:::.lib_prune_cross_class_conflicts,
+    c(args, list(threshold = 0.899))
+  )
+
+  expect_length(exact$removed_rows, 0L)
+  expect_identical(below$removed_rows, 1:2)
+})
+
+test_that("prune_lib() applies cross-class removal before generic reassignment", {
+  wn <- seq(500, 3500, length.out = 80)
+  shape <- dnorm(seq(-3, 3, length.out = length(wn)))
+  spectra <- cbind(shape, shape * 1.01, shape * 0.99, shape * 1.02)
+  colnames(spectra) <- c("suspect", "reference_1", "reference_2", "generic")
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c("class_a", "class_b", "class_b", "other plastic"),
+      material_type = "plastic", spectrum_type = "ftir",
+      library_name = c("lib_1", "lib_2", "lib_3", "lib_4")
+    )
+  )
+  attr(lib, "test_marker") <- "preserved"
+
+  report <- prune_lib(
+    lib, min_n = 1, cross_class = TRUE, cross_class_threshold = 0.9,
+    return = "report", progress = FALSE
+  )
+
+  expect_identical(report$cross_class_removals$spectrum_id, "suspect")
+  expect_equal(report$summary$cross_class_removed, 1L)
+  expect_false("suspect" %in% report$retained_ids)
+  expect_equal(
+    report$object$metadata[sample_name == "generic", material_class],
+    "class_b"
+  )
+  expect_identical(colnames(report$object$spectra),
+                   report$object$metadata$sample_name)
+  expect_identical(report$object$wavenumber, lib$wavenumber)
+  expect_identical(attr(report$object, "test_marker"), "preserved")
+  expect_equal(report$object$spectra,
+               lib$spectra[, report$retained_ids, drop = FALSE])
+
+  recovered <- OpenSpecy:::.lib_recover_library_assessments(
+    list(derivative = report$object), list()
+  )
+  expect_equal(recovered$pruning_removals$spectrum_id, "suspect")
+})
+
+test_that("prune_lib() validates cross-class policy inputs", {
+  lib <- tiny_build_lib()
+  lib$metadata$material_type <- "plastic"
+
+  expect_error(prune_lib(lib, cross_class = NA), "TRUE or FALSE")
+  expect_error(prune_lib(lib, cross_class_threshold = 1.01), "in \\[0, 1\\]")
+  expect_error(
+    prune_lib(lib, cross_class = TRUE),
+    "requires populated library_name"
+  )
+})
+
 test_that("prune_lib() reassigns undersupported classes by spectrum type", {
   wn <- seq(500, 3500, length.out = 40)
   spectra <- vapply(seq_len(7), function(i) {
@@ -1495,12 +1608,41 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   )
   expect_equal(
     classes[spectrum_identity == "lahmian medium acrylic paint", material],
-    "acrylic paint"
+    "polyacrylates"
   )
   expect_true(all(
     classes[spectrum_identity %in% c("alkyd varnish", "alkyd_varnish"),
-            material] == "alkyd paint"
+            material] == "polyesters"
   ))
+  binder_classes <- c(
+    "acrylic paint" = "polyacrylates",
+    "acrylic-alkyd paint" = "polyesters",
+    "acrylic-epoxy paint" = "polydiglycidyl ethers",
+    "acrylic-urethane paint" = "polyurethanes",
+    "alkyd paint" = "polyesters",
+    "chlorosulfonated polyethylene paint" = "polyhaloolefins",
+    "ethylene-acrylate paint" = "polyolefins",
+    "nitrocellulose paint" = "polycellulose derivatives",
+    "other paint" = "other plastic",
+    "polyester paint" = "polyesters",
+    "polyvinyl formal paint" = "polyvinylalcohols",
+    "styrene-acrylic paint" = "polyacrylates",
+    "urethane paint" = "polyurethanes",
+    "urethane-alkyd paint" = "polyesters",
+    "vinyl acetate paint" = "polyvinylesters",
+    "vinyl chloride paint" = "polyhaloolefins",
+    "vinyl chloride-vinyl acetate paint" = "polyhaloolefins",
+    "vinyl-acrylic paint" = "polyacrylates"
+  )
+  actual_binders <- classes[
+    spectrum_identity %in% names(binder_classes),
+    stats::setNames(material, spectrum_identity)
+  ]
+  expect_identical(unname(actual_binders[names(binder_classes)]),
+                   unname(binder_classes))
+  paint_classes <- c("paint", "acrylic paint", "alkyd paint", "urethane paint")
+  expect_false(any(hierarchy$material_class %in% paint_classes))
+  expect_false(any(common_use$material_class %in% paint_classes))
   organic_recommendations <- c(
     "1,5-pentanediol", "11-aminoundecanoic acid", "1-bromobutane",
     "1-vinyl-2-pyrolidinone", "2-bromopropanoic acid", "2-butanone",
@@ -1577,10 +1719,10 @@ test_that("reference metadata enrichment is ordered and conservative", {
     notes = c("paint", "sheet", "fiber and pellet", "filmography",
               "rigid plastic", "seal", "road wear"),
     material_class = c(
-      "styrene-butadiene rubber", "polyethylene", "polypropylene",
+      "poly(styrene-butadiene) rubber", "polyethylene", "polypropylene",
       "other plastic", "polyethylene",
-      "ethylene-propylene-diene-monomer rubber",
-      "styrene-butadiene rubber"
+      "poly(ethylene-propylene-diene) rubber",
+      "poly(styrene-butadiene) rubber"
     )
   )
 
@@ -2129,7 +2271,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   )
   data.table::fwrite(data.table::data.table(
     material = classes$material,
-    material_class = rep(c("class_a", "class_b"), length.out = nrow(classes)),
+    material_class = rep(c("polyclass_a", "polyclass_b"),
+                         length.out = nrow(classes)),
     material_type = "plastic"
   ), file.path(workflow_data, "material_hierarchy.csv"))
   data.table::fwrite(data.table::data.table(sample_name = character()),
@@ -2206,7 +2349,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   upstream <- attr(first$assessments, "upstream_assessments", exact = TRUE)
   expect_true(all(c(
     "material_form_enrichment", "material_form_matches",
-    "material_form_clashes", "common_use_enrichment", "common_use_coverage"
+    "material_form_clashes", "common_use_enrichment", "common_use_coverage",
+    "pruning_removals"
   ) %in% names(upstream)))
   release_dir <- attr(first, "output_dir")
   expect_true(all(file.exists(file.path(
@@ -2412,11 +2556,13 @@ test_that("complete old-new assessments directly test deployed models", {
   )
   previous <- file.path(tempdir(), paste0("previous-", sample.int(1e8, 1)))
   dir.create(previous, recursive = TRUE)
-  saveRDS(lib, file.path(previous, "raw.rds"))
-  saveRDS(lib, file.path(previous, "derivative.rds"))
-  saveRDS(lib, file.path(previous, "nobaseline.rds"))
-  saveRDS(lib, file.path(previous, "medoid_derivative.rds"))
-  saveRDS(lib, file.path(previous, "medoid_nobaseline.rds"))
+  typed_lib <- list(ftir = lib)
+  typed_medoid <- list(ftir = model_input)
+  saveRDS(typed_lib, file.path(previous, "raw.rds"))
+  saveRDS(typed_lib, file.path(previous, "derivative.rds"))
+  saveRDS(typed_lib, file.path(previous, "nobaseline.rds"))
+  saveRDS(typed_medoid, file.path(previous, "medoid_derivative.rds"))
+  saveRDS(typed_medoid, file.path(previous, "medoid_nobaseline.rds"))
   saveRDS(model_set, file.path(previous, "model_derivative.rds"))
   saveRDS(model_set, file.path(previous, "model_nobaseline.rds"))
 
@@ -2862,7 +3008,7 @@ test_that("reference regex table contains only genuinely variable rules", {
     c(
       "styrene-butadiene",
       "epdm rubber (ethylene propylene diene monomer rubber)",
-      "acrylic paint", "urethane paint", "alkyd paint"
+      "polyacrylates", "polyurethanes", "polyesters"
     )
   )
 })
@@ -2891,14 +3037,14 @@ test_that("official material hierarchy uses concise reviewed polymer classes", {
   )
   expect_identical(
     hierarchy[material == "styrene-butadiene", material_class],
-    "styrene-butadiene rubber"
+    "poly(styrene-butadiene) rubber"
   )
   expect_identical(
     hierarchy[
       material == "epdm rubber (ethylene propylene diene monomer rubber)",
       material_class
     ],
-    "ethylene-propylene-diene-monomer rubber"
+    "poly(ethylene-propylene-diene) rubber"
   )
   expect_identical(
     hierarchy[material == "poly(ethylene glycol)", material_class],
@@ -2907,11 +3053,15 @@ test_that("official material hierarchy uses concise reviewed polymer classes", {
   parenthetical_classes <- unique(
     hierarchy[grepl("[()]", material_class), material_class]
   )
-  expect_identical(parenthetical_classes, "polyhydroxy(meth)acrylates")
+  expect_setequal(parenthetical_classes, c(
+    "poly(ethylene-propylene-diene) rubber",
+    "poly(styrene-butadiene) rubber",
+    "polyhydroxy(meth)acrylates"
+  ))
+  paint_classes <- c("paint", "acrylic paint", "alkyd paint", "urethane paint")
+  expect_false(any(hierarchy$material_class %in% paint_classes))
   exceptions <- c(
-    "acrylic paint", "alkyd paint", "cellulose derivatives",
-    "ethylene-propylene-diene-monomer rubber", "paint", "silicones",
-    "styrene-butadiene rubber", "urethane paint", "other plastic"
+    "other plastic"
   )
   polymer_classes <- unique(hierarchy[material_type == "plastic", material_class])
   expect_true(all(startsWith(setdiff(polymer_classes, exceptions), "poly")))

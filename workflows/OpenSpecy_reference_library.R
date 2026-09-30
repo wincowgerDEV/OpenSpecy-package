@@ -13,13 +13,19 @@ package_dir <- paste0(
 
 setwd(package_dir)
 
-data_dir <- "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
+data_dir <- Sys.getenv(
+  "OPENSPECY_REFERENCE_SOURCE_DIR",
+  unset = "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
+)
 
 processed_dir <- data_dir
 
-output_dir <- paste0(
-  "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
-  "reference-library-build-2.0.0"
+output_dir <- Sys.getenv(
+  "OPENSPECY_REFERENCE_OUTPUT_DIR",
+  unset = paste0(
+    "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
+    "reference-library-build-2.0.0"
+  )
 )
 
 if (!requireNamespace("devtools", quietly = TRUE)) {

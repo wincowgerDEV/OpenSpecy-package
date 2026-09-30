@@ -653,10 +653,10 @@ alginic acid sodium salt,other material
 alginic_acid_aldrich,other material
 alizarin 23600_532,other material
 alizarin 23600_785,other material
-alkyd varnish,alkyd paint
-alkyd varnish_ref,alkyd paint
-alkyd.resin,alkyd paint
-alkyd_varnish,alkyd paint
+alkyd varnish,polyesters
+alkyd varnish_ref,polyesters
+alkyd.resin,polyesters
+alkyd_varnish,polyesters
 allabogdanite,mineral
 allactite,mineral
 allactite__r070175-1__infrared__infrared_data_processed__1046,mineral
@@ -2517,16 +2517,16 @@ celestite (wards),other material
 "cellobiose  (4 cm-1, 256, medium, 400 mw)",other material
 cellulose,organic matter
 cellulose acetate,cellulose acetate
-cellulose acetate butyrate,cellulose derivatives
+cellulose acetate butyrate,polycellulose derivatives
 cellulose like,organic matter
 cellulose nitrate,cellulose nitrate
-cellulose propionate,cellulose derivatives
-cellulose triacetate,cellulose derivatives
+cellulose propionate,polycellulose derivatives
+cellulose triacetate,polycellulose derivatives
 cellulose wipe,organic matter
 cellulose-sample (sigma 9004-34-6),organic matter
 cellulose_like,organic matter
 cellulose_like_ref,organic matter
-cellulose_propionate,cellulose derivatives
+cellulose_propionate,polycellulose derivatives
 cellulose_triacetate,cellulose acetate
 celluloseacetate,cellulose acetate
 celsian,mineral
@@ -5750,7 +5750,7 @@ hydroxylherderite__r070451__raman__532__0__unoriented__raman_data_processed__219
 hydroxylherderite__r070451__raman__785__0__unoriented__raman_data_processed__21923,mineral
 hydroxylpyromorphite,mineral
 hydroxymcglassonite-(k),mineral
-hydroxypropyl cellulose,cellulose derivatives
+hydroxypropyl cellulose,polycellulose derivatives
 hydroxypropyl methyl cellulose,methyl cellulose
 hydroxypropyl_methylcellulose_dow,methyl cellulose
 hydroxyzine dihcl (lot #095k1415),other material
@@ -6181,7 +6181,7 @@ kleinite__r150103__raman__780__0__unoriented__raman_data_processed__39140,minera
 klockmannite,mineral
 klockmannite__r070658__raman__532__0__unoriented__raman_data_processed__24012,mineral
 klockmannite__r070658__raman__780__0__unoriented__raman_data_processed__28661,mineral
-klucel_mf_in_ethanol,cellulose derivatives
+klucel_mf_in_ethanol,polycellulose derivatives
 klyuchevskite,mineral
 klyuchevskite__r070659__raman__532__0__unoriented__raman_data_processed__24028,mineral
 knochenleim - bone glue,other material
@@ -6355,7 +6355,7 @@ lac dye 36020_638,other material
 "lactose  (4 cm-1, 256, medium, 400 mw)",other material
 lactose (anhydrous),other material
 lactose_monohydrate_unilab,other material
-lahmian medium acrylic paint,acrylic paint
+lahmian medium acrylic paint,polyacrylates
 laihunite,mineral
 laihunite__r110051__raman__532__0__unoriented__raman_data_processed__35924,mineral
 lammerite,mineral
@@ -8295,7 +8295,7 @@ painite,mineral
 painite__r060957__raman__532__0__unoriented__raman_data_processed__13417,mineral
 painite__r060957__raman__785__0__unoriented__raman_data_processed__13823,mineral
 painite__r100164__raman__532__0__unoriented__raman_data_processed__34660,mineral
-paint,paint
+paint,other plastic
 palenzonaite,mineral
 palenzonaite__r060455__raman__780__0__unoriented__raman_data_processed__36877,mineral
 palermoite,mineral
@@ -8888,7 +8888,7 @@ plc017_anodisc support collar_pp,poly(propylene)
 plc018_anodisc filter paper_cellulose,organic matter
 plc019_petrislide_ps,polystyrene
 plc020_jar lid rubber_plastisol,other plastic
-plc021_jar lid paint_unknown,paint
+plc021_jar lid paint_unknown,other plastic
 plc022_rubber band_rubber,other plastic
 plc023_cable ties_nylon,polyamides
 plc024_orange storage bin_pp,poly(propylene)
@@ -8897,9 +8897,9 @@ plc026_styrofoam_ps,polystyrene
 plc027_home depot bucket_hdpe,poly(ethylene)
 plc028_clear storage container_pp,poly(propylene)
 plc029_yellow storage lid_pe,poly(ethylene)
-plc030_clear o-ring_silicone,silicones
-plc031_analytical balance_paint,paint
-plc032_lumos ii_paint,paint
+plc030_clear o-ring_silicone,polysiloxanes
+plc031_analytical balance_paint,other plastic
+plc032_lumos ii_paint,other plastic
 plc033_microscope cover_nylon,polyamides
 plc034_cryo gloves_synthetic lining,other plastic
 plc035_heat gloves_cotton,organic matter
@@ -8918,10 +8918,10 @@ plc047_dish sponge_cellulose,organic matter
 plc048_coconut fiber_cellulose,organic matter
 plc049_clear bin liner_hdpe,poly(ethylene)
 plc050_ceiling tile coating_pet,poly(ethylene terephthalate)
-plc051_lab stool_paint,paint
-plc052_lab walls_paint,paint
+plc051_lab stool_paint,other plastic
+plc052_lab walls_paint,other plastic
 plc053_wall molding_rubber,other plastic
-plc054_lab doorframes_paint,paint
+plc054_lab doorframes_paint,other plastic
 plc055_benchtop coating_sealant,other material
 plc056_clear caulk_sealant,other material
 plc057_pipette bulb_rubber,other plastic
@@ -10480,9 +10480,9 @@ scipoly003_acrylonitrile(51)-butadiene(49) copolymer,acrylonitrile-butadiene
 scipoly004_butyl methacrylate-isobutyl methacrylate,polymethacrylates
 scipoly005_cellulose,organic matter
 scipoly006_cellulose acetate,cellulose acetate
-scipoly007_cellulose acetate butyrate,cellulose derivatives
-scipoly008_cellulose propionate,cellulose derivatives
-scipoly009_cellulose triacetate,cellulose derivatives
+scipoly007_cellulose acetate butyrate,polycellulose derivatives
+scipoly008_cellulose propionate,polycellulose derivatives
+scipoly009_cellulose triacetate,polycellulose derivatives
 "scipoly010_ethyl cellulose, viscosity 4cp",ethyl cellulose
 "scipoly011_ethyl cellulose, viscosity 22cp",ethyl cellulose
 "scipoly012_ethyl cellulose, viscosity 300cp",ethyl cellulose
@@ -10496,9 +10496,9 @@ scipoly019_eva(33),polyethylene-vinyl acetate
 scipoly020_eva(40),polyethylene-vinyl acetate
 scipoly021_eva(45),polyethylene-vinyl acetate
 scipoly022_ethylene-vinyl alcohol copolymer,poly(ethylene)
-scipoly023_hydroxyethyl cellulose,cellulose derivatives
-scipoly024_hydroxypropyl cellulose,cellulose derivatives
-scipoly025_hydroxypropyl methyl cellulose,cellulose derivatives
+scipoly023_hydroxyethyl cellulose,polycellulose derivatives
+scipoly024_hydroxypropyl cellulose,polycellulose derivatives
+scipoly025_hydroxypropyl methyl cellulose,polycellulose derivatives
 scipoly026_methyl cellulose,methyl cellulose
 scipoly027_methyl vinyl ether-maleic acid copolymer,poly(methyl vinyl ether)
 scipoly028_methyl vinyl ether-maleic anhydride copolyme,poly(methyl vinyl ether)
@@ -10783,12 +10783,12 @@ silicon__r040145__raman__532__0__unoriented__raman_data_processed__27508,mineral
 silicon__r040145__raman__780__0__unoriented__raman_data_processed__27510,mineral
 silicon__r050145-1__infrared__infrared_data_processed__1060,mineral
 silicon__r050145-1__infrared__infrared_data_processed__793,mineral
-silicone,silicones
-silicone rubber,silicones
-silicone seal reactor,silicones
+silicone,polysiloxanes
+silicone rubber,polysiloxanes
+silicone seal reactor,polysiloxanes
 silicone/pdms,poly(dimethylsiloxane) (pdms)
-silicone_ref,silicones
-silicone_rubber,silicones
+silicone_ref,polysiloxanes
+silicone_rubber,polysiloxanes
 siliconnitride__r120129__raman__532__0__unoriented__raman_data_processed__37010,mineral
 silikon rubber,other plastic
 silk,organic matter
@@ -11032,7 +11032,7 @@ spurrite__r050236-1__infrared__infrared_data_processed__914,mineral
 spurrite__r050236__raman__514__0__unoriented__raman_data_processed__10638,mineral
 spurrite__r050236__raman__532__0__unoriented__raman_data_processed__32640,mineral
 spurrite__r070632__raman__532__0__unoriented__raman_data_processed__23500,mineral
-sr 1. clear fragment,silicones
+sr 1. clear fragment,polysiloxanes
 srebrodolskite,mineral
 stannite,mineral
 stannite (wards),other material
@@ -12272,7 +12272,7 @@ variscite__r100222__raman__532__0__unoriented__raman_data_processed__35162,miner
 variscite__r100222__raman__780__0__unoriented__raman_data_processed__35164,mineral
 variscite__r110139__raman__532__0__unoriented__raman_data_processed__35680,mineral
 variscite__r110139__raman__780__0__unoriented__raman_data_processed__35685,mineral
-varnish,paint
+varnish,other plastic
 varulite,mineral
 varulite__r060740__raman__532__0__unoriented__raman_data_processed__12463,mineral
 varulite__r060740__raman__785__0__unoriented__raman_data_processed__14523,mineral
@@ -12922,3 +12922,21 @@ zykaite,mineral
 zykaite__r070477__raman__532__0__unoriented__raman_data_processed__22173,mineral
 natural,other material
 polymeric,other plastic
+acrylic paint,polyacrylates
+acrylic-alkyd paint,polyesters
+acrylic-epoxy paint,polydiglycidyl ethers
+acrylic-urethane paint,polyurethanes
+alkyd paint,polyesters
+chlorosulfonated polyethylene paint,polyhaloolefins
+ethylene-acrylate paint,polyolefins
+nitrocellulose paint,polycellulose derivatives
+other paint,other plastic
+polyester paint,polyesters
+polyvinyl formal paint,polyvinylalcohols
+styrene-acrylic paint,polyacrylates
+urethane paint,polyurethanes
+urethane-alkyd paint,polyesters
+vinyl acetate paint,polyvinylesters
+vinyl chloride paint,polyhaloolefins
+vinyl chloride-vinyl acetate paint,polyhaloolefins
+vinyl-acrylic paint,polyacrylates

@@ -184,7 +184,7 @@ test_that("H5 paths route through bounded FileSpecs analysis", {
   fake_specs <- structure(list(), class = c("FileSpecs", "Specs", "list"))
   empty <- data.table::data.table()
   sample <- list(
-    sample_id = "Region1", particle_details_csv = empty,
+    sample_id = "large", particle_details_csv = empty,
     particle_summary_csv = empty, particles_raw_rds = fake_specs,
     particles_rds = NULL, particle_image = NULL, particle_heatmap = NULL,
     particle_heatmap_thresholded = NULL, cor_heatmap = NULL,

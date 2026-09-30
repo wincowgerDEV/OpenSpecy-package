@@ -6,8 +6,15 @@
   consumer/industrial/mixed decisions with quantitative shares when available
   or cited qualitative application evidence otherwise, and
   build assessments retain coverage and match evidence. Reference taxonomy now
-  separates SBR and EPDM rubber classes and uses binder-form paint classes only
-  for explicit acrylic, alkyd, or urethane identities.
+  uses chemistry-only material classes whose standard plastic labels begin with
+  `poly` (except `other plastic`), separates SBR and EPDM rubber, and retains
+  reviewed paint-binder chemistry in `spectrum_identity` with `paint` as the
+  material form. `prune_lib()` can also remove greater-than-threshold
+  cross-class conflicts using independent-library evidence before generic
+  reassignment; the official derivative and no-baseline builds enable this
+  auditable pass at 0.9. Legacy accuracy, medoid, compatibility, and
+  functionality assessments now accept the released typed library bundles and
+  fail clearly instead of silently reporting those assessments as unavailable.
 - `correct_spike()` now defaults to Nicolas Coca Lopez's dependency-free,
   two-sided MAD-prominence-width detector (maximum width 2 points, noise
   multiplier 10, and 5-point interpolation window defaults). The prior robust residual detector and
@@ -35,6 +42,9 @@
   above the particle-style heatmap with live image-only transparency. ENVI red
   frames now use dominant separated boundary lines, so red labels and particles
   do not shift registration.
+- Particle detail and summary exports now use the same filename-based sample ID
+  as their per-source output files, including region suffixes, so simultaneous
+  maps with repeated region numbers remain distinguishable.
 - The Advanced tab can restore the app's versioned one-row User Metadata CSV,
   including saved ratios and measurements. Replacement uploads now clear stale
   selections and outputs, continuous legends show five three-significant-figure

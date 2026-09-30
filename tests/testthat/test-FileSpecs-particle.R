@@ -1,6 +1,6 @@
-.make_particle_filespec_envi <- function(directory) {
-  header <- file.path(directory, "particle-map.hdr")
-  binary <- file.path(directory, "particle-map.dat")
+.make_particle_filespec_envi <- function(directory, stem = "particle-map") {
+  header <- file.path(directory, paste0(stem, ".hdr"))
+  binary <- file.path(directory, paste0(stem, ".dat"))
   axis <- c(800, 1200, 2500, 3000)
   writeLines(c(
     "ENVI",
@@ -70,6 +70,11 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
   expect_s3_class(result, "OpenSpecyParticleAnalysis")
   expect_named(result$samples, "Region1")
   expect_equal(nrow(result$particle_details_all_csv), 1)
+  expect_identical(unique(result$particle_details_all_csv$sample_id),
+                   "particle-map")
+  expect_identical(unique(result$particle_summary_all_csv$sample_id),
+                   "particle-map")
+  expect_identical(result$samples$Region1$sample_id, "particle-map")
   expect_equal(result$particle_details_all_csv$area_um2, 4 * 25^2)
   expect_equal(result$particle_summary_all_csv$map_area_um2, 16 * 25^2)
   expect_equal(result$particle_summary_all_csv$total_area_um2, 4 * 25^2)
@@ -153,6 +158,57 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
     info = file.info(c(fixture$header, fixture$binary))[, c("size", "mtime")]
   )
   expect_identical(source_after, source_before)
+})
+
+test_that("simultaneous maps with repeated regions use output stems as IDs", {
+  directory <- tempfile("filespec-particle-sample-id-")
+  dir.create(directory)
+  first <- .make_particle_filespec_envi(directory, "map-a_Region1")
+  second <- .make_particle_filespec_envi(directory, "map-b_Region1")
+  expected <- c("map-a_Region1", "map-b_Region1")
+  specs <- stats::setNames(list(
+    open_specs(first$header, cache_dir = file.path(directory, "cache-a")),
+    open_specs(second$header, cache_dir = file.path(directory, "cache-b"))
+  ), expected)
+  library <- as_OpenSpecy(
+    first$axis,
+    spectra = cbind(particle = first$particle,
+                    other = c(4, 2, 3, 1)),
+    metadata = data.frame(sample_name = c("particle", "other"),
+                          material_class = c("polymer", "other"))
+  )
+  output_dir <- file.path(directory, "outputs")
+
+  result <- automate_particle_analysis(
+    specs, library, output_dir = output_dir,
+    particle_id_strategy = "collapse",
+    sn_threshold_min = 5,
+    cor_threshold = 0.7,
+    area_threshold = 0,
+    metric = "tot_sig",
+    collapse_function = mean,
+    outputs = c("details", "summary"),
+    process_args = list(smooth_intens = FALSE, make_rel = TRUE)
+  )
+  expect_named(result$samples, expected)
+  expect_setequal(result$particle_details_all_csv$sample_id, expected)
+  expect_setequal(result$particle_summary_all_csv$sample_id, expected)
+  expect_identical(vapply(result$samples, `[[`, character(1), "sample_id"),
+                   stats::setNames(expected, expected))
+  expect_true(all(file.exists(file.path(
+    output_dir, paste0("particle_details_", expected, ".csv")
+  ))))
+  expect_true(all(file.exists(file.path(
+    output_dir, paste0("particle_summary_", expected, ".csv")
+  ))))
+  expect_setequal(
+    data.table::fread(file.path(output_dir, "particle_details_all.csv"))$sample_id,
+    expected
+  )
+  expect_setequal(
+    data.table::fread(file.path(output_dir, "particle_summary_all.csv"))$sample_id,
+    expected
+  )
 })
 
 test_that("file-backed connected means equal eager connected collapse", {

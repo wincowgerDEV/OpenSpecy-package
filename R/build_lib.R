@@ -91,8 +91,15 @@
 #' \code{other_review} assessment table. Reviewed \code{"other plastic"} and
 #' \code{"other material"} rows stay in the reference library and enter
 #' \code{prune_lib()}'s nearest-class semisupervised pathway.
-#' Before pruning, \code{prune_lib()} reassigns generic classes by nearest
-#' same-technique correlation: \code{"other"} may use any established class,
+#' When requested, \code{prune_lib()} first removes high-correlation conflicts
+#' between different reviewed classes. Same-source pairs are not independent
+#' evidence. Each spectrum is weighted by the number of distinct other
+#' reference libraries supporting an opposing-class match; the higher-weight
+#' endpoint is removed, and equal-weight endpoints are both removed. Generic
+#' and unclassified labels do not participate. The retained
+#' set is checked to contain no remaining eligible conflict above the requested
+#' threshold. Pruning then reassigns generic classes by nearest same-technique
+#' correlation: \code{"other"} may use any established class,
 #' \code{"other plastic"} requires a plastic candidate, and
 #' \code{"other material"} requires \code{"organic matter"} or
 #' \code{"mineral"}. The matched material type and a correlation audit are
@@ -274,6 +281,15 @@
 #' larger groups are never reduced below it. For \code{reduce_lib()},
 #' groups with \code{min_n} or fewer spectra are kept whole. Model trainers
 #' fit only classes meeting the threshold.
+#' @param cross_class logical; whether \code{prune_lib()} should remove
+#' high-correlation matches from other reference libraries between different
+#' non-generic material classes before generic-class reassignment. This
+#' requires complete canonical
+#' \code{library_name} metadata. The composable default is \code{FALSE}; the
+#' official derivative and no-baseline workflow enables it.
+#' @param cross_class_threshold numeric Pearson-correlation threshold in
+#' \code{[0, 1]}. Cross-class correlations strictly greater than this value
+#' are conflicts when \code{cross_class = TRUE}.
 #' @param class_col,type_col metadata columns used for model labels.
 #' @param nearest logical; if \code{TRUE}, \code{assess_lib()} compares each
 #' spectrum with its highest-correlation neighbor and reports the fraction where
@@ -2546,6 +2562,8 @@ prune_lib <- function(x, class_col = "material_class",
                       type_col = "spectrum_type",
                       material_type_col = "material_type",
                       id_col = "sample_name", min_n = 10,
+                      cross_class = FALSE,
+                      cross_class_threshold = 0.9,
                       exclude = c(2200, 2420),
                       return = c("object", "ids", "report"),
                       progress = TRUE) {
@@ -2555,6 +2573,17 @@ prune_lib <- function(x, class_col = "material_class",
                     "metadata")
   if (length(min_n) != 1L || is.na(min_n) || min_n < 1 || min_n %% 1 != 0) {
     stop("'min_n' must be one positive whole number", call. = FALSE)
+  }
+  if (!is.logical(cross_class) || length(cross_class) != 1L ||
+      is.na(cross_class)) {
+    stop("'cross_class' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!is.numeric(cross_class_threshold) ||
+      length(cross_class_threshold) != 1L ||
+      !is.finite(cross_class_threshold) || cross_class_threshold < 0 ||
+      cross_class_threshold > 1) {
+    stop("'cross_class_threshold' must be one finite number in [0, 1]",
+         call. = FALSE)
   }
   if (!is.numeric(exclude) || length(exclude) != 2L || anyNA(exclude)) {
     stop("'exclude' must be two finite wavenumbers", call. = FALSE)
@@ -2571,6 +2600,50 @@ prune_lib <- function(x, class_col = "material_class",
   )))
   pools <- .lib_prune_pools(metadata[[type_col]])
   normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
+
+  before_n <- length(ids)
+  cross_class_removals <- .lib_prune_cross_class_schema()
+  if (isTRUE(cross_class)) {
+    if (!"library_name" %in% names(metadata)) {
+      stop(
+        "'cross_class = TRUE' requires populated library_name metadata for ",
+        "every resolved class spectrum", call. = FALSE
+      )
+    }
+    library_names <- trimws(as.character(metadata$library_name))
+    class_keys <- tolower(classes)
+    resolved <- !is.na(classes) & nzchar(classes) &
+      !class_keys %in% c(
+        "other", "other plastic", "other material", "unclassified"
+      )
+    if (any(resolved & (is.na(library_names) | !nzchar(library_names)))) {
+      stop(
+        "'cross_class = TRUE' requires populated library_name metadata for ",
+        "every resolved class spectrum", call. = FALSE
+      )
+    }
+    conflict <- .lib_prune_cross_class_conflicts(
+      classes, pools, normalized, ids, library_names,
+      threshold = cross_class_threshold, progress = progress,
+      block_size = 256L
+    )
+    cross_class_removals <- conflict$removals
+    if (length(conflict$removed_rows)) {
+      keep <- rep(TRUE, length(ids))
+      keep[conflict$removed_rows] <- FALSE
+      if (!any(keep)) {
+        stop("Cross-class pruning would remove every spectrum",
+             call. = FALSE)
+      }
+      x <- filter_spec(x, keep)
+      metadata <- data.table::copy(x$metadata)
+      ids <- ids[keep]
+      classes <- classes[keep]
+      material_types <- material_types[keep]
+      pools <- pools[keep]
+      normalized <- normalized[keep, , drop = FALSE]
+    }
+  }
 
   generic_reassigned <- .lib_reassign_other_classes(
     classes, material_types, pools, normalized, ids, progress = progress
@@ -2589,7 +2662,9 @@ prune_lib <- function(x, class_col = "material_class",
   ), fill = TRUE)
   metadata[[class_col]] <- classes
   metadata[[material_type_col]] <- material_types
-  protected <- tolower(classes) %in% "unclassified"
+  protected <- tolower(classes) %in% c(
+    "unclassified", "other", "other plastic", "other material"
+  )
 
   support <- data.table::data.table(
     row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
@@ -2655,16 +2730,19 @@ prune_lib <- function(x, class_col = "material_class",
     schedule[, schedule_order := integer()]
   }
 
-  removal_rows <- if (length(threshold_rows)) {
-    list(data.table::data.table(
+  removal_rows <- if (nrow(cross_class_removals)) {
+    list(cross_class_removals)
+  } else {
+    list()
+  }
+  if (length(threshold_rows)) {
+    removal_rows[[length(removal_rows) + 1L]] <- data.table::data.table(
       spectrum_id = ids[threshold_rows],
       prior_class = classes[threshold_rows],
       matched_id = NA_character_, matched_class = NA_character_,
       correlation = NA_real_, pool = pools[threshold_rows],
       schedule_order = NA_integer_, reason = "class_below_min_n"
-    ))
-  } else {
-    list()
+    )
   }
   removal_i <- length(removal_rows)
   if (isTRUE(progress)) {
@@ -2805,24 +2883,28 @@ prune_lib <- function(x, class_col = "material_class",
     schedule = schedule,
     excluded_classes = excluded_classes,
     reassignments = reassignment_report,
+    cross_class_removals = cross_class_removals,
     removals = removals,
     summary = data.table::data.table(
-      before = length(ids),
+      before = before_n,
       after = sum(active),
       reassigned = nrow(reassignment_report),
       classes_excluded = sum(excluded_classes$action == "dropped"),
+      cross_class_removed = nrow(cross_class_removals),
       threshold_removed = length(threshold_rows),
-      removed = sum(!active)
+      removed = before_n - sum(active)
     )
   )
   attr(out, "prune_report") <- audit
   if (isTRUE(progress)) {
     message(sprintf(
       paste0("prune_lib: complete (before=%d; after=%d; reassigned=%d; ",
-             "classes_excluded=%d; threshold_removed=%d; removed=%d)"),
-      length(ids), sum(active), nrow(reassignment_report),
-      sum(excluded_classes$action == "dropped"), length(threshold_rows),
-      sum(!active)
+             "classes_excluded=%d; cross_class_removed=%d; ",
+             "threshold_removed=%d; removed=%d)"),
+      before_n, sum(active), nrow(reassignment_report),
+      sum(excluded_classes$action == "dropped"),
+      nrow(cross_class_removals), length(threshold_rows),
+      before_n - sum(active)
     ))
   }
   if (return == "ids") return(retained_ids)
@@ -2916,6 +2998,226 @@ prune_lib <- function(x, class_col = "material_class",
   }
   gc(verbose = FALSE, full = TRUE)
   list(index = best_index, correlation = best_correlation)
+}
+
+.lib_prune_cross_class_schema <- function() {
+  data.table::data.table(
+    spectrum_id = character(), prior_class = character(),
+    library_name = character(), matched_id = character(),
+    matched_class = character(), matched_library = character(),
+    correlation = numeric(), pool = character(),
+    evidence_libraries = integer(), conflicting_spectra = integer(),
+    matched_evidence_libraries = integer(), decision_round = integer(),
+    threshold = numeric(), schedule_order = integer(), reason = character()
+  )
+}
+
+.lib_prune_removal_assessment_schema <- function() {
+  out <- .lib_prune_cross_class_schema()
+  out[, artifact := character()]
+  data.table::setcolorder(out, c("artifact", setdiff(names(out), "artifact")))
+  out
+}
+
+.lib_prune_cross_class_conflicts <- function(classes, pools, normalized, ids,
+                                              library_names, threshold,
+                                              progress = FALSE,
+                                              block_size = 32L) {
+  n <- length(ids)
+  started <- proc.time()[["elapsed"]]
+  stopifnot(
+    length(classes) == n, length(pools) == n,
+    length(library_names) == n, nrow(normalized) == n
+  )
+  generic <- c("other", "other plastic", "other material", "unclassified")
+  class_keys <- tolower(trimws(classes))
+  eligible <- !is.na(pools) & nzchar(pools) &
+    !is.na(classes) & nzchar(classes) & !class_keys %in% generic
+  evidence_libraries <- integer(n)
+  conflicting_spectra <- integer(n)
+  pool_values <- sort(unique(pools[eligible]))
+  pool_values <- pool_values[!is.na(pool_values) & nzchar(pool_values)]
+
+  for (pool in pool_values) {
+    candidates <- which(eligible & pools == pool)
+    candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+    blocks <- split(candidates, ceiling(seq_along(candidates) / block_size))
+    if (isTRUE(progress)) {
+      message(sprintf(
+        paste0("prune_lib: cross-class evidence scan %s starting ",
+               "(%d spectra; %d features; block=%d; threshold > %.4f)"),
+        pool, length(candidates), ncol(normalized), block_size, threshold
+      ))
+    }
+    for (query in blocks) {
+      cors <- tcrossprod(
+        normalized[query, , drop = FALSE],
+        normalized[candidates, , drop = FALSE]
+      )
+      cors[!is.finite(cors)] <- -Inf
+      for (row in seq_along(query)) {
+        q <- query[[row]]
+        matched <- candidates[
+          cors[row, ] > threshold & candidates != q &
+            library_names[candidates] != library_names[[q]] &
+            classes[candidates] != classes[[q]]
+        ]
+        conflicting_spectra[[q]] <- length(matched)
+        if (length(matched)) {
+          evidence_libraries[[q]] <- length(unique(library_names[matched]))
+        }
+      }
+      rm(cors)
+    }
+    if (isTRUE(progress)) {
+      message(sprintf(
+        paste0("prune_lib: cross-class evidence scan %s complete ",
+               "(flagged=%d; max_libraries=%d; elapsed=%.1fs)"),
+        pool, sum(conflicting_spectra[candidates] > 0L),
+        max(evidence_libraries[candidates], 0L),
+        proc.time()[["elapsed"]] - started
+      ))
+    }
+  }
+
+  scores <- sort(unique(evidence_libraries[conflicting_spectra > 0L]),
+                 decreasing = TRUE)
+  scores <- scores[scores > 0L]
+  if (!length(scores)) {
+    return(list(removed_rows = integer(), removals =
+                  .lib_prune_cross_class_schema()))
+  }
+
+  active <- eligible
+  decision_match <- rep(NA_integer_, n)
+  decision_correlation <- rep(NA_real_, n)
+  decision_round <- integer(n)
+  decision_reason <- rep(NA_character_, n)
+
+  for (round in seq_along(scores)) {
+    score <- scores[[round]]
+    remove_round <- integer()
+    for (pool in pool_values) {
+      query_rows <- which(
+        active & pools == pool & evidence_libraries == score
+      )
+      if (!length(query_rows)) next
+      candidates <- which(active & pools == pool)
+      candidates <- candidates[
+        order(ids[candidates], candidates, na.last = TRUE)
+      ]
+      blocks <- split(
+        query_rows, ceiling(seq_along(query_rows) / block_size)
+      )
+      for (query in blocks) {
+        cors <- tcrossprod(
+          normalized[query, , drop = FALSE],
+          normalized[candidates, , drop = FALSE]
+        )
+        cors[!is.finite(cors)] <- -Inf
+        for (row in seq_along(query)) {
+          q <- query[[row]]
+          matched <- candidates[
+            cors[row, ] > threshold & candidates != q &
+              library_names[candidates] != library_names[[q]] &
+              classes[candidates] != classes[[q]]
+          ]
+          if (!length(matched)) next
+          if (any(evidence_libraries[matched] > score)) {
+            stop("Internal cross-class pruning order invariant failed",
+                 call. = FALSE)
+          }
+          tied <- matched[evidence_libraries[matched] == score]
+          decision_candidates <- if (length(tied)) tied else matched
+          candidate_columns <- match(decision_candidates, candidates)
+          candidate_correlations <- cors[row, candidate_columns]
+          best_order <- order(
+            -candidate_correlations, ids[decision_candidates],
+            decision_candidates, na.last = TRUE
+          )
+          selected <- decision_candidates[best_order[[1L]]]
+          decision_match[[q]] <- selected
+          decision_correlation[[q]] <- cors[
+            row, match(selected, candidates)
+          ]
+          decision_round[[q]] <- round
+          decision_reason[[q]] <- if (length(tied)) {
+            "cross_class_equal_library_evidence"
+          } else {
+            "cross_class_more_library_evidence"
+          }
+          remove_round <- c(remove_round, q)
+        }
+        rm(cors)
+      }
+    }
+    remove_round <- sort(unique(remove_round))
+    active[remove_round] <- FALSE
+    if (isTRUE(progress)) {
+      message(sprintf(
+        paste0("prune_lib: cross-class decision round %d/%d ",
+               "(evidence_libraries=%d; removed=%d; active=%d; elapsed=%.1fs)"),
+        round, length(scores), score, length(remove_round), sum(active),
+        proc.time()[["elapsed"]] - started
+      ))
+    }
+  }
+
+  retained <- which(active)
+  for (pool in pool_values) {
+    candidates <- retained[pools[retained] == pool]
+    if (length(candidates) < 2L) next
+    candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+    blocks <- split(candidates, ceiling(seq_along(candidates) / block_size))
+    for (query in blocks) {
+      cors <- tcrossprod(
+        normalized[query, , drop = FALSE],
+        normalized[candidates, , drop = FALSE]
+      )
+      cors[!is.finite(cors)] <- -Inf
+      for (row in seq_along(query)) {
+        q <- query[[row]]
+        conflict <- candidates[
+          cors[row, ] > threshold & candidates != q &
+            library_names[candidates] != library_names[[q]] &
+            classes[candidates] != classes[[q]]
+        ]
+        if (length(conflict)) {
+          stop(
+            "Cross-class pruning postcondition failed for retained spectra: ",
+            ids[[q]], " and ", ids[[conflict[[1L]]]], call. = FALSE
+          )
+        }
+      }
+      rm(cors)
+    }
+  }
+
+  removed_rows <- which(decision_round > 0L)
+  matched_rows <- decision_match[removed_rows]
+  removals <- data.table::data.table(
+    spectrum_id = ids[removed_rows], prior_class = classes[removed_rows],
+    library_name = library_names[removed_rows],
+    matched_id = ids[matched_rows], matched_class = classes[matched_rows],
+    matched_library = library_names[matched_rows],
+    correlation = decision_correlation[removed_rows],
+    pool = pools[removed_rows],
+    evidence_libraries = evidence_libraries[removed_rows],
+    conflicting_spectra = conflicting_spectra[removed_rows],
+    matched_evidence_libraries = evidence_libraries[matched_rows],
+    decision_round = decision_round[removed_rows], threshold = threshold,
+    schedule_order = NA_integer_, reason = decision_reason[removed_rows]
+  )
+  data.table::setorder(
+    removals, decision_round, -evidence_libraries, spectrum_id
+  )
+  if (isTRUE(progress)) {
+    message(sprintf(
+      "prune_lib: cross-class conflict pass complete (removed=%d; elapsed=%.1fs)",
+      length(removed_rows), proc.time()[["elapsed"]] - started
+    ))
+  }
+  list(removed_rows = removed_rows, removals = removals)
 }
 
 .lib_prune_correlations <- function(x, query, candidates, exclude, ids) {
@@ -4004,7 +4306,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v10-small-class-reassignment"
+    component_version = "reference-artifacts-v11-cross-class-conflict-pruning"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -4121,7 +4423,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "complete-model-prediction-v17-accuracy-comparison"
+      assessment_version = "typed-legacy-bundles-v18-accuracy-comparison"
     ),
     algo = "sha256"
   )
@@ -4280,7 +4582,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "complete-model-prediction-v17-accuracy-comparison"
+    assessment_version = "typed-legacy-bundles-v18-accuracy-comparison"
   ), algo = "sha256")
   fallback_assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
@@ -4446,7 +4748,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "exclusions_deduplication",
     "other_review", "other_filter", "filters", "metadata_drop",
     "metadata_finalization", "pruning", "pruning_excluded_classes",
-    "pruning_reassignments",
+    "pruning_reassignments", "pruning_removals",
     "quality_control", "automated_test_flags", "library_retention",
     "dropped_spectrum_identities",
     "model_assessment_correlations"
@@ -4567,6 +4869,28 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (any(is.na(material) | !nzchar(material)) || anyDuplicated(material)) {
     stop("material_hierarchy material keys must be nonblank and unique",
          call. = FALSE)
+  }
+  material_class <- trimws(as.character(
+    tables$material_hierarchy$material_class
+  ))
+  material_type <- trimws(tolower(as.character(
+    tables$material_hierarchy$material_type
+  )))
+  paint_classes <- c("paint", "acrylic paint", "alkyd paint", "urethane paint")
+  if (any(tolower(material_class) %in% paint_classes)) {
+    stop("material_hierarchy material_class must describe chemistry, not paint form",
+         call. = FALSE)
+  }
+  invalid_plastic_class <- material_type == "plastic" &
+    !is.na(material_class) & nzchar(material_class) &
+    material_class != "other plastic" & !startsWith(tolower(material_class),
+                                                      "poly")
+  if (any(invalid_plastic_class)) {
+    stop(
+      "Standard plastic material classes must start with 'poly': ",
+      paste(sort(unique(material_class[invalid_plastic_class])),
+            collapse = ", "), call. = FALSE
+    )
   }
   .lib_validate_material_form_regex(tables$material_form_regex)
   .lib_validate_common_use_reference(
@@ -5323,11 +5647,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   prune_spec <- prune
   if (is.null(prune_spec)) {
-    prune_spec <- list(derivative = list(), nobaseline = list())
+    prune_spec <- list(
+      derivative = list(cross_class = TRUE),
+      nobaseline = list(cross_class = TRUE)
+    )
   }
   prune_rows <- list()
   prune_excluded_rows <- list()
   prune_reassignment_rows <- list()
+  prune_removal_rows <- list()
   prune_targets <- intersect(names(prune_spec), names(libraries))
   library_order <- names(libraries)
   prune_paths <- character()
@@ -5367,6 +5695,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       prune_reassignment_rows[[name]] <- data.table::copy(
         pruned$reassignments
       )[, artifact := name][]
+    }
+    if (nrow(pruned$removals)) {
+      prune_removal_rows[[name]] <- data.table::copy(
+        pruned$removals
+      )[, artifact := name][]
+      data.table::setcolorder(
+        prune_removal_rows[[name]],
+        c("artifact", setdiff(names(prune_removal_rows[[name]]), "artifact"))
+      )
     }
     saveRDS(pruned$object, prune_paths[[name]], compress = FALSE)
     pruned$object <- NULL
@@ -5590,6 +5927,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         data.table::rbindlist(prune_reassignment_rows, fill = TRUE)
       } else {
         .lib_prune_reassignment_schema()
+      },
+      pruning_removals = if (length(prune_removal_rows)) {
+        data.table::rbindlist(prune_removal_rows, fill = TRUE)
+      } else {
+        .lib_prune_removal_assessment_schema()
       },
       automated_test_flags = automated_test_flags,
       quality_control = quality$assessment,
@@ -6208,6 +6550,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_filter_optional_type <- function(x, type) {
+  if (!is_OpenSpecy(x) && is.list(x) && length(x) && !is.null(names(x))) {
+    index <- match(tolower(type), tolower(names(x)))
+    if (is.na(index)) return(NULL)
+    candidate <- x[[index]]
+    if (!is_OpenSpecy(candidate)) {
+      stop("Typed reference-library component '", names(x)[[index]],
+           "' is not an OpenSpecy object", call. = FALSE)
+    }
+    return(candidate)
+  }
+  if (!is_OpenSpecy(x)) return(NULL)
   keep <- !is.na(x$metadata$spectrum_type) &
     tolower(x$metadata$spectrum_type) == type
   if (!any(keep)) return(NULL)
@@ -6312,6 +6665,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!nrow(pruning_reassignments)) {
     pruning_reassignments <- .lib_prune_reassignment_schema()
   }
+  pruning_removals <- data.table::rbindlist(lapply(
+    names(libraries), function(name) {
+      report <- attr(libraries[[name]], "prune_report")
+      if (is.null(report) || is.null(report$removals) ||
+          !nrow(report$removals)) return(NULL)
+      out <- data.table::copy(report$removals)
+      out[, artifact := name]
+      data.table::setcolorder(
+        out, c("artifact", setdiff(names(out), "artifact"))
+      )
+      out
+    }
+  ), fill = TRUE)
+  if (!nrow(pruning_removals)) {
+    pruning_removals <- .lib_prune_removal_assessment_schema()
+  }
 
   raw_coverage <- attr(libraries$raw, "class_coverage_report")
   before_filter <- if (is.null(raw_coverage) || nrow(raw_coverage) == 0L) {
@@ -6356,6 +6725,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     pruning = pruning,
     pruning_excluded_classes = pruning_excluded_classes,
     pruning_reassignments = pruning_reassignments,
+    pruning_removals = pruning_removals,
     filters = data.table::data.table(
       stage = "special_filter", before = before_filter,
       after = after_filter,
@@ -6577,6 +6947,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     pruning = data.table::data.table(),
     pruning_excluded_classes = .lib_prune_excluded_assessment_schema(),
     pruning_reassignments = .lib_prune_reassignment_schema(),
+    pruning_removals = .lib_prune_removal_assessment_schema(),
     medoid_model_summary = model_summary,
     medoid_model_support = support,
     model_class_support = class_support,
@@ -6833,7 +7204,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "material_form_clashes", "common_use_enrichment", "common_use_coverage",
     "other_review", "other_filter", "exclusions_deduplication",
     "filters", "metadata_drop", "metadata_finalization", "pruning",
-    "pruning_excluded_classes", "pruning_reassignments", "quality_control",
+    "pruning_excluded_classes", "pruning_reassignments", "pruning_removals",
+    "quality_control",
     "library_retention"
   )
   cleanup_summary <- data.table::copy(data.table::as.data.table(
@@ -7288,6 +7660,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   split_manifest <- data.table::rbindlist(split_rows, fill = TRUE)
   reference_tests <- data.table::rbindlist(reference_tests, fill = TRUE)
+  if (!nrow(reference_tests)) {
+    stop(
+      "No comparable legacy reference-library spectra were assessed; ",
+      "verify that prior artifacts contain typed OpenSpecy components",
+      call. = FALSE
+    )
+  }
+  if (!nrow(compatibility)) {
+    stop("Legacy compatibility assessment produced no artifact rows",
+         call. = FALSE)
+  }
   library_identification <- .lib_identification_summary(reference_tests)
   library_confusion <- .lib_confusion_table(reference_tests)
   assess_spec_shifts <- .lib_assessment_shift_table(

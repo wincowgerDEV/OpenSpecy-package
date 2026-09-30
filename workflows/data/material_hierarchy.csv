@@ -1,11 +1,11 @@
 material,material_class,material_type
 acrylonitrile butadiene styrene (abs),polyacrylonitrile-butadiene-styrene,plastic
-cellulose acetate,cellulose derivatives,plastic
-cellulose nitrate,cellulose derivatives,plastic
-ethyl cellulose,cellulose derivatives,plastic
-methyl cellulose,cellulose derivatives,plastic
-rayon,cellulose derivatives,plastic
-epdm rubber (ethylene propylene diene monomer rubber),ethylene-propylene-diene-monomer rubber,plastic
+cellulose acetate,polycellulose derivatives,plastic
+cellulose nitrate,polycellulose derivatives,plastic
+ethyl cellulose,polycellulose derivatives,plastic
+methyl cellulose,polycellulose derivatives,plastic
+rayon,polycellulose derivatives,plastic
+epdm rubber (ethylene propylene diene monomer rubber),poly(ethylene-propylene-diene) rubber,plastic
 ethylene-propylene,polyethylene-propylene,plastic
 poly(ethylene-vinyl acetate) (EVA),polyethylene-vinyl acetate,plastic
 isobutylene-isoprene,polyisobutylene-isoprene,plastic
@@ -15,10 +15,6 @@ organic matter,organic matter,not plastic
 other,other,other
 other material,other material,not plastic
 other plastic,other plastic,plastic
-paint,paint,plastic
-acrylic paint,acrylic paint,plastic
-alkyd paint,alkyd paint,plastic
-urethane paint,urethane paint,plastic
 phenol formaldehyde,polyphenol-formaldehyde,plastic
 peek - poly(ether ether ketone),polyetherketones,plastic
 pek - poly(ether ketone),polyetherketones,plastic
@@ -204,9 +200,9 @@ poly(p-phenylene oxide),polyphenylethers,plastic
 poly(butylene sebacate),polyesters,plastic
 poly(ethylene sebacate),polyesters,plastic
 poly(hexamethylene sebacate),polyesters,plastic
-poly(diethylsiloxane) (pdes),silicones,plastic
-poly(dimethylsiloxane) (pdms),silicones,plastic
-poly(methylphenylsiloxane) (pmps),silicones,plastic
+poly(diethylsiloxane) (pdes),polysiloxanes,plastic
+poly(dimethylsiloxane) (pdms),polysiloxanes,plastic
+poly(methylphenylsiloxane) (pmps),polysiloxanes,plastic
 poly(-methylstyrene),polystyrenes,plastic
 poly(2-methoxystyrene),polystyrenes,plastic
 poly(2-methylstyrene),polystyrenes,plastic
@@ -263,7 +259,7 @@ poly(vinyl methyl sulfide),polyvinylsulfides,plastic
 poly(vinyl phenyl sulfide),polyvinylsulfides,plastic
 poly(vinyl propyl sulfide),polyvinylsulfides,plastic
 styrene-acrylonitrile (san),polystyrene-acrylonitrile,plastic
-styrene-butadiene,styrene-butadiene rubber,plastic
+styrene-butadiene,poly(styrene-butadiene) rubber,plastic
 styrene-isoprene,polystyrene-isoprene,plastic
 styrene-maleic,polystyrene-maleic,plastic
 urea-formaldehyde,polyurea-formaldehyde,plastic

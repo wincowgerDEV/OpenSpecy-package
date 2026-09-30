@@ -89,6 +89,8 @@ prune_lib(
   material_type_col = "material_type",
   id_col = "sample_name",
   min_n = 10,
+  cross_class = FALSE,
+  cross_class_threshold = 0.9,
   exclude = c(2200, 2420),
   return = c("object", "ids", "report"),
   progress = TRUE
@@ -304,6 +306,17 @@ larger groups are never reduced below it. For \code{reduce_lib()},
 groups with \code{min_n} or fewer spectra are kept whole. Model trainers
 fit only classes meeting the threshold.}
 
+\item{cross_class}{logical; whether \code{prune_lib()} should remove
+high-correlation matches from other reference libraries between different
+non-generic material classes before generic-class reassignment. This
+requires complete canonical
+\code{library_name} metadata. The composable default is \code{FALSE}; the
+official derivative and no-baseline workflow enables it.}
+
+\item{cross_class_threshold}{numeric Pearson-correlation threshold in
+\code{[0, 1]}. Cross-class correlations strictly greater than this value
+are conflicts when \code{cross_class = TRUE}.}
+
 \item{exclude}{numeric length-two wavenumber interval excluded from pruning
 correlations.}
 
@@ -465,8 +478,15 @@ literal class are removed before quality control and retained in the
 \code{other_review} assessment table. Reviewed \code{"other plastic"} and
 \code{"other material"} rows stay in the reference library and enter
 \code{prune_lib()}'s nearest-class semisupervised pathway.
-Before pruning, \code{prune_lib()} reassigns generic classes by nearest
-same-technique correlation: \code{"other"} may use any established class,
+When requested, \code{prune_lib()} first removes high-correlation conflicts
+between different reviewed classes. Same-source pairs are not independent
+evidence. Each spectrum is weighted by the number of distinct other
+reference libraries supporting an opposing-class match; the higher-weight
+endpoint is removed, and equal-weight endpoints are both removed. Generic
+and unclassified labels do not participate. The retained
+set is checked to contain no remaining eligible conflict above the requested
+threshold. Pruning then reassigns generic classes by nearest same-technique
+correlation: \code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and
 \code{"other material"} requires \code{"organic matter"} or
 \code{"mineral"}. The matched material type and a correlation audit are

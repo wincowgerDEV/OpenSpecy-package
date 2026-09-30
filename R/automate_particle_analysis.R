@@ -68,6 +68,8 @@
 #' A list with `samples`, `particle_details_all_csv`, and
 #' `particle_summary_all_csv`. Each per-sample entry has `particle_details_csv`,
 #' `particle_summary_csv`, `particles_raw_rds`, `particles_rds`, and `time_rds`,
+#' and uses the same filename-based `sample_id` stem as its per-source output
+#' files (including an appended region for multi-region sources),
 #' with summary rows reporting full map area, particle count, observed
 #' percentage, 95% percentage confidence-interval half-width and bounds, total
 #' concentration RSD, and total, mean, and median particle area in square
@@ -196,7 +198,6 @@ automate_particle_analysis.default <- function(
       ]
       names(result$samples) <- region_names
       for (region_name in region_names) {
-        result$samples[[region_name]]$sample_id <- region_name
         sample_results[[region_name]] <- result$samples[[region_name]]
       }
       next
@@ -293,14 +294,14 @@ automate_particle_analysis.default <- function(
     map <- display_map
 
     details <- if ("details" %in% outputs) {
-      .particle_details_table(proc_map, sample_name, material_col,
+      .particle_details_table(proc_map, output_name, material_col,
                               cor_threshold, pixel_length, origin)
     } else {
       NULL
     }
     summary <- if ("summary" %in% outputs) {
       .particle_summary_table(
-        proc_map, sample_name, material_col, pixel_length, map
+        proc_map, output_name, material_col, pixel_length, map
       )
     } else {
       NULL
@@ -322,7 +323,7 @@ automate_particle_analysis.default <- function(
     }
 
     sample_results[[sample_name]] <- list(
-      sample_id = sample_name,
+      sample_id = output_name,
       particle_details_csv = details,
       particle_summary_csv = summary,
       particles_raw_rds = if ("raw" %in% outputs) map else NULL,
@@ -1981,13 +1982,13 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     "threshold settings"
   )
   details <- if ("details" %in% outputs) {
-    data.table::data.table(sample_id = sample_name,
+    data.table::data.table(sample_id = output_name,
                            particle_id = NA_character_, note = note)
   } else {
     NULL
   }
   summary <- if ("summary" %in% outputs) {
-    data.table::data.table(sample_id = sample_name,
+    data.table::data.table(sample_id = output_name,
                            material_class = NA_character_, count = 0L,
                            total_particle_count = 0L,
                            percentage = NA_real_,
@@ -2023,7 +2024,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     }
   }
   empty_plot <- list(type = "empty", reason = note)
-  list(sample_id = sample_name,
+  list(sample_id = output_name,
        particle_details_csv = details,
        particle_summary_csv = summary,
        particles_raw_rds = if ("raw" %in% outputs) map else NULL,

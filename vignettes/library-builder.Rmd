@@ -203,7 +203,15 @@ mini_libs$raw$metadata[
 ```
 
 `prune_lib()` performs the spectrum-supported cleanup used before medoid or
-model creation. Within the same spectral-technique pool, `other` may be
+model creation. With `cross_class = TRUE`, it first flags correlations strictly
+above `cross_class_threshold` between different reviewed classes and different
+source libraries. Each spectrum is weighted by the number of independent
+opposing libraries: the higher-weight endpoint is removed, while both endpoints
+are removed on a tie. Generic and unclassified labels are excluded as both
+queries and candidates, and the retained set is rechecked before any generic
+label changes. The audit records both identities/classes/libraries, correlation,
+evidence counts, decision round, threshold, and reason. Within the same
+spectral-technique pool, `other` may then be
 reassigned to the nearest established class, `other plastic` only to a
 candidate whose `material_type` is `plastic`, and `other material` only to
 `organic matter` or `mineral`. The matched `material_type` is copied with the
@@ -211,9 +219,10 @@ class. It then evaluates material classes from largest to smallest using
 bounded correlation blocks. FTIR and NIR share a candidate pool; Raman is
 separate; 2200--2420 cm^-1^ is excluded by default. After generic reassignment,
 each `spectrum_type` and material-class group must contain at least `min_n`
-spectra. Smaller groups are removed before correlation pruning, while groups
-exactly at the threshold are retained whole and larger groups are never reduced
-below it. Constant or unmatched spectra in eligible classes are retained, and
+spectra. Smaller resolved groups are reassigned as a whole when an eligible
+destination exists and removed only when no destination exists; groups exactly
+at the threshold are retained whole and larger groups are never reduced below
+it. Constant or unmatched spectra in eligible classes are retained, and
 deterministic IDs resolve correlation ties. Use `return = "report"` for the
 retained IDs, frozen class schedule, reassignment correlations, spectrum-level
 removals, and `excluded_classes`, which reports observed support and the number
@@ -250,6 +259,18 @@ pruned$schedule
 pruned$excluded_classes
 ```
 
+The composable default leaves the new first pass off. Enable it explicitly for
+a library carrying canonical `library_name` metadata; the official derivative
+and no-baseline recipes do this by default:
+
+```{r cross-class-prune-policy, eval=FALSE}
+prune_lib(
+  reference_library,
+  cross_class = TRUE,
+  cross_class_threshold = 0.9
+)
+```
+
 ## Official Reference-Library Workflow
 
 The version-controlled
@@ -276,13 +297,17 @@ the first empty stage and its reason. The
 exact class lookup runs first;
 `predict_class_reference()` then evaluates the separate regex table only for
 blank materials. Exact/regex overlaps are audited without overwriting exact
-values, and conflicting regex predictions stop for review. Material classes
-use concise polymer-family names, with polyethylene and polypropylene separated
-and `polyhydroxy(meth)acrylates` retaining its chemically meaningful optional
-group notation. Styrene-butadiene rubber and EPDM have distinct classes.
-Binder-specific acrylic, alkyd, and urethane paint classes are available, but
-only identities that explicitly name a binder leave the generic `paint` class.
-Remaining uncertain identities follow the selected generic-row review policy.
+values, and conflicting regex predictions stop for review. `material_class`
+describes chemistry rather than physical form. Every reviewed standard plastic
+class begins with `poly` for discoverability (`other plastic` is the explicit
+catch-all exception); polyethylene and polypropylene remain separate, and
+`polyhydroxy(meth)acrylates` retains its chemically meaningful optional group
+notation. Poly(styrene-butadiene) rubber and
+poly(ethylene-propylene-diene) rubber have distinct classes. Paint binder labels
+such as acrylic, alkyd, urethane, nitrocellulose, and vinyl combinations remain
+in `spectrum_identity`, `paint` remains in `material_form`, and the hierarchy
+maps each reviewed binder to its relevant chemical polymer family. Remaining
+uncertain identities follow the selected generic-row review policy.
 
 The official workflow also standardizes two enrichment fields. It normalizes
 and concatenates all atomic metadata values once per spectrum, then evaluates
@@ -311,7 +336,9 @@ nobaseline spectra pass three quality gates before pruning: FTIR CO2 is
 flattened when the 2200--2420 maximum divided by the 2420--2550 silent-region
 maximum is greater than two; high-tail detection ignores NA padding, trims each
 spectrum on its finite support, and drops failed corrections; and finite
-running SNR below two (or unavailable SNR) is removed. Raw remains unpruned.
+running SNR below two (or unavailable SNR) is removed. The independent-library
+cross-class pass then runs before generic reassignment and conventional
+top-match pruning. Raw remains unpruned.
 Each completed library, medoid, model, and assessment component is written with
 a SHA-256 manifest under `output_dir/checkpoints`. `reuse = TRUE` loads it only when
 the source/lookup signatures, arguments, package version, and builder contract
