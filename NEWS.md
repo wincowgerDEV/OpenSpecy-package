@@ -9,10 +9,13 @@
   uses chemistry-only material classes whose standard plastic labels begin with
   `poly` (except `other plastic`), separates SBR and EPDM rubber, and retains
   reviewed paint-binder chemistry in `spectrum_identity` with `paint` as the
-  material form. `prune_lib()` can also remove greater-than-threshold
-  cross-class conflicts using independent-library evidence before generic
-  reassignment; the official derivative and no-baseline builds enable this
-  auditable pass at 0.9. Legacy accuracy, medoid, compatibility, and
+  material form. `prune_lib()` now closes greater-than-threshold cross-class
+  conflicts by same-library active-degree majority before independent-library
+  evidence and generic reassignment. Official derivative and no-baseline builds
+  repeat closure on rounded full and model-range views, enforce `min_n` across
+  the complete database rather than per source library, derive medoids only
+  from closed parents, and export reviewable excluded spectra in
+  `quarantined_spectra.rds`. Legacy accuracy, medoid, compatibility, and
   functionality assessments now accept the released typed library bundles and
   fail clearly instead of silently reporting those assessments as unavailable.
 - `correct_spike()` now defaults to Nicolas Coca Lopez's dependency-free,

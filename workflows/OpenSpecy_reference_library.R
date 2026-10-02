@@ -103,3 +103,7 @@ message(
   file.path(release_dir, "reference_library_build.rds")
 )
 message("Assessments: ", file.path(release_dir, "assessments.rds"))
+message(
+  "Quarantined spectra: ",
+  file.path(release_dir, "quarantined_spectra.rds")
+)

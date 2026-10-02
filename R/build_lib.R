@@ -91,14 +91,16 @@
 #' \code{other_review} assessment table. Reviewed \code{"other plastic"} and
 #' \code{"other material"} rows stay in the reference library and enter
 #' \code{prune_lib()}'s nearest-class semisupervised pathway.
-#' When requested, \code{prune_lib()} first removes high-correlation conflicts
-#' between different reviewed classes. Same-source pairs are not independent
-#' evidence. Each spectrum is weighted by the number of distinct other
-#' reference libraries supporting an opposing-class match; the higher-weight
-#' endpoint is removed, and equal-weight endpoints are both removed. Generic
-#' and unclassified labels do not participate. The retained
-#' set is checked to contain no remaining eligible conflict above the requested
-#' threshold. Pruning then reassigns generic classes by nearest same-technique
+#' When requested, \code{prune_lib()} first resolves high-correlation conflicts
+#' between different reviewed classes within each source library. It repeatedly
+#' removes the spectrum with the most active wrong-class neighbors, recalculates
+#' after each round, and removes both endpoints of an adjacent maximum-score
+#' tie. It then resolves between-library conflicts by the number of distinct
+#' independent libraries supporting the opposing class. Generic and
+#' unclassified labels do not participate. Official builds repeat closure on
+#' the rounded typed and model-range views before deriving medoids, and retain
+#' excluded spectra plus conflict provenance in
+#' \code{quarantined_spectra.rds}. Pruning then reassigns generic classes by nearest same-technique
 #' correlation: \code{"other"} may use any established class,
 #' \code{"other plastic"} requires a plastic candidate, and
 #' \code{"other material"} requires \code{"organic matter"} or
@@ -275,16 +277,16 @@
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
 #' @param min_n For \code{prune_lib()}, the minimum spectra required for a
-#' resolved class within one spectrum type: smaller groups are reassigned as a
-#' whole to their most-correlated eligible class, or removed only when no valid
-#' destination exists; groups exactly at the threshold are retained whole, and
-#' larger groups are never reduced below it. For \code{reduce_lib()},
+#' resolved class within one spectrum type across the complete input database,
+#' not within each source library. Smaller groups are reassigned as a whole to
+#' their most-correlated eligible class, or removed when no valid destination
+#' exists; groups exactly at the threshold are retained. For \code{reduce_lib()},
 #' groups with \code{min_n} or fewer spectra are kept whole. Model trainers
 #' fit only classes meeting the threshold.
-#' @param cross_class logical; whether \code{prune_lib()} should remove
-#' high-correlation matches from other reference libraries between different
-#' non-generic material classes before generic-class reassignment. This
-#' requires complete canonical
+#' @param cross_class logical; whether \code{prune_lib()} should resolve
+#' within-library and then independent-library high-correlation matches between
+#' different non-generic material classes before generic-class reassignment.
+#' This requires complete canonical
 #' \code{library_name} metadata. The composable default is \code{FALSE}; the
 #' official derivative and no-baseline workflow enables it.
 #' @param cross_class_threshold numeric Pearson-correlation threshold in
@@ -342,7 +344,10 @@
 #' release directories instead store global build and model diagnostics only in
 #' \code{assessments.rds}; library, medoid, and model files retain only runtime
 #' data, scientific attributes, and prediction state. The companion
-#' \code{reference_library_build.rds} is a lightweight release index.
+#' \code{reference_library_build.rds} is a lightweight release index. The
+#' companion \code{quarantined_spectra.rds} stores valid \code{OpenSpecy}
+#' objects by recipe/type, a long conflict table, and build provenance for
+#' spectra excluded by cross-class closure.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 #' object unless \code{return} requests a table, report, or ids.
@@ -2598,11 +2603,13 @@ prune_lib <- function(x, class_col = "material_class",
   material_types <- trimws(tolower(as.character(
     metadata[[material_type_col]]
   )))
+  spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
   pools <- .lib_prune_pools(metadata[[type_col]])
   normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
 
   before_n <- length(ids)
   cross_class_removals <- .lib_prune_cross_class_schema()
+  cross_class_conflicts <- .lib_prune_conflict_edge_schema()
   if (isTRUE(cross_class)) {
     if (!"library_name" %in% names(metadata)) {
       stop(
@@ -2622,12 +2629,17 @@ prune_lib <- function(x, class_col = "material_class",
         "every resolved class spectrum", call. = FALSE
       )
     }
+    cross_normalized <- .lib_prune_normalize(
+      x$spectra, x$wavenumber, exclude = NULL
+    )
     conflict <- .lib_prune_cross_class_conflicts(
-      classes, pools, normalized, ids, library_names,
+      classes, spectrum_types, cross_normalized, ids, library_names,
       threshold = cross_class_threshold, progress = progress,
-      block_size = 256L
+      block_size = 256L, support_groups = spectrum_types, min_n = min_n,
+      correlation_view = "prune_full"
     )
     cross_class_removals <- conflict$removals
+    cross_class_conflicts <- conflict$conflicts
     if (length(conflict$removed_rows)) {
       keep <- rep(TRUE, length(ids))
       keep[conflict$removed_rows] <- FALSE
@@ -2640,9 +2652,12 @@ prune_lib <- function(x, class_col = "material_class",
       ids <- ids[keep]
       classes <- classes[keep]
       material_types <- material_types[keep]
+      spectrum_types <- spectrum_types[keep]
       pools <- pools[keep]
+      library_names <- library_names[keep]
       normalized <- normalized[keep, , drop = FALSE]
     }
+    rm(cross_normalized)
   }
 
   generic_reassigned <- .lib_reassign_other_classes(
@@ -2650,7 +2665,6 @@ prune_lib <- function(x, class_col = "material_class",
   )
   classes <- generic_reassigned$classes
   material_types <- generic_reassigned$material_types
-  spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
   small_reassigned <- .lib_reassign_small_classes(
     classes, material_types, spectrum_types, pools, normalized, ids,
     min_n = min_n, progress = progress
@@ -2862,6 +2876,73 @@ prune_lib <- function(x, class_col = "material_class",
       }
     }
   }
+  if (isTRUE(cross_class) && any(active)) {
+    active_rows <- which(active)
+    closure_normalized <- .lib_prune_normalize(
+      x$spectra[, active_rows, drop = FALSE], x$wavenumber, exclude = NULL
+    )
+    closure <- .lib_prune_cross_class_conflicts(
+      classes[active_rows], spectrum_types[active_rows], closure_normalized,
+      ids[active_rows], library_names[active_rows],
+      threshold = cross_class_threshold, progress = progress,
+      block_size = 256L, support_groups = spectrum_types[active_rows],
+      min_n = min_n, correlation_view = "post_reassignment_full"
+    )
+    if (nrow(closure$removals)) {
+      closure$removals[, phase := "final_closure"]
+      cross_class_removals <- data.table::rbindlist(
+        list(cross_class_removals, closure$removals), fill = TRUE
+      )
+      removal_i <- removal_i + 1L
+      removal_rows[[removal_i]] <- closure$removals
+      active[active_rows[closure$removed_rows]] <- FALSE
+    }
+    if (nrow(closure$conflicts)) {
+      closure$conflicts[, phase := "final_closure"]
+      cross_class_conflicts <- data.table::rbindlist(
+        list(cross_class_conflicts, closure$conflicts), fill = TRUE
+      )
+    }
+    rm(closure_normalized, closure)
+
+    resolved_active <- active & !protected & !is.na(spectrum_types) &
+      nzchar(spectrum_types) & !is.na(classes) & nzchar(classes)
+    final_support <- data.table::data.table(
+      row = which(resolved_active),
+      spectrum_type = spectrum_types[resolved_active],
+      material_class = classes[resolved_active]
+    )[, .(rows = list(row), observed_n = .N),
+      by = .(spectrum_type, material_class)]
+    small_final <- final_support[observed_n < min_n]
+    if (nrow(small_final)) {
+      drop <- unlist(small_final$rows, use.names = FALSE)
+      count_lookup <- small_final$observed_n[match(
+        paste(spectrum_types[drop], classes[drop]),
+        paste(small_final$spectrum_type, small_final$material_class)
+      )]
+      floor_removals <- data.table::data.table(
+        phase = "final_closure", correlation_view = "global_support",
+        component_id = NA_character_, spectrum_id = ids[drop],
+        prior_class = classes[drop], library_name = library_names[drop],
+        matched_id = NA_character_, matched_class = NA_character_,
+        matched_library = NA_character_, correlation = NA_real_,
+        pool = spectrum_types[drop], active_degree = 0L,
+        matched_active_degree = 0L, evidence_libraries = 0L,
+        conflicting_spectra = 0L, matched_evidence_libraries = 0L,
+        decision_round = NA_integer_, threshold = cross_class_threshold,
+        class_n_before = as.integer(count_lookup), class_n_after = 0L,
+        schedule_order = NA_integer_, quarantine_status = "excluded",
+        review_status = "global_support_at_risk",
+        reason = "class_below_global_min_n_after_closure"
+      )
+      active[drop] <- FALSE
+      cross_class_removals <- data.table::rbindlist(
+        list(cross_class_removals, floor_removals), fill = TRUE
+      )
+      removal_i <- removal_i + 1L
+      removal_rows[[removal_i]] <- floor_removals
+    }
+  }
   rm(normalized)
 
   removals <- if (length(removal_rows) > 0L) {
@@ -2884,6 +2965,7 @@ prune_lib <- function(x, class_col = "material_class",
     excluded_classes = excluded_classes,
     reassignments = reassignment_report,
     cross_class_removals = cross_class_removals,
+    cross_class_conflicts = cross_class_conflicts,
     removals = removals,
     summary = data.table::data.table(
       before = before_n,
@@ -2938,8 +3020,12 @@ prune_lib <- function(x, class_col = "material_class",
 }
 
 .lib_prune_normalize <- function(spectra, wavenumber, exclude) {
-  limits <- sort(exclude)
-  use <- wavenumber < limits[[1L]] | wavenumber > limits[[2L]]
+  use <- if (is.null(exclude)) {
+    rep(TRUE, length(wavenumber))
+  } else {
+    limits <- sort(exclude)
+    wavenumber < limits[[1L]] | wavenumber > limits[[2L]]
+  }
   if (!any(use)) {
     stop("'exclude' removes every wavenumber", call. = FALSE)
   }
@@ -3002,13 +3088,32 @@ prune_lib <- function(x, class_col = "material_class",
 
 .lib_prune_cross_class_schema <- function() {
   data.table::data.table(
+    phase = character(), correlation_view = character(),
+    component_id = character(),
     spectrum_id = character(), prior_class = character(),
     library_name = character(), matched_id = character(),
     matched_class = character(), matched_library = character(),
     correlation = numeric(), pool = character(),
+    active_degree = integer(), matched_active_degree = integer(),
     evidence_libraries = integer(), conflicting_spectra = integer(),
     matched_evidence_libraries = integer(), decision_round = integer(),
-    threshold = numeric(), schedule_order = integer(), reason = character()
+    threshold = numeric(), class_n_before = integer(),
+    class_n_after = integer(), schedule_order = integer(),
+    quarantine_status = character(), review_status = character(),
+    reason = character()
+  )
+}
+
+.lib_prune_conflict_edge_schema <- function() {
+  data.table::data.table(
+    phase = character(), correlation_view = character(),
+    component_id = character(), pool = character(),
+    spectrum_id = character(), prior_class = character(),
+    library_name = character(), matched_id = character(),
+    matched_class = character(), matched_library = character(),
+    correlation = numeric(), same_library = logical(),
+    class_pair_libraries = integer(), review_status = character(),
+    threshold = numeric()
   )
 }
 
@@ -3019,10 +3124,211 @@ prune_lib <- function(x, class_col = "material_class",
   out
 }
 
-.lib_prune_cross_class_conflicts <- function(classes, pools, normalized, ids,
-                                              library_names, threshold,
-                                              progress = FALSE,
-                                              block_size = 32L) {
+.lib_prune_internal_class_conflicts <- function(
+    classes, pools, normalized, ids, library_names, threshold,
+    support_groups = pools, min_n = 1L, correlation_view = "prune_full",
+    progress = FALSE, block_size = 32L) {
+  n <- length(ids)
+  stopifnot(
+    length(classes) == n, length(pools) == n,
+    length(library_names) == n, length(support_groups) == n,
+    nrow(normalized) == n
+  )
+  generic <- c("other", "other plastic", "other material", "unclassified")
+  class_keys <- tolower(trimws(classes))
+  eligible <- !is.na(pools) & nzchar(pools) &
+    !is.na(classes) & nzchar(classes) & !class_keys %in% generic &
+    !is.na(library_names) & nzchar(library_names)
+  groups <- unique(data.table::data.table(
+    pool = pools[eligible], library_name = library_names[eligible]
+  ))
+  data.table::setorder(groups, pool, library_name)
+  edge_rows <- list()
+  edge_i <- 0L
+  started <- proc.time()[["elapsed"]]
+  for (group_i in seq_len(nrow(groups))) {
+    pool <- groups$pool[[group_i]]
+    library_name <- groups$library_name[[group_i]]
+    candidates <- which(
+      eligible & pools == pool & library_names == library_name
+    )
+    candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+    if (length(candidates) < 2L) next
+    blocks <- split(candidates, ceiling(seq_along(candidates) / block_size))
+    for (query in blocks) {
+      cors <- tcrossprod(
+        normalized[query, , drop = FALSE],
+        normalized[candidates, , drop = FALSE]
+      )
+      cors[!is.finite(cors)] <- -Inf
+      for (row in seq_along(query)) {
+        q <- query[[row]]
+        matched <- candidates[
+          candidates > q & cors[row, ] > threshold &
+            classes[candidates] != classes[[q]]
+        ]
+        if (!length(matched)) next
+        edge_i <- edge_i + 1L
+        edge_rows[[edge_i]] <- data.table::data.table(
+          from = q, to = matched,
+          correlation = cors[row, match(matched, candidates)],
+          pool = pool, library_name = library_name
+        )
+      }
+      rm(cors)
+    }
+  }
+  edges <- if (length(edge_rows)) {
+    data.table::rbindlist(edge_rows)
+  } else {
+    data.table::data.table(
+      from = integer(), to = integer(), correlation = numeric(),
+      pool = character(), library_name = character()
+    )
+  }
+  if (!nrow(edges)) {
+    return(list(
+      removed_rows = integer(), removals = .lib_prune_cross_class_schema(),
+      conflicts = .lib_prune_conflict_edge_schema()
+    ))
+  }
+
+  parent <- seq_len(n)
+  find_root <- function(value) {
+    while (parent[[value]] != value) value <- parent[[value]]
+    value
+  }
+  for (edge_i in seq_len(nrow(edges))) {
+    left <- find_root(edges$from[[edge_i]])
+    right <- find_root(edges$to[[edge_i]])
+    if (left != right) parent[[max(left, right)]] <- min(left, right)
+  }
+  vertices <- sort(unique(c(edges$from, edges$to)))
+  roots <- vapply(vertices, find_root, integer(1L))
+  root_labels <- vapply(split(vertices, roots), function(rows) {
+    sort(ids[rows], na.last = TRUE)[[1L]]
+  }, character(1L))
+  component <- rep(NA_character_, n)
+  component[vertices] <- paste0("internal:", root_labels[as.character(roots)])
+
+  pair_left <- pmin(classes[edges$from], classes[edges$to])
+  pair_right <- pmax(classes[edges$from], classes[edges$to])
+  pair_stats <- data.table::data.table(
+    pool = edges$pool, class_left = pair_left, class_right = pair_right,
+    library_name = edges$library_name
+  )[, .(class_pair_libraries = data.table::uniqueN(library_name)),
+    by = .(pool, class_left, class_right)]
+  pair_lookup <- pair_stats[data.table::data.table(
+    pool = edges$pool, class_left = pair_left, class_right = pair_right
+  ), on = .(pool, class_left, class_right)]$class_pair_libraries
+
+  active <- eligible
+  decisions <- list()
+  decision_i <- 0L
+  round <- 0L
+  repeat {
+    edge_active <- active[edges$from] & active[edges$to]
+    current <- edges[edge_active]
+    if (!nrow(current)) break
+    degree <- tabulate(c(current$from, current$to), nbins = n)
+    maximum <- max(degree)
+    top <- which(active & degree == maximum)
+    tied_edges <- current[from %in% top & to %in% top]
+    if (nrow(tied_edges)) {
+      remove <- sort(unique(c(tied_edges$from, tied_edges$to)))
+      tied <- rep(TRUE, length(remove))
+    } else {
+      remove <- top[order(ids[top], top, na.last = TRUE)][[1L]]
+      tied <- FALSE
+    }
+    round <- round + 1L
+    for (remove_i in seq_along(remove)) {
+      q <- remove[[remove_i]]
+      incident <- current[from == q | to == q]
+      neighbor <- ifelse(incident$from == q, incident$to, incident$from)
+      selected_order <- order(
+        -incident$correlation, ids[neighbor], neighbor, na.last = TRUE
+      )
+      selected_row <- selected_order[[1L]]
+      matched <- neighbor[[selected_row]]
+      class_before <- sum(
+        active & support_groups == support_groups[[q]] &
+          classes == classes[[q]], na.rm = TRUE
+      )
+      class_removed <- sum(
+        remove %in% which(
+          active & support_groups == support_groups[[q]] &
+            classes == classes[[q]]
+        )
+      )
+      class_after <- class_before - class_removed
+      incident_rows <- which(
+        (edges$from == q | edges$to == q) & edge_active
+      )
+      recurrent <- any(pair_lookup[incident_rows] >= 2L)
+      review <- if (class_after > 0L && class_after < min_n) {
+        "global_support_at_risk"
+      } else if (recurrent) {
+        "recurrent_class_pair"
+      } else {
+        "automatic"
+      }
+      decision_i <- decision_i + 1L
+      decisions[[decision_i]] <- data.table::data.table(
+        phase = "internal", correlation_view = correlation_view,
+        component_id = component[[q]], spectrum_id = ids[[q]],
+        prior_class = classes[[q]], library_name = library_names[[q]],
+        matched_id = ids[[matched]], matched_class = classes[[matched]],
+        matched_library = library_names[[matched]],
+        correlation = incident$correlation[[selected_row]], pool = pools[[q]],
+        active_degree = degree[[q]],
+        matched_active_degree = degree[[matched]], evidence_libraries = 0L,
+        conflicting_spectra = degree[[q]],
+        matched_evidence_libraries = 0L, decision_round = round,
+        threshold = threshold, class_n_before = class_before,
+        class_n_after = class_after, schedule_order = NA_integer_,
+        quarantine_status = "excluded", review_status = review,
+        reason = if (isTRUE(tied[[remove_i]])) {
+          "cross_class_equal_internal_degree"
+        } else {
+          "cross_class_more_internal_conflicts"
+        }
+      )
+    }
+    active[remove] <- FALSE
+  }
+  removals <- data.table::rbindlist(decisions, fill = TRUE)
+  if (!nrow(removals)) removals <- .lib_prune_cross_class_schema()
+  data.table::setorder(removals, decision_round, -active_degree, spectrum_id)
+  conflicts <- data.table::data.table(
+    phase = "internal", correlation_view = correlation_view,
+    component_id = component[edges$from], pool = edges$pool,
+    spectrum_id = ids[edges$from], prior_class = classes[edges$from],
+    library_name = library_names[edges$from], matched_id = ids[edges$to],
+    matched_class = classes[edges$to],
+    matched_library = library_names[edges$to],
+    correlation = edges$correlation, same_library = TRUE,
+    class_pair_libraries = pair_lookup,
+    review_status = ifelse(
+      pair_lookup >= 2L, "recurrent_class_pair", "automatic"
+    ), threshold = threshold
+  )
+  if (isTRUE(progress)) message(sprintf(
+    paste0("prune_lib: internal cross-class pass complete ",
+           "(edges=%d; removed=%d; elapsed=%.1fs)"),
+    nrow(edges), nrow(removals), proc.time()[["elapsed"]] - started
+  ))
+  list(
+    removed_rows = which(!active & eligible), removals = removals,
+    conflicts = conflicts
+  )
+}
+
+.lib_prune_between_library_conflicts <- function(classes, pools, normalized, ids,
+                                                  library_names, threshold,
+                                                  correlation_view = "prune_full",
+                                                  progress = FALSE,
+                                                  block_size = 32L) {
   n <- length(ids)
   started <- proc.time()[["elapsed"]]
   stopifnot(
@@ -3196,6 +3502,8 @@ prune_lib <- function(x, class_col = "material_class",
   removed_rows <- which(decision_round > 0L)
   matched_rows <- decision_match[removed_rows]
   removals <- data.table::data.table(
+    phase = "independent", correlation_view = correlation_view,
+    component_id = NA_character_,
     spectrum_id = ids[removed_rows], prior_class = classes[removed_rows],
     library_name = library_names[removed_rows],
     matched_id = ids[matched_rows], matched_class = classes[matched_rows],
@@ -3204,9 +3512,13 @@ prune_lib <- function(x, class_col = "material_class",
     pool = pools[removed_rows],
     evidence_libraries = evidence_libraries[removed_rows],
     conflicting_spectra = conflicting_spectra[removed_rows],
+    active_degree = conflicting_spectra[removed_rows],
+    matched_active_degree = conflicting_spectra[matched_rows],
     matched_evidence_libraries = evidence_libraries[matched_rows],
     decision_round = decision_round[removed_rows], threshold = threshold,
-    schedule_order = NA_integer_, reason = decision_reason[removed_rows]
+    class_n_before = NA_integer_, class_n_after = NA_integer_,
+    schedule_order = NA_integer_, quarantine_status = "excluded",
+    review_status = "automatic", reason = decision_reason[removed_rows]
   )
   data.table::setorder(
     removals, decision_round, -evidence_libraries, spectrum_id
@@ -3218,6 +3530,46 @@ prune_lib <- function(x, class_col = "material_class",
     ))
   }
   list(removed_rows = removed_rows, removals = removals)
+}
+
+.lib_prune_cross_class_conflicts <- function(
+    classes, pools, normalized, ids, library_names, threshold,
+    support_groups = pools, min_n = 1L, correlation_view = "prune_full",
+    progress = FALSE, block_size = 32L) {
+  internal <- .lib_prune_internal_class_conflicts(
+    classes, pools, normalized, ids, library_names, threshold,
+    support_groups = support_groups, min_n = min_n,
+    correlation_view = correlation_view, progress = progress,
+    block_size = block_size
+  )
+  keep <- setdiff(seq_along(ids), internal$removed_rows)
+  independent <- .lib_prune_between_library_conflicts(
+    classes[keep], pools[keep], normalized[keep, , drop = FALSE], ids[keep],
+    library_names[keep], threshold, correlation_view = correlation_view,
+    progress = progress, block_size = block_size
+  )
+  independent_rows <- keep[independent$removed_rows]
+  conflicts <- internal$conflicts
+  if (nrow(independent$removals)) {
+    independent_edges <- independent$removals[, .(
+      phase, correlation_view, component_id, pool,
+      spectrum_id, prior_class, library_name, matched_id, matched_class,
+      matched_library, correlation, same_library = FALSE,
+      class_pair_libraries = pmax(
+        evidence_libraries, matched_evidence_libraries, na.rm = TRUE
+      ), review_status, threshold
+    )]
+    conflicts <- data.table::rbindlist(
+      list(conflicts, independent_edges), fill = TRUE
+    )
+  }
+  list(
+    removed_rows = sort(unique(c(internal$removed_rows, independent_rows))),
+    removals = data.table::rbindlist(
+      list(internal$removals, independent$removals), fill = TRUE
+    ),
+    conflicts = conflicts
+  )
 }
 
 .lib_prune_correlations <- function(x, query, candidates, exclude, ids) {
@@ -4306,7 +4658,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v11-cross-class-conflict-pruning"
+    component_version = "reference-artifacts-v12-correlation-closure-quarantine"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -4339,6 +4691,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   libraries <- checkpoints$get("libraries")
   local_assessments <- checkpoints$get("library_assessments")
+  quarantine <- checkpoints$get("quarantined_spectra")
   if (is.null(libraries)) {
     core_path <- file.path(output_dir, "checkpoints", "core_libraries.rds")
     core <- checkpoints$get("core_libraries", key = core_signature)
@@ -4373,8 +4726,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     libraries <- completed$libraries
     local_assessments <- completed$assessments
+    quarantine <- completed$quarantine
+    quarantine$manifest$build_signature <- artifact_signature
+    quarantine$manifest$source_hashes <- artifact_signature
+    .lib_write_quarantine_review(quarantine, output_dir)
     checkpoints$put("libraries", libraries)
     checkpoints$put("library_assessments", local_assessments)
+    checkpoints$put("quarantined_spectra", quarantine)
     for (name in names(libraries)) {
       checkpoints$put(paste0("library_", name), libraries[[name]])
     }
@@ -4382,6 +4740,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     report("reconstructing completed-library assessments from attributes")
     local_assessments <- .lib_recover_library_assessments(libraries, tables)
     checkpoints$put("library_assessments", local_assessments)
+  }
+  if (is.null(quarantine)) {
+    quarantine <- .lib_quarantine_bundle(build_signature = artifact_signature)
+    .lib_write_quarantine_review(quarantine, output_dir)
+    checkpoints$put("quarantined_spectra", quarantine)
   }
 
   medoids <- checkpoints$get("medoids")
@@ -4392,6 +4755,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
     checkpoints$put("medoids", medoids)
   }
+  correlation_closure <- .lib_validate_medoid_parent_closure(
+    libraries, medoids, prune_spec = prune, report = report
+  )
+  local_assessments$correlation_closure <- correlation_closure
 
   report("finalizing library metadata by missing-value count")
   finalized <- .lib_finalize_reference_metadata(libraries, medoids)
@@ -4474,7 +4841,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   report("promoting validated artifacts to a versioned release directory")
   promotion <- .lib_promote_reference_build(
-    build, output_dir = output_dir,
+    build, quarantine = quarantine, output_dir = output_dir,
     signature = release_signature, reuse = reuse, progress = report
   )
   build <- .lib_finalize_reference_release(
@@ -4518,6 +4885,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   input <- .lib_resolve_rebuild_input(x)
   libraries <- .lib_drop_typed_range_flats(input$libraries, report = report)
   completed <- input$assessments
+  quarantine <- input$quarantine
   signature <- digest::digest(list(
     input = input$signature,
     downstream_version = "full-library-random-forest-model-v5-range-flat-filter"
@@ -4628,8 +4996,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   report("promoting downstream artifacts to a versioned release directory")
   promotion <- .lib_promote_reference_build(
-    build, output_dir = output_dir, signature = release_signature,
-    reuse = reuse, progress = report
+    build, quarantine = quarantine, output_dir = output_dir,
+    signature = release_signature, reuse = reuse, progress = report
   )
   build <- .lib_finalize_reference_release(
     build, assessment_components, promotion, release_signature, report
@@ -4696,11 +5064,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   medoids <- NULL
   models <- NULL
+  quarantine <- NULL
   if (!is.null(x$libraries)) {
     libraries <- x$libraries
     assessments <- .lib_upstream_assessments(x$assessments)
     medoids <- x$medoids
     models <- x$models
+    quarantine <- x$quarantine
     if (!is.null(models) &&
         !any(c("logistic_regression", "random_forest") %in% names(models))) {
       models <- list(logistic_regression = models)
@@ -4731,7 +5101,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   list(
     libraries = libraries, medoids = medoids, models = models,
-    assessments = assessments,
+    assessments = assessments, quarantine = quarantine,
     signature = as.character(source_signature[[1L]]), path = source_path
   )
 }
@@ -4748,7 +5118,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "exclusions_deduplication",
     "other_review", "other_filter", "filters", "metadata_drop",
     "metadata_finalization", "pruning", "pruning_excluded_classes",
-    "pruning_reassignments", "pruning_removals",
+    "pruning_reassignments", "pruning_removals", "pruning_conflicts",
+    "correlation_closure",
     "quality_control", "automated_test_flags", "library_retention",
     "dropped_spectrum_identities",
     "model_assessment_correlations"
@@ -5464,6 +5835,47 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   invisible(path)
 }
 
+.lib_atomic_fwrite <- function(object, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  temporary <- tempfile(pattern = paste0(basename(path), "."),
+                        tmpdir = dirname(path), fileext = ".csv")
+  on.exit(if (file.exists(temporary)) unlink(temporary), add = TRUE)
+  data.table::fwrite(object, temporary)
+  if (file.exists(path)) unlink(path)
+  if (!file.rename(temporary, path)) {
+    stop("Could not promote review table to ", path, call. = FALSE)
+  }
+  invisible(path)
+}
+
+.lib_write_quarantine_review <- function(quarantine, output_dir) {
+  review_dir <- file.path(output_dir, "review")
+  .lib_atomic_saveRDS(
+    quarantine, file.path(review_dir, "quarantined_spectra.rds")
+  )
+  metadata <- data.table::rbindlist(lapply(names(quarantine$spectra), function(name) {
+    out <- data.table::copy(quarantine$spectra[[name]]$metadata)
+    out[, quarantine_object := name]
+    out
+  }), fill = TRUE)
+  if (!nrow(metadata)) {
+    metadata <- data.table::data.table(
+      quarantine_object = character(), quarantine_key = character(),
+      sample_name = character(), material_class = character(),
+      quarantine_status = character(), quarantine_phase = character(),
+      quarantine_reason = character(), review_status = character()
+    )
+  }
+  .lib_atomic_fwrite(
+    metadata, file.path(review_dir, "quarantined_spectra_metadata.csv")
+  )
+  .lib_atomic_fwrite(
+    quarantine$conflicts,
+    file.path(review_dir, "quarantined_spectra_conflicts.csv")
+  )
+  invisible(review_dir)
+}
+
 .lib_promote_rds <- function(object, path) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   temporary <- tempfile(pattern = paste0(basename(path), "."),
@@ -5656,6 +6068,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prune_excluded_rows <- list()
   prune_reassignment_rows <- list()
   prune_removal_rows <- list()
+  prune_conflict_rows <- list()
+  quarantine_parts <- list()
   prune_targets <- intersect(names(prune_spec), names(libraries))
   library_order <- names(libraries)
   prune_paths <- character()
@@ -5679,6 +6093,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     args$return <- "report"
     library <- readRDS(prune_paths[[name]])
     pruned <- do.call(prune_lib, c(list(library), args))
+    if (nrow(pruned$cross_class_conflicts)) {
+      prune_conflict_rows[[paste0(name, "_prune")]] <- data.table::copy(
+        pruned$cross_class_conflicts
+      )[, artifact := name][]
+    }
+    if (nrow(pruned$cross_class_removals)) {
+      min_n <- if (is.null(args$min_n)) 10L else as.integer(args$min_n)
+      quarantine_parts <- c(
+        quarantine_parts,
+        .lib_typed_quarantine_parts(
+          library, pruned$cross_class_removals, name, min_n
+        )
+      )
+    }
     rm(library)
     prune_rows[[name]] <- data.table::copy(pruned$summary)[
       , artifact := name][]
@@ -5868,6 +6296,34 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   libraries <- .lib_partition_reference_libraries(partition_store, report)
   rm(partition_store)
   gc(verbose = FALSE, full = TRUE)
+  closure <- .lib_close_typed_reference_libraries(
+    libraries, prune_spec = prune_spec, report = report, progress = progress
+  )
+  libraries <- closure$libraries
+  closure$libraries <- NULL
+  if (nrow(closure$removals)) {
+    prune_removal_rows$final_closure <- closure$removals
+  }
+  if (nrow(closure$conflicts)) {
+    prune_conflict_rows$final_closure <- closure$conflicts
+  }
+  quarantine_parts <- c(quarantine_parts, closure$quarantine_parts)
+  if (nrow(closure$support_drops)) {
+    quality$assessment <- data.table::rbindlist(
+      list(quality$assessment, closure$support_drops), fill = TRUE
+    )
+  }
+  quarantine <- .lib_quarantine_bundle(
+    quarantine_parts,
+    conflicts = if (length(prune_conflict_rows)) {
+      data.table::rbindlist(prune_conflict_rows, fill = TRUE)
+    } else .lib_prune_conflict_edge_schema(),
+    thresholds = unlist(lapply(prune_targets, function(name) {
+      args <- prune_spec[[name]]
+      if (is.null(args$cross_class_threshold)) 0.9 else
+        args$cross_class_threshold
+    }), use.names = FALSE)
+  )
   range_flat_rows <- data.table::rbindlist(lapply(names(libraries), function(recipe) {
     data.table::rbindlist(lapply(libraries[[recipe]], function(object) {
       attr(object, "range_flat_drops", exact = TRUE)
@@ -5933,6 +6389,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       } else {
         .lib_prune_removal_assessment_schema()
       },
+      pruning_conflicts = if (length(prune_conflict_rows)) {
+        data.table::rbindlist(prune_conflict_rows, fill = TRUE)
+      } else {
+        out <- .lib_prune_conflict_edge_schema()
+        out[, artifact := character()]
+        out
+      },
       automated_test_flags = automated_test_flags,
       quality_control = quality$assessment,
       library_retention = library_retention,
@@ -5943,7 +6406,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         removed = before_filter - ncol(libraries$raw$spectra)
       ),
       metadata_drop = drop_status
-    )
+    ),
+    quarantine = quarantine
   )
 }
 
@@ -6281,6 +6745,271 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   out_all
 }
 
+.lib_quarantine_part <- function(x, removals, artifact, spectrum_type, min_n) {
+  if (!is_OpenSpecy(x) || !nrow(removals)) return(NULL)
+  ids <- as.character(.lib_ids(x, "sample_name"))
+  removal_ids <- unique(as.character(removals$spectrum_id))
+  keep <- ids %in% removal_ids
+  keep[is.na(keep)] <- FALSE
+  if (!any(keep)) return(NULL)
+  out <- filter_spec(x, keep)
+  max_or_na <- function(value) {
+    value <- value[is.finite(value)]
+    if (length(value)) max(value) else NA_real_
+  }
+  min_or_na <- function(value) {
+    value <- value[is.finite(value)]
+    if (length(value)) min(value) else NA_integer_
+  }
+  collapse_values <- function(value) {
+    value <- sort(unique(as.character(value[!is.na(value) & nzchar(value)])))
+    if (length(value)) paste(value, collapse = "; ") else NA_character_
+  }
+  summary <- removals[spectrum_id %in% ids, .(
+    quarantine_status = collapse_values(quarantine_status),
+    quarantine_phase = collapse_values(phase),
+    quarantine_reason = collapse_values(reason),
+    component_id = collapse_values(component_id),
+    correlation_view = collapse_values(correlation_view),
+    threshold = max_or_na(threshold),
+    decision_round = min_or_na(decision_round),
+    active_degree = as.integer(max_or_na(active_degree)),
+    max_wrong_class_correlation = max_or_na(correlation),
+    opposing_classes = collapse_values(matched_class),
+    opposing_libraries = collapse_values(matched_library),
+    class_n_before = as.integer(max_or_na(class_n_before)),
+    review_status = collapse_values(review_status)
+  ), by = spectrum_id]
+  out_ids <- as.character(.lib_ids(out, "sample_name"))
+  summary <- summary[match(out_ids, spectrum_id)]
+  added <- setdiff(names(summary), "spectrum_id")
+  added_values <- summary[, added, with = FALSE]
+  out$metadata[, (added) := added_values]
+  out$metadata[, `:=`(
+    quarantine_recipe = artifact,
+    quarantine_spectrum_type = spectrum_type,
+    quarantine_key = paste(artifact, spectrum_type, out_ids, sep = "/"),
+    min_n = as.integer(min_n)
+  )]
+  out
+}
+
+.lib_typed_quarantine_parts <- function(x, removals, artifact, min_n) {
+  if (!is_OpenSpecy(x) || !nrow(removals)) return(list())
+  types <- sort(unique(tolower(as.character(x$metadata$spectrum_type))))
+  types <- intersect(types[!is.na(types) & nzchar(types)],
+                     names(.lib_type_ranges()))
+  out <- lapply(types, function(type) {
+    object <- .lib_filter_optional_type(x, type)
+    if (is.null(object)) return(NULL)
+    ids <- as.character(.lib_ids(object, "sample_name"))
+    rows <- removals[spectrum_id %in% ids]
+    if (!nrow(rows)) return(NULL)
+    limits <- .lib_type_ranges()[[type]]
+    object <- restrict_range(
+      object, min = limits[[1L]], max = limits[[2L]], make_rel = FALSE
+    )
+    .lib_quarantine_part(object, rows, artifact, type, min_n)
+  })
+  names(out) <- paste(artifact, types, sep = "/")
+  Filter(Negate(is.null), out)
+}
+
+.lib_quarantine_bundle <- function(parts = list(), conflicts = NULL,
+                                   build_signature = NA_character_,
+                                   thresholds = numeric()) {
+  parts <- Filter(Negate(is.null), parts)
+  spectra <- list()
+  if (length(parts)) {
+    keys <- vapply(parts, function(object) {
+      paste(
+        unique(as.character(object$metadata$quarantine_recipe))[[1L]],
+        unique(as.character(object$metadata$quarantine_spectrum_type))[[1L]],
+        sep = "/"
+      )
+    }, character(1L))
+    grouped <- split(parts, keys)
+    spectra <- lapply(names(grouped), function(key) {
+      out <- .lib_bind_same_axis(grouped[[key]], paste("quarantine", key))
+      ids <- as.character(.lib_ids(out, "sample_name"))
+      if (anyDuplicated(ids)) {
+        stop("Quarantine bundle contains duplicate composite IDs for ", key,
+             call. = FALSE)
+      }
+      out
+    })
+    names(spectra) <- names(grouped)
+  }
+  if (is.null(conflicts) || !nrow(conflicts)) {
+    conflicts <- .lib_prune_conflict_edge_schema()
+  } else {
+    conflicts <- data.table::as.data.table(data.table::copy(conflicts))
+  }
+  structure(list(
+    spectra = spectra,
+    conflicts = conflicts,
+    manifest = list(
+      schema = "OpenSpecy_quarantined_spectra_v1",
+      build_signature = as.character(build_signature),
+      thresholds = sort(unique(as.numeric(thresholds))),
+      source_hashes = as.character(build_signature)
+    )
+  ), class = c("OpenSpecyQuarantine", "list"))
+}
+
+.lib_close_typed_reference_libraries <- function(libraries, prune_spec,
+                                                  report = NULL,
+                                                  progress = FALSE) {
+  removal_rows <- list()
+  conflict_rows <- list()
+  quarantine_parts <- list()
+  support_rows <- list()
+  row_i <- 0L
+  conflict_i <- 0L
+  part_i <- 0L
+  support_i <- 0L
+  generic <- c("other", "other plastic", "other material", "unclassified")
+  for (artifact in intersect(c("derivative", "nobaseline"), names(libraries))) {
+    args <- if (is.null(prune_spec)) list(cross_class = TRUE) else prune_spec[[artifact]]
+    if (is.null(args)) args <- list()
+    if (!isTRUE(args$cross_class)) next
+    threshold <- if (is.null(args$cross_class_threshold)) 0.9 else
+      as.numeric(args$cross_class_threshold)
+    min_n <- if (is.null(args$min_n)) 10L else as.integer(args$min_n)
+    for (type in names(libraries[[artifact]])) {
+      parent <- libraries[[artifact]][[type]]
+      model_supported <- .lib_restrict_model_range(parent, type)
+      model_supported <- .lib_drop_range_flat_spectra(
+        model_supported, artifact = artifact, spectrum_type = type,
+        reason = "pre_medoid_model_range_flat_spectrum", report = report
+      )
+      parent_ids <- as.character(.lib_ids(parent, "sample_name"))
+      supported_ids <- as.character(.lib_ids(model_supported, "sample_name"))
+      unsupported <- !parent_ids %in% supported_ids
+      if (any(unsupported)) {
+        support_i <- support_i + 1L
+        support_rows[[support_i]] <- data.table::data.table(
+          artifact = artifact, spectrum_id = parent_ids[unsupported],
+          spectrum_type = type, check = "identification_support",
+          action = "drop", before_value = NA_real_, after_value = NA_real_,
+          threshold = 0.1, removed = TRUE,
+          reason = "below_model_range_observed_support"
+        )
+        parent <- filter_spec(parent, !unsupported)
+      }
+      close_view <- function(object, view) {
+        ids <- as.character(.lib_ids(object, "sample_name"))
+        metadata <- object$metadata
+        result <- .lib_prune_cross_class_conflicts(
+          classes = as.character(metadata$material_class),
+          pools = rep(type, length(ids)),
+          normalized = .lib_prune_normalize(
+            object$spectra, object$wavenumber, exclude = NULL
+          ),
+          ids = ids,
+          library_names = as.character(metadata$library_name),
+          threshold = threshold, support_groups = rep(type, length(ids)),
+          min_n = min_n, correlation_view = view,
+          progress = progress, block_size = 128L
+        )
+        if (nrow(result$removals)) result$removals[, phase := "final_closure"]
+        if (nrow(result$conflicts)) result$conflicts[, phase := "final_closure"]
+        result
+      }
+      full_result <- close_view(parent, "typed_full")
+      if (nrow(full_result$removals)) {
+        row_i <- row_i + 1L
+        removal_rows[[row_i]] <- full_result$removals[, artifact := artifact][]
+        part_i <- part_i + 1L
+        quarantine_parts[[part_i]] <- .lib_quarantine_part(
+          parent, full_result$removals, artifact, type, min_n
+        )
+        parent <- filter_spec(parent, -full_result$removed_rows)
+      }
+      if (nrow(full_result$conflicts)) {
+        conflict_i <- conflict_i + 1L
+        conflict_rows[[conflict_i]] <- full_result$conflicts[, artifact := artifact][]
+      }
+      model_view <- .lib_restrict_model_range(parent, type)
+      model_result <- close_view(model_view, "model_range")
+      if (nrow(model_result$removals)) {
+        row_i <- row_i + 1L
+        removal_rows[[row_i]] <- model_result$removals[, artifact := artifact][]
+        part_i <- part_i + 1L
+        quarantine_parts[[part_i]] <- .lib_quarantine_part(
+          parent, model_result$removals, artifact, type, min_n
+        )
+        remove_ids <- model_result$removals$spectrum_id
+        parent <- filter_spec(
+          parent, !as.character(.lib_ids(parent, "sample_name")) %in% remove_ids
+        )
+      }
+      if (nrow(model_result$conflicts)) {
+        conflict_i <- conflict_i + 1L
+        conflict_rows[[conflict_i]] <- model_result$conflicts[, artifact := artifact][]
+      }
+
+      classes <- as.character(parent$metadata$material_class)
+      class_keys <- tolower(trimws(classes))
+      support <- data.table::data.table(
+        material_class = classes,
+        resolved = !is.na(classes) & nzchar(classes) &
+          !class_keys %in% generic
+      )[resolved == TRUE, .N, by = material_class]
+      small <- support[N < min_n, material_class]
+      if (length(small)) {
+        drop <- which(classes %in% small)
+        ids <- as.character(.lib_ids(parent, "sample_name"))
+        counts <- support$N[match(classes[drop], support$material_class)]
+        floor_removals <- data.table::data.table(
+          phase = "final_closure", correlation_view = "global_support",
+          component_id = NA_character_, spectrum_id = ids[drop],
+          prior_class = classes[drop],
+          library_name = as.character(parent$metadata$library_name)[drop],
+          matched_id = NA_character_, matched_class = NA_character_,
+          matched_library = NA_character_, correlation = NA_real_, pool = type,
+          active_degree = 0L, matched_active_degree = 0L,
+          evidence_libraries = 0L, conflicting_spectra = 0L,
+          matched_evidence_libraries = 0L, decision_round = NA_integer_,
+          threshold = threshold, class_n_before = counts, class_n_after = 0L,
+          schedule_order = NA_integer_, quarantine_status = "excluded",
+          review_status = "global_support_at_risk",
+          reason = "class_below_global_min_n_after_closure"
+        )
+        row_i <- row_i + 1L
+        removal_rows[[row_i]] <- floor_removals[, artifact := artifact][]
+        part_i <- part_i + 1L
+        quarantine_parts[[part_i]] <- .lib_quarantine_part(
+          parent, floor_removals, artifact, type, min_n
+        )
+        parent <- filter_spec(parent, -drop)
+      }
+      libraries[[artifact]][[type]] <- parent
+      if (!is.null(report)) report(sprintf(
+        "final correlation closure %s/%s complete (retained=%d)",
+        artifact, type, ncol(parent$spectra)
+      ))
+    }
+  }
+  list(
+    libraries = libraries,
+    removals = if (length(removal_rows)) {
+      data.table::rbindlist(removal_rows, fill = TRUE)
+    } else .lib_prune_removal_assessment_schema(),
+    conflicts = if (length(conflict_rows)) {
+      data.table::rbindlist(conflict_rows, fill = TRUE)
+    } else {
+      out <- .lib_prune_conflict_edge_schema()
+      out[, artifact := character()]
+      out
+    },
+    quarantine_parts = Filter(Negate(is.null), quarantine_parts),
+    support_drops = if (length(support_rows)) {
+      data.table::rbindlist(support_rows, fill = TRUE)
+    } else .lib_quality_schema()
+  )
+}
+
 .lib_build_medoids <- function(libraries, report, checkpoints = NULL,
                                progress = TRUE) {
   processed <- intersect(c("derivative", "nobaseline"), names(libraries))
@@ -6333,6 +7062,96 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   })
   names(out) <- processed
   out
+}
+
+.lib_validate_medoid_parent_closure <- function(libraries, medoids, prune_spec,
+                                                report = NULL,
+                                                block_size = 128L) {
+  rows <- list()
+  row_i <- 0L
+  generic <- c("other", "other plastic", "other material", "unclassified")
+  for (artifact in intersect(names(medoids), names(libraries))) {
+    args <- if (is.null(prune_spec)) list(cross_class = TRUE) else prune_spec[[artifact]]
+    if (is.null(args)) args <- list()
+    if (!isTRUE(args$cross_class)) next
+    threshold <- if (is.null(args$cross_class_threshold)) 0.9 else
+      as.numeric(args$cross_class_threshold)
+    for (type in intersect(names(medoids[[artifact]]), names(libraries[[artifact]]))) {
+      parent <- .lib_restrict_model_range(libraries[[artifact]][[type]], type)
+      medoid <- medoids[[artifact]][[type]]
+      parent_ids <- as.character(.lib_ids(parent, "sample_name"))
+      medoid_ids <- as.character(.lib_ids(medoid, "sample_name"))
+      index <- match(medoid_ids, parent_ids)
+      if (anyNA(index)) {
+        stop("Medoid IDs are absent from the closed parent: ", artifact,
+             "/", type, call. = FALSE)
+      }
+      parent_classes <- as.character(parent$metadata$material_class)
+      medoid_classes <- as.character(medoid$metadata$material_class)
+      if (!identical(parent_classes[index], medoid_classes) ||
+          !identical(parent$wavenumber, medoid$wavenumber) ||
+          !isTRUE(all.equal(
+            parent$spectra[, index, drop = FALSE], medoid$spectra,
+            tolerance = 0, check.attributes = FALSE
+          ))) {
+        stop("Medoids are not unchanged spectra from the closed parent: ",
+             artifact, "/", type, call. = FALSE)
+      }
+      parent_normalized <- .lib_prune_normalize(
+        parent$spectra, parent$wavenumber, exclude = NULL
+      )
+      medoid_normalized <- parent_normalized[index, , drop = FALSE]
+      eligible_parent <- !tolower(trimws(parent_classes)) %in% generic
+      eligible_medoid <- !tolower(trimws(medoid_classes)) %in% generic
+      eligible_parent[is.na(eligible_parent)] <- FALSE
+      eligible_medoid[is.na(eligible_medoid)] <- FALSE
+      maximum <- -Inf
+      wrong_pairs <- 0L
+      blocks <- split(
+        seq_along(parent_ids),
+        ceiling(seq_along(parent_ids) / as.integer(block_size))
+      )
+      for (block in blocks) {
+        cors <- tcrossprod(
+          parent_normalized[block, , drop = FALSE], medoid_normalized
+        )
+        different <- outer(
+          parent_classes[block], medoid_classes, FUN = "!="
+        )
+        different[is.na(different)] <- FALSE
+        valid <- outer(eligible_parent[block], eligible_medoid, FUN = "&") &
+          different
+        scores <- cors[valid & is.finite(cors)]
+        if (length(scores)) {
+          maximum <- max(maximum, max(scores))
+          wrong_pairs <- wrong_pairs + sum(scores > threshold)
+        }
+        rm(cors, different, valid, scores)
+      }
+      if (wrong_pairs > 0L) {
+        stop(
+          "Closed parent-to-medoid correlation invariant failed for ",
+          artifact, "/", type, " (", wrong_pairs, " pair(s) > ",
+          threshold, ")", call. = FALSE
+        )
+      }
+      row_i <- row_i + 1L
+      rows[[row_i]] <- data.table::data.table(
+        artifact = artifact, spectrum_type = type,
+        parent_spectra = length(parent_ids), medoid_spectra = length(medoid_ids),
+        threshold = threshold,
+        max_wrong_class_correlation = if (is.finite(maximum)) maximum else NA_real_,
+        wrong_class_pairs_above_threshold = wrong_pairs,
+        ids_unchanged = TRUE, classes_unchanged = TRUE,
+        spectra_unchanged = TRUE
+      )
+      if (!is.null(report)) report(sprintf(
+        "validated parent-to-medoid closure %s/%s (pairs>%g: %d)",
+        artifact, type, threshold, wrong_pairs
+      ))
+    }
+  }
+  data.table::rbindlist(rows, fill = TRUE)
 }
 
 .lib_build_models <- function(libraries, medoids, report, checkpoints = NULL,
@@ -6681,6 +7500,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!nrow(pruning_removals)) {
     pruning_removals <- .lib_prune_removal_assessment_schema()
   }
+  pruning_conflicts <- data.table::rbindlist(lapply(
+    names(libraries), function(name) {
+      report <- attr(libraries[[name]], "prune_report")
+      if (is.null(report) || is.null(report$cross_class_conflicts) ||
+          !nrow(report$cross_class_conflicts)) return(NULL)
+      out <- data.table::copy(report$cross_class_conflicts)
+      out[, artifact := name]
+      out
+    }
+  ), fill = TRUE)
+  if (!nrow(pruning_conflicts)) {
+    pruning_conflicts <- .lib_prune_conflict_edge_schema()
+    pruning_conflicts[, artifact := character()]
+  }
 
   raw_coverage <- attr(libraries$raw, "class_coverage_report")
   before_filter <- if (is.null(raw_coverage) || nrow(raw_coverage) == 0L) {
@@ -6726,6 +7559,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     pruning_excluded_classes = pruning_excluded_classes,
     pruning_reassignments = pruning_reassignments,
     pruning_removals = pruning_removals,
+    pruning_conflicts = pruning_conflicts,
     filters = data.table::data.table(
       stage = "special_filter", before = before_filter,
       after = after_filter,
@@ -6948,6 +7782,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     pruning_excluded_classes = .lib_prune_excluded_assessment_schema(),
     pruning_reassignments = .lib_prune_reassignment_schema(),
     pruning_removals = .lib_prune_removal_assessment_schema(),
+    pruning_conflicts = .lib_prune_conflict_edge_schema(),
+    correlation_closure = data.table::data.table(),
     medoid_model_summary = model_summary,
     medoid_model_support = support,
     model_class_support = class_support,
@@ -7205,6 +8041,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "other_review", "other_filter", "exclusions_deduplication",
     "filters", "metadata_drop", "metadata_finalization", "pruning",
     "pruning_excluded_classes", "pruning_reassignments", "pruning_removals",
+    "pruning_conflicts", "correlation_closure",
     "quality_control",
     "library_retention"
   )
@@ -7286,7 +8123,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       "model_feature_importance", "model_training_parameters",
       "model_class_weights", "medoid_model_summary", "medoid_model_support",
       "model_class_support", "warnings", "old_new_compatibility",
-      "build_summary", "assess_spec_shifts", "output_manifest"),
+      "build_summary", "assess_spec_shifts", "output_manifest",
+      "pruning_conflicts", "correlation_closure"),
     names(assessments)
   )
   evidence <- assessments[evidence_names]
@@ -8566,14 +9404,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   models <- Filter(length, models)
   assessments_path <- file.path(directory, index$assessments)
   assessments <- if (file.exists(assessments_path)) readRDS(assessments_path) else NULL
+  quarantine <- if ("quarantined_spectra" %in% names(index$artifacts)) {
+    load_artifact("quarantined_spectra")
+  } else NULL
   list(
     libraries = libraries, medoids = medoids, models = models,
-    assessments = assessments
+    assessments = assessments, quarantine = quarantine
   )
 }
 
 .lib_promote_reference_build <- function(build, output_dir, signature, reuse,
-                                         progress = NULL) {
+                                         progress = NULL, quarantine = NULL) {
   release_dir <- file.path(output_dir, "releases", substr(signature, 1L, 12L))
   dir.create(release_dir, recursive = TRUE, showWarnings = FALSE)
   prior_manifest <- NULL
@@ -8612,6 +9453,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     setNames(release_medoids, paste0("medoid_", names(release_medoids))),
     model_artifacts
   )
+  if (!is.null(quarantine)) {
+    quarantine$manifest$release_signature <- signature
+    artifacts[["quarantined_spectra"]] <- quarantine
+  }
   manifest <- lapply(names(artifacts), function(name) {
     path <- file.path(release_dir, paste0(name, ".rds"))
     if(is.function(progress)) {

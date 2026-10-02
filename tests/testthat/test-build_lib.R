@@ -1167,7 +1167,7 @@ test_that("prune_lib() orders classes, preserves floors, and audits removals", {
   expect_true(all(abs(legacy_at_actual - legacy_best) <= tolerance))
 })
 
-test_that("cross-class pruning uses independent-library evidence and removes ties", {
+test_that("cross-class pruning closes internal conflicts before independent evidence", {
   normalized <- rbind(
     high = c(1, 0, 0, 0),
     b_l2 = c(1, 0, 0, 0),
@@ -1194,7 +1194,7 @@ test_that("cross-class pruning uses independent-library evidence and removes tie
     block_size = 5L
   )
 
-  expect_identical(first$removed_rows, c(1L, 4L, 5L))
+  expect_identical(first$removed_rows, c(1L, 4L, 5L, 6L, 7L))
   expect_equal(first$removals, second$removals)
   expect_equal(first$removals[spectrum_id == "high", evidence_libraries], 2L)
   expect_equal(first$removals[spectrum_id == "high", decision_round], 1L)
@@ -1202,8 +1202,158 @@ test_that("cross-class pruning uses independent-library evidence and removes tie
     first$removals[spectrum_id %in% c("tie_c", "tie_d"), reason] ==
       "cross_class_equal_library_evidence"
   ))
-  expect_false(any(first$removals$spectrum_id %in%
-                     c("same_source_e", "same_source_f", "generic")))
+  expect_true(all(
+    first$removals[spectrum_id %in% c("same_source_e", "same_source_f"),
+                   phase] == "internal"
+  ))
+  expect_true(all(
+    first$removals[spectrum_id %in% c("same_source_e", "same_source_f"),
+                   reason] == "cross_class_equal_internal_degree"
+  ))
+  expect_false("generic" %in% first$removals$spectrum_id)
+})
+
+test_that("internal cross-class majority removes the active high-degree spectrum", {
+  normalized <- rbind(
+    suspect = c(1, 0, 0, 0),
+    reference_1 = c(1, 0, 0, 0),
+    reference_2 = c(1, 0, 0, 0),
+    reference_3 = c(1, 0, 0, 0),
+    tie_a = c(0, 1, 0, 0),
+    tie_b = c(0, 1, 0, 0)
+  )
+  first <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes = c("class_a", rep("class_b", 3), "class_c", "class_d"),
+    pools = rep("ftir", 6), normalized = normalized,
+    ids = rownames(normalized), library_names = rep("one_library", 6),
+    threshold = 0.9, min_n = 1, block_size = 2L
+  )
+  second <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes = c("class_a", rep("class_b", 3), "class_c", "class_d"),
+    pools = rep("ftir", 6), normalized = normalized,
+    ids = rownames(normalized), library_names = rep("one_library", 6),
+    threshold = 0.9, min_n = 1, block_size = 5L
+  )
+
+  expect_identical(first$removed_rows, c(1L, 5L, 6L))
+  expect_equal(first$removals, second$removals)
+  expect_equal(first$removals[spectrum_id == "suspect", active_degree], 3L)
+  expect_equal(first$removals[spectrum_id == "suspect", decision_round], 1L)
+  expect_true(all(first$removals[spectrum_id %in% c("tie_a", "tie_b"),
+                                 decision_round] == 2L))
+})
+
+test_that("internal cross-class support counts span the complete database", {
+  normalized <- rbind(
+    a_source_1 = c(1, 0, 0, 0),
+    b_source_1a = c(1, 0, 0, 0),
+    b_source_1b = c(1, 0, 0, 0),
+    a_source_2 = c(0, 0, 1, 0),
+    a_source_3 = c(0, 0, 0, 1)
+  )
+  result <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes = c("class_a", "class_b", "class_b", "class_a", "class_a"),
+    pools = rep("ftir", 5), support_groups = rep("ftir", 5),
+    normalized = normalized, ids = rownames(normalized),
+    library_names = c("lib_1", "lib_1", "lib_1", "lib_2", "lib_3"),
+    threshold = 0.9, min_n = 2
+  )
+
+  expect_identical(result$removed_rows, 1L)
+  expect_equal(result$removals$class_n_before, 3L)
+  expect_equal(result$removals$class_n_after, 2L)
+  expect_equal(result$removals$review_status, "automatic")
+
+  at_risk <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes = c("class_a", "class_b", "class_b", "class_a", "class_a"),
+    pools = rep("ftir", 5), support_groups = rep("ftir", 5),
+    normalized = normalized, ids = rownames(normalized),
+    library_names = c("lib_1", "lib_1", "lib_1", "lib_2", "lib_3"),
+    threshold = 0.9, min_n = 3
+  )
+  expect_equal(at_risk$removals$review_status, "global_support_at_risk")
+})
+
+test_that("quarantine bundles retain spectra and review metadata", {
+  lib <- tiny_build_lib()
+  lib$metadata[, `:=`(
+    material_class = rep(c("class_a", "class_b"), 4),
+    material_type = "plastic", spectrum_type = "ftir",
+    library_name = rep(c("lib_a", "lib_b"), 4)
+  )]
+  ids <- as.character(lib$metadata$sample_name)
+  removal <- OpenSpecy:::.lib_prune_cross_class_schema()[0]
+  removal <- data.table::data.table(
+    phase = "internal", correlation_view = "typed_full",
+    component_id = "internal:one", spectrum_id = ids[[1L]],
+    prior_class = "class_a", library_name = "lib_a",
+    matched_id = ids[[2L]], matched_class = "class_b",
+    matched_library = "lib_b", correlation = 0.95, pool = "ftir",
+    active_degree = 3L, matched_active_degree = 1L,
+    evidence_libraries = 0L, conflicting_spectra = 3L,
+    matched_evidence_libraries = 0L, decision_round = 1L,
+    threshold = 0.9, class_n_before = 4L, class_n_after = 3L,
+    schedule_order = NA_integer_, quarantine_status = "excluded",
+    review_status = "automatic",
+    reason = "cross_class_more_internal_conflicts"
+  )
+  part <- OpenSpecy:::.lib_quarantine_part(
+    lib, removal, "derivative", "ftir", min_n = 3
+  )
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(
+    list(part), build_signature = "fixture", thresholds = 0.9
+  )
+  output <- withr::local_tempdir()
+  OpenSpecy:::.lib_write_quarantine_review(bundle, output)
+  restored <- readRDS(file.path(output, "review", "quarantined_spectra.rds"))
+
+  expect_s3_class(restored, "OpenSpecyQuarantine")
+  expect_named(restored, c("spectra", "conflicts", "manifest"))
+  expect_true(check_OpenSpecy(restored$spectra[["derivative/ftir"]]))
+  expect_equal(
+    restored$spectra[["derivative/ftir"]]$metadata$quarantine_reason,
+    "cross_class_more_internal_conflicts"
+  )
+  expect_true(all(file.exists(file.path(
+    output, "review",
+    c("quarantined_spectra_metadata.csv",
+      "quarantined_spectra_conflicts.csv")
+  ))))
+})
+
+test_that("typed closure filters parents before medoid construction", {
+  wn <- seq(800, 3200, length.out = 60)
+  peak <- dnorm(seq(-3, 3, length.out = length(wn)))
+  other_1 <- dnorm(seq(-3, 3, length.out = length(wn)), mean = -1.5)
+  other_2 <- dnorm(seq(-3, 3, length.out = length(wn)), mean = 1.5)
+  spectra <- cbind(peak, peak * 1.01, peak * 0.99, other_1, other_2)
+  colnames(spectra) <- c("suspect", "b1", "b2", "a2", "a3")
+  parent <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c("class_a", "class_b", "class_b", "class_a", "class_a"),
+      material_type = "plastic", spectrum_type = "ftir",
+      library_name = c("lib_1", "lib_1", "lib_1", "lib_2", "lib_3")
+    )
+  )
+  closed <- OpenSpecy:::.lib_close_typed_reference_libraries(
+    list(derivative = list(ftir = parent)),
+    prune_spec = list(derivative = list(
+      cross_class = TRUE, cross_class_threshold = 0.9, min_n = 2
+    )),
+    progress = FALSE
+  )
+
+  expect_false("suspect" %in%
+                 closed$libraries$derivative$ftir$metadata$sample_name)
+  expect_equal(unname(table(
+    closed$libraries$derivative$ftir$metadata$material_class
+  )["class_a"]), 2L)
+  expect_true(nrow(closed$removals) >= 1L)
+  expect_true(any(closed$removals$correlation_view == "typed_full"))
+  expect_length(closed$quarantine_parts, 1L)
+  expect_true(check_OpenSpecy(closed$quarantine_parts[[1L]]))
 })
 
 test_that("cross-class pruning uses a strict threshold", {
@@ -2360,9 +2510,13 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
       "model_derivative.rds", "model_nobaseline.rds",
       "model_logistic_regression_derivative.rds",
       "model_logistic_regression_nobaseline.rds",
-      "assessments.rds",
+      "assessments.rds", "quarantined_spectra.rds",
       "reference_library_build.rds")
   ))))
+  quarantine <- readRDS(file.path(release_dir, "quarantined_spectra.rds"))
+  expect_s3_class(quarantine, "OpenSpecyQuarantine")
+  expect_identical(quarantine$manifest$schema,
+                   "OpenSpecy_quarantined_spectra_v1")
   release_index <- readRDS(file.path(release_dir, "reference_library_build.rds"))
   expect_identical(
     release_index$schema, "OpenSpecy_reference_build_index_v1"
@@ -2424,6 +2578,11 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_named(resolved$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(resolved$medoids, c("derivative", "nobaseline"))
   expect_named(resolved$models, "logistic_regression")
+  expect_s3_class(resolved$quarantine, "OpenSpecyQuarantine")
+  expect_identical(
+    resolved$quarantine$manifest$schema,
+    "OpenSpecy_quarantined_spectra_v1"
+  )
 
   second <- suppressWarnings(build_lib(
     lib, output_dir = output_dir,

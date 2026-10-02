@@ -299,17 +299,17 @@ reassignment. \code{"other material"} candidates are restricted by
 \code{"other"} may match any established class in the spectral pool.}
 
 \item{min_n}{For \code{prune_lib()}, the minimum spectra required for a
-resolved class within one spectrum type: smaller groups are reassigned as a
-whole to their most-correlated eligible class, or removed only when no valid
-destination exists; groups exactly at the threshold are retained whole, and
-larger groups are never reduced below it. For \code{reduce_lib()},
+resolved class within one spectrum type across the complete input database,
+not within each source library. Smaller groups are reassigned as a whole to
+their most-correlated eligible class, or removed when no valid destination
+exists; groups exactly at the threshold are retained. For \code{reduce_lib()},
 groups with \code{min_n} or fewer spectra are kept whole. Model trainers
 fit only classes meeting the threshold.}
 
-\item{cross_class}{logical; whether \code{prune_lib()} should remove
-high-correlation matches from other reference libraries between different
-non-generic material classes before generic-class reassignment. This
-requires complete canonical
+\item{cross_class}{logical; whether \code{prune_lib()} should resolve
+within-library and then independent-library high-correlation matches between
+different non-generic material classes before generic-class reassignment.
+This requires complete canonical
 \code{library_name} metadata. The composable default is \code{FALSE}; the
 official derivative and no-baseline workflow enables it.}
 
@@ -374,7 +374,10 @@ one \code{tests} data.table and a one-spectrum \code{fill} object. Versioned
 release directories instead store global build and model diagnostics only in
 \code{assessments.rds}; library, medoid, and model files retain only runtime
 data, scientific attributes, and prediction state. The companion
-\code{reference_library_build.rds} is a lightweight release index.
+\code{reference_library_build.rds} is a lightweight release index. The
+companion \code{quarantined_spectra.rds} stores valid \code{OpenSpecy}
+objects by recipe/type, a long conflict table, and build provenance for
+spectra excluded by cross-class closure.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids.
@@ -478,14 +481,16 @@ literal class are removed before quality control and retained in the
 \code{other_review} assessment table. Reviewed \code{"other plastic"} and
 \code{"other material"} rows stay in the reference library and enter
 \code{prune_lib()}'s nearest-class semisupervised pathway.
-When requested, \code{prune_lib()} first removes high-correlation conflicts
-between different reviewed classes. Same-source pairs are not independent
-evidence. Each spectrum is weighted by the number of distinct other
-reference libraries supporting an opposing-class match; the higher-weight
-endpoint is removed, and equal-weight endpoints are both removed. Generic
-and unclassified labels do not participate. The retained
-set is checked to contain no remaining eligible conflict above the requested
-threshold. Pruning then reassigns generic classes by nearest same-technique
+When requested, \code{prune_lib()} first resolves high-correlation conflicts
+between different reviewed classes within each source library. It repeatedly
+removes the spectrum with the most active wrong-class neighbors, recalculates
+after each round, and removes both endpoints of an adjacent maximum-score
+tie. It then resolves between-library conflicts by the number of distinct
+independent libraries supporting the opposing class. Generic and
+unclassified labels do not participate. Official builds repeat closure on
+the rounded typed and model-range views before deriving medoids, and retain
+excluded spectra plus conflict provenance in
+\code{quarantined_spectra.rds}. Pruning then reassigns generic classes by nearest same-technique
 correlation: \code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and
 \code{"other material"} requires \code{"organic matter"} or

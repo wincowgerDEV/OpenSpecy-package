@@ -1,4 +1,4 @@
-# Repeated benchmark for independent-library cross-class conflict pruning.
+# Repeated benchmark for internal-majority and independent-library pruning.
 # Run from the package root with:
 # Rscript benchmarks/reference_cross_class_pruning.R
 
@@ -38,6 +38,21 @@ for (group in seq_len(nrow(groups))) {
                         "reference-library-b")
 }
 
+# Twenty same-library components contain one degree-three suspect and three
+# same-class references. The active-degree pass must remove only each suspect.
+internal_groups <- matrix(61:140, ncol = 4L, byrow = TRUE)
+for (group in seq_len(nrow(internal_groups))) {
+  index <- internal_groups[group, ]
+  for (reference in index[-1L]) {
+    normalized[reference, ] <- normalized[index[1L], ]
+  }
+  classes[index] <- c(
+    paste0("polyinternal-suspect-", group),
+    rep(paste0("polyinternal-reference-", group), 3L)
+  )
+  libraries[index] <- "internal-majority-library"
+}
+
 run_kernel <- function(block) {
   OpenSpecy:::.lib_prune_cross_class_conflicts(
     classes, pools, normalized, ids, libraries, threshold = 0.9,
@@ -50,9 +65,13 @@ candidate <- run_kernel(block_size)
 stopifnot(
   identical(reference$removed_rows, candidate$removed_rows),
   identical(reference$removals, candidate$removals),
-  length(candidate$removed_rows) == nrow(groups),
-  all(candidate$removals$evidence_libraries == 2L),
-  all(candidate$removals$reason == "cross_class_more_library_evidence")
+  length(candidate$removed_rows) == nrow(groups) + nrow(internal_groups),
+  all(candidate$removals[phase == "independent", evidence_libraries] == 2L),
+  all(candidate$removals[phase == "independent", reason] ==
+        "cross_class_more_library_evidence"),
+  all(candidate$removals[phase == "internal", active_degree] == 3L),
+  all(candidate$removals[phase == "internal", reason] ==
+        "cross_class_more_internal_conflicts")
 )
 
 runs <- replicate(
