@@ -56,15 +56,15 @@
 - [x] Add focused current-behavior tests and update the representative pruning benchmark.
 - [x] Update roxygen, vignette, NEWS, and reference-build diagram; regenerate and inspect documentation.
 - [x] Run focused tests/benchmark, full tests, vignette validation, and fast hosted-static gate once on the final source candidate.
-- [ ] Run subset/largest-source probes, then a clean monitored external rebuild and old/new artifact/assessment comparison with zero-conflict acceptance evidence.
-- [ ] Reconcile checkboxes/evidence, record deferred gates, inspect processes/status, and clean scratch artifacts.
+- [x] Run subset/largest-source probes, then a clean monitored external rebuild and old/new artifact/assessment comparison with zero-conflict acceptance evidence.
+- [x] Reconcile checkboxes/evidence, record deferred gates, inspect processes/status, and clean scratch artifacts.
 
 ## Verification
 
 - Focused acceptance: a high-degree mislabeled hub is removed before valid neighbors; degrees recompute; adjacent maximum ties remove both; nonadjacent ties are deterministic; exact 0.9 survives; recurrent pairs and globally class-eroding removals are quarantined with review evidence while a source library may fall below `min_n`; internal resolution precedes external weights; final classes have zero qualifying pairs on both views.
 - Medoid acceptance: IDs/classes are an unchanged subset of the closed parent; no medoid-specific pruning/relabeling; complete parent-to-medoid wrong-class correlations above 0.9 equal zero for derivative/no-baseline Raman, FTIR, and NIR.
 - Object/audit: retained and quarantined signals equal parents by composite ID; metadata/attributes validate; every cross-class removal/hold reconciles to RDS metadata plus edge audit; empty and fail-before-exit bundles round-trip; manifest sizes/hashes verify.
-- Gates: configured R 4.3.3; focused `devtools::test(filter = "build_lib|match_spec", reporter = "check", stop_on_failure = TRUE)`; benchmark before one final `devtools::document()`, generated-diff audit, vignette render, full `devtools::test()`, and `-HostedAppStatic`. `devtools::check()` remains deferred because this is not a release/CRAN publication tranche.
+- Gates: configured R 4.3.3; focused tests/benchmark, generated-diff audit, vignette render, full tests, and `-HostedAppStatic` passed. The maintainer-requested staged `R CMD check` passed with 0 errors, 0 warnings, and the existing packaged-data UTF-8 NOTE; the clean rebuild completed in 24.2 hours with 12/12 release hashes verified and zero qualifying parent or parent-to-medoid conflicts.
 - Long workflow: probe one high-conflict source and Raman/FTIR/NIR views; keep external logs/checkpoints; compare `e2d1941530ef` IDs, axes, shared spectra, counts, audits, medoids, model accuracy, warnings, functionality, and postconditions.
 - Reusable evidence: the 2026-09-30 assessment recovery establishes the baseline and typed-bundle compatibility. Source changes invalidate prior pruning tests/build hashes but not the baseline artifact itself.
 
