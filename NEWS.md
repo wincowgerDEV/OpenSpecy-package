@@ -1,5 +1,8 @@
-# OpenSpecy 2.0.1
+# OpenSpecy 2.0.2
 
+- Marked the Hilbert compression and temperature/emissivity APIs as
+  experimental, added a 2017--2026 project timeline to the landing page, and
+  changed the hero project video to start automatically without sound.
 - CRAN resubmission checks no longer encounter an undeclared `withr` test
   dependency, wait on unresponsive reference links, or build interactive
   Plotly examples during noninteractive checks. The quarantine-review test now

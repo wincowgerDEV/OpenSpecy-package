@@ -63,6 +63,11 @@
 #' baseline for particle detection until TES metrics are validated on held-out
 #' measurements.
 #'
+#' @section Experimental:
+#' `estimate_temperature()` is experimental. Its model, diagnostics, defaults,
+#' and returned columns may change as the method is validated against more
+#' calibrated thermal-emission measurements.
+#'
 #' @references
 #' National Bureau of Standards. *Radiometric temperature measurements: II.
 #' Applications* (Technical Note 910-8).
@@ -256,6 +261,11 @@ estimate_temperature.FileSpecs <- function(
 #' @return An aligned `OpenSpecy` object whose spectra and per-spectrum units
 #'   are emissivity. The supplied temperatures and radiative-transfer model
 #'   are appended to metadata, and transformation provenance is recorded.
+#'
+#' @section Experimental:
+#' `calculate_emissivity()` is experimental. Its radiative-transfer model,
+#' diagnostics, defaults, and recorded provenance may change as the method is
+#' validated against more calibrated thermal-emission measurements.
 #'
 #' @seealso [estimate_temperature()]
 #' @export

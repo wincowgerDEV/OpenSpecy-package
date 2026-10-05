@@ -37,6 +37,13 @@ calibrated-radiance \code{OpenSpecy} object. Estimate temperature after particle
 collapse because TES is nonlinear. Values outside \verb{[0, 1]} are retained as
 calibration and model diagnostics.
 }
+\section{Experimental}{
+
+\code{calculate_emissivity()} is experimental. Its radiative-transfer model,
+diagnostics, defaults, and recorded provenance may change as the method is
+validated against more calibrated thermal-emission measurements.
+}
+
 \seealso{
 \code{\link[=estimate_temperature]{estimate_temperature()}}
 }

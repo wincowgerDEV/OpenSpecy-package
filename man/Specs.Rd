@@ -264,6 +264,13 @@ and metadata separately. Version 0.2 objects may represent regular grids and
 repeated metadata compactly and reserve source mapping 0 for explicitly
 background-suppressed pixels.
 }
+\section{Experimental}{
+
+\code{encode_specs_hilbert()} and \code{decode_specs_hilbert()} are experimental.
+Their encoded representation, defaults, and reconstruction guarantees may
+change as the compression workflow is validated on more hyperspectral data.
+}
+
 \examples{
 data("raman_hdpe")
 specs <- as_Specs(raman_hdpe, n_components = 1)

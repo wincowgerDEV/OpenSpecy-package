@@ -74,6 +74,11 @@
 #' exact zero line for every background-suppressed source.
 #' \code{read_specs()} returns a \code{Specs} object.
 #'
+#' @section Experimental:
+#' `encode_specs_hilbert()` and `decode_specs_hilbert()` are experimental.
+#' Their encoded representation, defaults, and reconstruction guarantees may
+#' change as the compression workflow is validated on more hyperspectral data.
+#'
 #' @examples
 #' data("raman_hdpe")
 #' specs <- as_Specs(raman_hdpe, n_components = 1)

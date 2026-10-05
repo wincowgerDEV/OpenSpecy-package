@@ -1213,7 +1213,7 @@ test_that("static landing and Shiny app provide the embed handshake", {
   expect_true(any(grepl('type="application/ld+json"', homepage,
                          fixed = TRUE)))
   expect_true(all(vapply(
-    c('id="start"', 'id="web-app"', 'id="learn"', 'id="science"',
+    c('id="start"', 'id="web-app"', 'id="learn"', 'id="history"', 'id="science"',
       'id="partners"', 'id="contact"'),
     function(section) any(grepl(section, homepage, fixed = TRUE)),
     logical(1)
@@ -1235,12 +1235,34 @@ test_that("static landing and Shiny app provide the embed handshake", {
   ))
   expect_true(any(grepl('class="hero-video-card"', homepage,
                          fixed = TRUE)))
-  expect_false(grepl(
-    '<iframe[[:space:]]+src="https://www.youtube-nocookie.com',
-    homepage_text, perl = TRUE
-  ))
-  expect_true(any(grepl('data-video-title="OpenSpecy project video"',
+  expect_true(any(grepl('<iframe title="OpenSpecy project video"',
                          homepage, fixed = TRUE)))
+  expect_true(any(grepl('loading="eager"', homepage, fixed = TRUE)))
+  expect_true(any(grepl(
+    'allow="accelerometer; autoplay; clipboard-write; encrypted-media;',
+    homepage, fixed = TRUE
+  )))
+  expect_equal(sum(grepl('data-video-embed', homepage, fixed = TRUE)), 1L)
+  timeline_years <- as.character(2017:2026)
+  timeline_markers <- paste0(
+    '<time datetime="', timeline_years, '">', timeline_years, '</time>'
+  )
+  timeline_positions <- vapply(
+    timeline_markers,
+    function(marker) regexpr(marker, homepage_text, fixed = TRUE)[[1L]],
+    integer(1)
+  )
+  expect_true(all(timeline_positions > 0L))
+  expect_true(all(diff(timeline_positions) > 0L))
+  expect_true(all(vapply(
+    c("Gray Lab", "NSF I-Corps", "Analytical Chemistry",
+      "Moore Institute for Plastic Pollution Research", "Possibility Lab",
+      "Walking Softer Fellowship", "Pew-Gerstner Fellowship",
+      "generative AI agents"),
+    function(marker) grepl(marker, homepage_text, fixed = TRUE),
+    logical(1)
+  )))
+  expect_true(any(grepl("project-timeline", css, fixed = TRUE)))
   expect_true(grepl(
     "\\.hero-video-card\\s*\\{[^}]*transform:\\s*none",
     paste(css, collapse = "\n"), perl = TRUE

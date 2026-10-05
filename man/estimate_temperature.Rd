@@ -105,6 +105,13 @@ visible. Use direct radiance or established signal/noise contrast as the
 baseline for particle detection until TES metrics are validated on held-out
 measurements.
 }
+\section{Experimental}{
+
+\code{estimate_temperature()} is experimental. Its model, diagnostics, defaults,
+and returned columns may change as the method is validated against more
+calibrated thermal-emission measurements.
+}
+
 \references{
 National Bureau of Standards. \emph{Radiometric temperature measurements: II.
 Applications} (Technical Note 910-8).

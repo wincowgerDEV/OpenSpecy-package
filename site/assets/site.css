@@ -870,6 +870,64 @@ html.openspecy-app-fullscreen-open body {
   content: "";
 }
 
+.project-timeline {
+  max-width: 68rem;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--os-border);
+  list-style: none;
+}
+
+.project-timeline li {
+  position: relative;
+  display: grid;
+  min-height: 5.5rem;
+  padding: 1.25rem 0 1.25rem 3.25rem;
+  border-bottom: 1px solid var(--os-border);
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2.5rem);
+}
+
+.project-timeline li::before {
+  position: absolute;
+  top: 1.65rem;
+  left: 0.35rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--os-accent-light);
+  border-radius: 50%;
+  background: var(--os-bg);
+  box-shadow: 0 0 0 0.35rem rgba(56, 189, 248, 0.1);
+  content: "";
+}
+
+.project-timeline li::after {
+  position: absolute;
+  top: 2.45rem;
+  bottom: -1.7rem;
+  left: 0.72rem;
+  width: 1px;
+  background: var(--os-border-strong);
+  content: "";
+}
+
+.project-timeline li:last-child::after {
+  display: none;
+}
+
+.project-timeline time {
+  color: var(--os-accent-light);
+  font-size: 1rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.project-timeline p {
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 0.96rem;
+}
+
 .value-card p {
   margin-bottom: 0;
   color: var(--os-muted);
@@ -1311,6 +1369,12 @@ html.openspecy-app-fullscreen-open body {
 
   .hero-video-card {
     border-radius: 1rem;
+  }
+
+  .project-timeline li {
+    padding-left: 2.7rem;
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
   }
 
   .section {
