@@ -1,5 +1,11 @@
-# OpenSpecy 2.0.0
+# OpenSpecy 2.0.1
 
+- CRAN resubmission checks no longer encounter an undeclared `withr` test
+  dependency, wait on unresponsive reference links, or build interactive
+  Plotly examples during noninteractive checks. The quarantine-review test now
+  uses a base-R temporary directory, while the USDA, UCL, and NASA source
+  credits remain in the documentation without their unavailable external
+  links.
 - Official `build_lib()` outputs now retain standardized `material_form` and
   evidence-backed `common_use` metadata from reviewable CSV tables. Full-row
   form matching is conflict-safe, common use supports reviewable

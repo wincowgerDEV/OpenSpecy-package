@@ -248,6 +248,9 @@ test_that("the real server exposes metadata and rank 2 on its first Run", {
 })
 
 test_that("file-backed threshold inspection keeps the map bounded and selectable", {
+  # Full file-backed Shiny integration remains covered by local and CI runs.
+  skip_on_cran()
+
   missing <- .openspecy_app_packages()[
     !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
             quietly = TRUE)

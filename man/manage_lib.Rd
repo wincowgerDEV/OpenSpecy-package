@@ -94,7 +94,6 @@ mod_lib <- load_lib("model_derivative")[["ftir"]]
 \references{
 Bell IB, Clark RJH, Gibbs PJ (2010). “Raman Spectroscopic Library.”
 \emph{Christopher Ingold Laboratories, University College London, UK}.
-\url{https://www.chem.ucl.ac.uk/resources/raman/}.
 
 Berzinš K, Sales RE, Barnsley JE, Walker G, Fraser-Miller SJ, Gordon KC
 (2020). “Low-Wavenumber Raman Spectral Database of Pharmaceutical
@@ -191,8 +190,7 @@ Aline Carvalho,
 Jennifer Lynch (NIST),
 Claudia Cella and Dora Mehn (JRC),
 Horiba Scientific,
-USDA Soil Characterization Data
-(\url{https://ncsslabdatamart.sc.egov.usda.gov}),
+USDA Soil Characterization Data,
 Archaeometrielabor,
 and S.B. Engelsen (Royal Vet. and Agricultural University, Denmark).
 Kimmel Center data was collected and provided by Prof. Steven Weiner

@@ -73,7 +73,6 @@
 #'
 #' Wilber AC, Kratz DP, Gupta SK (1999). Surface emissivity maps for use in
 #' satellite retrievals of longwave radiation. NASA/TP-1999-209362.
-#' \url{https://ntrs.nasa.gov/citations/19990100634}
 #'
 #' Wu Z, Ren H, Zhang T, Qin Q, Dong J, Ye X (2017). A modified method to
 #' prevent false minimums occurring in iterative spectrally smooth temperature

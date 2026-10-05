@@ -1303,7 +1303,9 @@ test_that("quarantine bundles retain spectra and review metadata", {
   bundle <- OpenSpecy:::.lib_quarantine_bundle(
     list(part), build_signature = "fixture", thresholds = 0.9
   )
-  output <- withr::local_tempdir()
+  output <- tempfile("OpenSpecy-quarantine-review-")
+  dir.create(output)
+  on.exit(unlink(output, recursive = TRUE, force = TRUE), add = TRUE)
   OpenSpecy:::.lib_write_quarantine_review(bundle, output)
   restored <- readRDS(file.path(output, "review", "quarantined_spectra.rds"))
 
@@ -2370,6 +2372,9 @@ test_that("extdata files combine into a mini library", {
 })
 
 test_that("build_lib() discovers helper data and reuses one artifact bundle", {
+  # This exercises the complete multi-artifact reference-library workflow.
+  skip_on_cran()
+
   lib <- tiny_build_lib()
   lib$spectra[30, ] <- lib$spectra[30, ] + 10
   lib$metadata[, `:=`(

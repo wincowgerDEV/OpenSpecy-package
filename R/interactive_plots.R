@@ -60,14 +60,16 @@
 #'
 #' @examples
 #' \dontshow{data.table::setDTthreads(2)}
-#' data("raman_hdpe")
-#' tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
-#' plotly_spec(raman_hdpe)
+#' if (interactive()) {
+#'   data("raman_hdpe")
+#'   tiny_map <- read_extdata("CA_tiny_map.zip") |> read_zip()
+#'   plotly_spec(raman_hdpe)
 #'
-#' heatmap_spec(tiny_map, z = tiny_map$metadata$y, showlegend = TRUE)
+#'   heatmap_spec(tiny_map, z = tiny_map$metadata$y, showlegend = TRUE)
 #'
-#' sample_spec(tiny_map, size = 12) |>
-#'   interactive_plot(select = 2, x2 = raman_hdpe)
+#'   sample_spec(tiny_map, size = 12) |>
+#'     interactive_plot(select = 2, x2 = raman_hdpe)
+#' }
 #'
 #' @author
 #' Win Cowger, Zacharias Steinmetz
