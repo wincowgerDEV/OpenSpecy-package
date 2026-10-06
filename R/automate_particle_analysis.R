@@ -575,7 +575,11 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
             basename(path), "; supply 'images' explicitly", call. = FALSE)
     return(NULL)
   }
-  if (length(candidates)) candidates[[1L]] else NULL
+  if (length(candidates)) {
+    normalizePath(candidates[[1L]], winslash = "/", mustWork = TRUE)
+  } else {
+    NULL
+  }
 }
 
 .attach_particle_image <- function(map, images, bottom_left, top_right, i,

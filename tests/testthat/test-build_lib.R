@@ -910,7 +910,14 @@ test_that("build_lib() runs default joins, processing, SNR, and assessment", {
   ))
 
   expect_named(built, c("raw", "derivative", "nobaseline"))
-  expect_true(all(vapply(built, check_OpenSpecy, logical(1))))
+  valid <- vapply(built, check_OpenSpecy, logical(1))
+  expect_true(all(valid), info = paste("invalid recipes:",
+                                       paste(names(valid)[!valid],
+                                             collapse = ", ")))
+  finite <- vapply(built, function(x) all(is.finite(x$spectra)), logical(1))
+  expect_true(all(finite), info = paste("non-finite recipes:",
+                                        paste(names(finite)[!finite],
+                                              collapse = ", ")))
   expect_true(all(c("material", "material_class", "material_type", "sn",
                     "assessment_flag", "assessment_issue_count",
                     "assessment_checks", "assessment_issues",

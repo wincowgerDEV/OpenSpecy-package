@@ -970,7 +970,16 @@ os_similarity.OpenSpecy <- function(x, y, method = "hamming", na.rm = T, ...) {
       spec <- t(spec)
       vapply(seq_len(ncol(spec)), function(i) {
         x <- spec[, i]
-      values <- make_rel(table(round(x,1)))
+      values <- table(round(x, 1))
+      if (length(values) && diff(range(values)) == 0) {
+        # Equal occupied-bin counts represent equal support. This was
+        # historically produced by replacing make_rel() NaNs with one; keep
+        # the similarity contract explicit now that flat normalization is
+        # finite.
+        values[] <- 1
+      } else {
+        values <- make_rel(values)
+      }
       sequence <- seq(0, 1, by = 0.1)
       empty <- numeric(length = length(sequence))
       empty[match(names(values), seq(0, 1, by = 0.1))] <- values

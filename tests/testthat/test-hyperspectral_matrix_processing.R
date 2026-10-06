@@ -12,7 +12,11 @@ test_that("make_rel() normalizes matrix spectra by column", {
 
   os <- as_OpenSpecy(1:3, spectra = as.data.frame(mat))
   expect_equal(make_rel(os)$spectra, expected)
-  expect_equal(dim(make_rel(matrix(42, nrow = 1, ncol = 1))), c(1L, 1L))
+  flat <- cbind(constant = rep(42, 5),
+                constant_with_na = c(7, NA_real_, 7, 7, 7))
+  expected_flat <- cbind(constant = rep(0, 5),
+                         constant_with_na = c(0, NA_real_, 0, 0, 0))
+  expect_equal(make_rel(flat, na.rm = TRUE), expected_flat)
 })
 
 test_that("Savitzky-Golay smoothing uses the same numerical filter for matrices", {

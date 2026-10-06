@@ -1,3 +1,13 @@
+# OpenSpecy 2.0.3
+
+- Fixed cross-platform checks for the 2.0 release: relative normalization now
+  returns zeros for finite constant spectra instead of `NaN`, keeping default
+  `build_lib()` outputs valid when alternate BLAS implementations produce an
+  exact polynomial-baseline fit; ENVI companion-image paths are canonicalized
+  before being stored; and OPUS fixture tests accept harmless parser warnings
+  while retaining strict object, dimension, range, and metadata assertions.
+  Hamming similarity retains its established equal-frequency-bin behavior.
+
 # OpenSpecy 2.0.2
 
 - Marked the Hilbert compression and temperature/emissivity APIs as

@@ -10,7 +10,8 @@
 #' @details
 #' \code{make_rel()} is used to retain the relative height proportions between
 #' spectra while avoiding the large numbers that can result from some spectral
-#' instruments.
+#' instruments. A finite constant spectrum has no relative contrast and is
+#' therefore returned as zero rather than producing non-finite values.
 #'
 #' @param x a numeric vector or an \R OpenSpecy object
 #' @param na.rm logical. Should missing values be removed?
@@ -45,7 +46,10 @@ make_rel <- function(x, ...) {
 make_rel.default <- function(x, na.rm = FALSE, ...) {
   r <- range(x, na.rm = na.rm)
 
-  return((x - r[1]) / (r[2] - r[1]))
+  span <- r[2L] - r[1L]
+  if (is.finite(span) && span == 0) return(x - r[1L])
+
+  return((x - r[1L]) / span)
 }
 
 #' @rdname make_rel
@@ -58,8 +62,13 @@ make_rel.matrix <- function(x, na.rm = FALSE, ...) {
   # apply() calls for hyperspectral matrices.
   mins <- matrixStats::colMins(x, na.rm = na.rm)
   maxs <- matrixStats::colMaxs(x, na.rm = na.rm)
+  spans <- maxs - mins
+  # A zero span is a valid flat spectrum. Dividing by one keeps its finite
+  # values at zero while preserving any NA positions.
+  flat <- is.finite(spans) & spans == 0
+  spans[flat] <- 1
   out <- x - rep(mins, each = nrow(x))
-  out <- out / rep(maxs - mins, each = nrow(x))
+  out <- out / rep(spans, each = nrow(x))
   colnames(out) <- colnames(x)
   rownames(out) <- rownames(x)
   out

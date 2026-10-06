@@ -10,6 +10,12 @@ test_that("make_rel() gives correct output", {
                c(1.0000, 0.3799, 0.0000, 0.3211, 0.2776))
 })
 
+test_that("make_rel() keeps finite constant spectra finite", {
+  expect_identical(make_rel(rep(4, 3)), rep(0, 3))
+  expect_equal(make_rel(c(4, NA_real_, 4), na.rm = TRUE),
+               c(0, NA_real_, 0))
+})
+
 test_that("make_rel() gives correct output with OpenSpecy objects", {
   data("raman_hdpe")
   rel <- make_rel(raman_hdpe) |> expect_silent()

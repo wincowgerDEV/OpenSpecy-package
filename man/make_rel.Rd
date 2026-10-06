@@ -36,7 +36,8 @@ computation proceeds.
 \details{
 \code{make_rel()} is used to retain the relative height proportions between
 spectra while avoiding the large numbers that can result from some spectral
-instruments.
+instruments. A finite constant spectrum has no relative contrast and is
+therefore returned as zero rather than producing non-finite values.
 }
 \examples{
 make_rel(c(-1000, -1, 0, 1, 10))
