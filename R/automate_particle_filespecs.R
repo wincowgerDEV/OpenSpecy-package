@@ -9,7 +9,9 @@ automate_particle_analysis.FileSpecs <- function(
     spectral_smooth = FALSE, sigma1 = c(1, 1, 1),
     sigma2 = c(3, 3), close = FALSE,
     close_kernel = c(4, 4), sn_threshold_min = 0.04,
-    sn_threshold_max = Inf, cor_threshold = 0.7, area_threshold = 1,
+    sn_threshold_max = Inf,
+    sn_range = list(min = c(750, 2420), max = c(2200, 4000)),
+    cor_threshold = 0.7, area_threshold = 1,
     label_unknown = FALSE, remove_materials = NULL, remove_unknown = FALSE,
     pixel_length = 25, metric = "sig_times_noise", abs = FALSE,
     collapse_function = stats::median,
@@ -19,6 +21,7 @@ automate_particle_analysis.FileSpecs <- function(
   .reject_removed_particle_args(list(...))
   file_processing <- match.arg(file_processing)
   .validate_particle_sn_thresholds(sn_threshold_min, sn_threshold_max)
+  sn_range <- .validate_particle_sn_range(sn_range)
   .filespec_validate_object(x)
   .filespec_validate_source(x, strong = FALSE)
   if (identical(file_processing, "memory")) {
@@ -64,6 +67,7 @@ automate_particle_analysis.FileSpecs <- function(
       spectral_smooth = spectral_smooth, sigma1 = sigma1, sigma2 = sigma2,
       close = close, close_kernel = close_kernel,
       sn_threshold_min = sn_threshold_min, sn_threshold_max = sn_threshold_max,
+      sn_range = sn_range,
       cor_threshold = cor_threshold, area_threshold = area_threshold,
       label_unknown = label_unknown, remove_materials = remove_materials,
       remove_unknown = remove_unknown, pixel_length = pixel_length,
@@ -121,7 +125,8 @@ automate_particle_analysis.FileSpecs <- function(
       close_kernel = close_kernel,
       particle_id_strategy = strategy,
       sn_threshold_min = sn_threshold_min,
-      sn_threshold_max = sn_threshold_max, cor_threshold = cor_threshold,
+      sn_threshold_max = sn_threshold_max, sn_range = sn_range,
+      cor_threshold = cor_threshold,
       area_threshold = area_threshold, label_unknown = label_unknown,
       remove_materials = remove_materials, remove_unknown = remove_unknown,
       pixel_length = pixel_length, metric = metric, abs = abs,
@@ -177,7 +182,7 @@ automate_particle_analysis.FileSpecs <- function(
     x, library, sample_name, output_name, output_dir, image, bottom_left, top_right,
     origin, material_col, library_id_col, spectral_smooth, sigma1, sigma2,
     close, close_kernel, particle_id_strategy, sn_threshold_min,
-    sn_threshold_max, cor_threshold, area_threshold, label_unknown,
+    sn_threshold_max, sn_range, cor_threshold, area_threshold, label_unknown,
     remove_materials, remove_unknown, pixel_length, metric, abs, outputs,
     process_args,
     chunk_size = getOption("OpenSpecy.filespec.chunk_size", 8192L)) {
@@ -196,10 +201,7 @@ automate_particle_analysis.FileSpecs <- function(
     }
   }
   source_axis <- .filespec_axis(x)
-  bands <- which(
-    (source_axis >= 750 & source_axis <= 2200) |
-      (source_axis >= 2420 & source_axis <= 4000)
-  )
+  bands <- .particle_sn_bands(source_axis, sn_range)
   if (!length(bands)) {
     stop("the FileSpecs axis does not overlap the particle S/N ranges",
          call. = FALSE)
@@ -211,7 +213,7 @@ automate_particle_analysis.FileSpecs <- function(
     spectral_smooth = isTRUE(spectral_smooth), sigma1 = sigma1,
     sigma2 = sigma2, close = close,
     close_kernel = close_kernel, sn_min = sn_threshold_min,
-    sn_max = sn_threshold_max, area = area_threshold,
+    sn_max = sn_threshold_max, sn_range = sn_range, area = area_threshold,
     image = .filespec_image_identity(image, bottom_left, top_right),
     library = if (identical(particle_id_strategy, "all_cell_id")) {
       digest::digest(library, algo = "sha256")

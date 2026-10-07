@@ -249,6 +249,43 @@ test_that("automate_particle_analysis() rejects removed legacy arguments", {
   )
 })
 
+test_that("particle S/N ranges are explicit, validated, and applied", {
+  range <- list(min = c(800, 2420), max = c(2200, 3200))
+  expect_identical(OpenSpecy:::.validate_particle_sn_range(range), range)
+  expect_identical(
+    OpenSpecy:::.particle_sn_bands(
+      c(700, 800, 2200, 2300, 2420, 3200, 3300), range
+    ),
+    c(2L, 3L, 5L, 6L)
+  )
+  expect_error(
+    OpenSpecy:::.validate_particle_sn_range(list(min = 800, max = c(700, 900))),
+    "sn_range"
+  )
+
+  map <- as_OpenSpecy(
+    c(800, 900, 1000, 1100),
+    spectra = cbind(a = 1:4, b = 4:1),
+    metadata = data.frame(x = 0:1, y = 0)
+  )
+  observed_axis <- NULL
+  local_mocked_bindings(
+    sig_noise = function(x, ...) {
+      observed_axis <<- x$wavenumber
+      rep(0, ncol(x$spectra))
+    },
+    .package = "OpenSpecy"
+  )
+  expect_message(
+    automate_particle_analysis(
+      map, map, sn_threshold_min = 0.01,
+      sn_range = list(min = 900, max = 1000), outputs = "details"
+    ),
+    "removed every map pixel"
+  )
+  expect_identical(observed_axis, c(900, 1000))
+})
+
 test_that("automate_particle_analysis() smooths in-memory maps when requested", {
   coords <- expand.grid(x = 0:2, y = 0:2)
   spectra <- matrix(0, nrow = 5, ncol = nrow(coords),

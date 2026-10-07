@@ -26,6 +26,7 @@ automate_particle_analysis(
   close_kernel = c(4, 4),
   sn_threshold_min = 0.04,
   sn_threshold_max = Inf,
+  sn_range = list(min = c(750, 2420), max = c(2200, 4000)),
   cor_threshold = 0.7,
   area_threshold = 1,
   label_unknown = FALSE,
@@ -62,6 +63,7 @@ automate_particle_analysis(
   close_kernel = c(4, 4),
   sn_threshold_min = 0.04,
   sn_threshold_max = Inf,
+  sn_range = list(min = c(750, 2420), max = c(2200, 4000)),
   cor_threshold = 0.7,
   area_threshold = 1,
   label_unknown = FALSE,
@@ -98,6 +100,7 @@ automate_particle_analysis(
   close_kernel = c(4, 4),
   sn_threshold_min = 0.04,
   sn_threshold_max = Inf,
+  sn_range = list(min = c(750, 2420), max = c(2200, 4000)),
   cor_threshold = 0.7,
   area_threshold = 1,
   label_unknown = FALSE,
@@ -153,6 +156,12 @@ coercion.}
 \item{close, close_kernel}{passed to \code{\link{def_features}()}.}
 
 \item{sn_threshold_min, sn_threshold_max}{signal/noise thresholds.}
+
+\item{sn_range}{named list with numeric \code{min} and \code{max} vectors defining the
+wavenumber windows in cm^-1 used to calculate signal/noise. Each \code{min}
+pairs with the corresponding \code{max}. Broader windows include more of the
+spectrum and can change which pixels pass \code{sn_threshold_min}; windows that
+do not overlap the input axis stop the analysis.}
 
 \item{cor_threshold}{minimum match value for confident particle labels.}
 

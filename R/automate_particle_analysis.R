@@ -38,6 +38,11 @@
 #' @param sigma2 shape kernel passed to \code{\link{def_features}()}.
 #' @param close,close_kernel passed to \code{\link{def_features}()}.
 #' @param sn_threshold_min,sn_threshold_max signal/noise thresholds.
+#' @param sn_range named list with numeric `min` and `max` vectors defining the
+#'   wavenumber windows in cm^-1 used to calculate signal/noise. Each `min`
+#'   pairs with the corresponding `max`. Broader windows include more of the
+#'   spectrum and can change which pixels pass `sn_threshold_min`; windows that
+#'   do not overlap the input axis stop the analysis.
 #' @param cor_threshold minimum match value for confident particle labels.
 #' @param area_threshold minimum feature area in pixels (inclusive).
 #' @param label_unknown logical; label low-correlation matches as `"unknown"`.
@@ -103,7 +108,9 @@ automate_particle_analysis <- function(
     spectral_smooth = FALSE, sigma1 = c(1, 1, 1),
     sigma2 = c(3, 3), close = FALSE,
     close_kernel = c(4, 4), sn_threshold_min = 0.04,
-    sn_threshold_max = Inf, cor_threshold = 0.7, area_threshold = 1,
+    sn_threshold_max = Inf,
+    sn_range = list(min = c(750, 2420), max = c(2200, 4000)),
+    cor_threshold = 0.7, area_threshold = 1,
     label_unknown = FALSE, remove_materials = NULL, remove_unknown = FALSE,
     pixel_length = 25, metric = "sig_times_noise", abs = FALSE,
     collapse_function = stats::median,
@@ -124,7 +131,9 @@ automate_particle_analysis.default <- function(
     spectral_smooth = FALSE, sigma1 = c(1, 1, 1),
     sigma2 = c(3, 3), close = FALSE,
     close_kernel = c(4, 4), sn_threshold_min = 0.04,
-    sn_threshold_max = Inf, cor_threshold = 0.7, area_threshold = 1,
+    sn_threshold_max = Inf,
+    sn_range = list(min = c(750, 2420), max = c(2200, 4000)),
+    cor_threshold = 0.7, area_threshold = 1,
     label_unknown = FALSE, remove_materials = NULL, remove_unknown = FALSE,
     pixel_length = 25, metric = "sig_times_noise", abs = FALSE,
     collapse_function = stats::median,
@@ -135,6 +144,7 @@ automate_particle_analysis.default <- function(
   .reject_removed_particle_args(list(...))
   file_processing <- match.arg(file_processing)
   .validate_particle_sn_thresholds(sn_threshold_min, sn_threshold_max)
+  sn_range <- .validate_particle_sn_range(sn_range)
   particle_id_strategy <- .normalize_particle_strategy(particle_id_strategy)
   outputs <- .normalize_particle_outputs(outputs)
   samples <- .normalize_particle_samples(x)
@@ -178,7 +188,8 @@ automate_particle_analysis.default <- function(
         spectral_smooth = spectral_smooth, sigma1 = sigma1,
         sigma2 = sigma2, close = close, close_kernel = close_kernel,
         sn_threshold_min = sn_threshold_min,
-        sn_threshold_max = sn_threshold_max, cor_threshold = cor_threshold,
+        sn_threshold_max = sn_threshold_max, sn_range = sn_range,
+        cor_threshold = cor_threshold,
         area_threshold = area_threshold, label_unknown = label_unknown,
         remove_materials = remove_materials,
         remove_unknown = remove_unknown, pixel_length = pixel_length,
@@ -212,7 +223,7 @@ automate_particle_analysis.default <- function(
     origin <- .particle_origin(origins, i)
     .particle_progress(sample_name, "signal/noise")
     snr <- sig_noise(
-      restrict_range(map, min = c(750, 2420), max = c(2200, 4000),
+      restrict_range(map, min = sn_range$min, max = sn_range$max,
                      make_rel = FALSE),
       metric = metric,
       spatial_smooth = FALSE,
@@ -433,6 +444,30 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
          call. = FALSE)
   }
   invisible(TRUE)
+}
+
+.validate_particle_sn_range <- function(x) {
+  valid <- is.list(x) && all(c("min", "max") %in% names(x)) &&
+    is.numeric(x$min) && is.numeric(x$max) && length(x$min) > 0L &&
+    length(x$min) == length(x$max) && !anyNA(x$min) && !anyNA(x$max) &&
+    all(is.finite(x$min)) && all(is.finite(x$max)) && all(x$min < x$max)
+  if (!valid) {
+    stop(
+      "'sn_range' must be a named list with finite numeric 'min' and 'max' ",
+      "vectors of equal positive length, with every min below its paired max",
+      call. = FALSE
+    )
+  }
+  list(min = as.numeric(x$min), max = as.numeric(x$max))
+}
+
+.particle_sn_bands <- function(axis, sn_range) {
+  sn_range <- .validate_particle_sn_range(sn_range)
+  keep <- rep(FALSE, length(axis))
+  for (i in seq_along(sn_range$min)) {
+    keep <- keep | (axis >= sn_range$min[[i]] & axis <= sn_range$max[[i]])
+  }
+  which(keep)
 }
 
 .particle_threshold_state_message <- function(threshold, sample_name,

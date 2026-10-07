@@ -1,5 +1,9 @@
 # OpenSpecy 2.0.3
 
+- `automate_particle_analysis()` now accepts an explicit `sn_range` list of
+  wavenumber windows used for signal/noise calculation. Its default preserves
+  the current 750--2200 and 2420--4000 cm^-1 behavior, while published or
+  instrument-specific workflows can reproduce their original S/N bands.
 - Fixed cross-platform checks for the 2.0 release: relative normalization now
   returns zeros for finite constant spectra instead of `NaN`, keeping default
   `build_lib()` outputs valid when alternate BLAS implementations produce an
