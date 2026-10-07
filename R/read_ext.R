@@ -41,6 +41,9 @@
 #' @details
 #' \code{read_spc()} and \code{read_jdx()} are wrappers around the
 #' functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}.
+#' SPC layout handling, including explicitly stored X values, is delegated to
+#' \code{\link[hyperSpec]{read.spc}()} before conversion to an
+#' \code{OpenSpecy} object.
 #' Other functions have been adapted various online sources.
 #' Metadata is harvested if possible.
 #' There are many unique iterations of spectral file formats so there may be
@@ -301,33 +304,13 @@ read_spc <- function(file,
                        other_info = NULL,
                        license = "CC BY-NC"),
                      ...) {
-    
-    con <- file(file, "rb")
-    on.exit(close(con))
-    raw_data <- readBin(con, what = "raw", n = 544)
-    fexp = readBin(raw_data[4], "integer", 1, 1, signed = TRUE)
-    
-    if(fexp == -128){
-        fnpts = readBin(raw_data[5:8], "integer", 1, 4)
-        ffirst = readBin(raw_data[9:16], "double", 1, 8)
-        flast = readBin(raw_data[17:24], "double", 1, 8)
+  spc <- read.spc(file)
 
-        os <- as_OpenSpecy(seq(from = ffirst, to = flast, length.out = fnpts), 
-                           data.table(intensity = readBin(con, what = "numeric", n = fnpts, size = 4, endian = "little")),
-                           metadata = metadata,
-                           session_id = T) 
-    }
-    else{
-        spc <- read.spc(file)
-        
-        x <- spc@wavelength
-        y <- as.numeric(unname(spc@data$spc[1,]))
-        
-        os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
-                           session_id = T)      
-    }
-    
-  
+  x <- spc@wavelength
+  y <- as.numeric(unname(spc@data$spc[1, ]))
+
+  os <- as_OpenSpecy(x, data.table(intensity = y), metadata = metadata,
+                     session_id = T)
 
   return(os)
 }

@@ -162,6 +162,9 @@ supported but will likely still work in most cases.
 \details{
 \code{read_spc()} and \code{read_jdx()} are wrappers around the
 functions provided by the \link[hyperSpec:hyperSpec-package]{hyperSpec}.
+SPC layout handling, including explicitly stored X values, is delegated to
+\code{\link[hyperSpec]{read.spc}()} before conversion to an
+\code{OpenSpecy} object.
 Other functions have been adapted various online sources.
 Metadata is harvested if possible.
 There are many unique iterations of spectral file formats so there may be

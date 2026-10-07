@@ -131,6 +131,7 @@ as well. Each library folder includes exact library/input/source/configuration
 manifests, per-map outputs, runtime and warning records, and restartable
 checkpoints. SHA-256 verification and frozen workflow hashes guard reuse.
 
-The only validation taxonomy crosswalk is directional: raw `polyethylene`
-matches are scored as `poly(ethylene)` for compatibility with the published
-truth regex. Raw labels remain present in all particle traces.
+The only validation taxonomy crosswalk is directional: raw `polyethylene` and
+model label `ftir_polyethylene` are scored as their parenthesized equivalents
+for compatibility with the published truth regex. Raw labels remain present in
+all particle traces.

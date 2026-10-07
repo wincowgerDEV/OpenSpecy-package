@@ -1,5 +1,9 @@
 # OpenSpecy 2.0.3
 
+- Fixed `read_spc()` for SPC files with explicitly stored X coordinates. These
+  files now preserve their nonlinear wavenumber axis and read the actual
+  intensity block instead of displaying the X coordinates as a straight-line
+  spectrum.
 - `automate_particle_analysis()` now accepts an explicit `sn_range` list of
   wavenumber windows used for signal/noise calculation. Its default preserves
   the current 750--2200 and 2420--4000 cm^-1 behavior, while published or

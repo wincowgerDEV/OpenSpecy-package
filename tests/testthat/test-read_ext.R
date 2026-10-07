@@ -4,6 +4,39 @@ dir.create(tmp, showWarnings = F)
 
 data("raman_hdpe")
 
+.write_test_spc <- function(path, x, y, explicit_x = TRUE) {
+  stopifnot(length(x) == length(y), length(x) > 1L)
+
+  int32 <- function(value) {
+    writeBin(as.integer(value), raw(), size = 4L, endian = "little")
+  }
+  float64 <- function(value) {
+    writeBin(as.double(value), raw(), size = 8L, endian = "little")
+  }
+
+  header <- raw(512L)
+  header[1L] <- as.raw(if (explicit_x) 128L else 0L) # TXVALS
+  header[2L] <- as.raw(75L) # new SPC format, little-endian
+  header[4L] <- as.raw(128L) # IEEE float32 intensities
+  header[5:8] <- int32(length(x))
+  header[9:16] <- float64(x[[1L]])
+  header[17:24] <- float64(x[[length(x)]])
+  header[25:28] <- int32(1L)
+  header[29L] <- as.raw(13L) # Raman shift
+  header[30L] <- as.raw(4L) # counts
+
+  con <- file(path, "wb")
+  on.exit(close(con), add = TRUE)
+  writeBin(header, con)
+  if (explicit_x) {
+    writeBin(as.double(x), con, size = 4L, endian = "little")
+  }
+  writeBin(raw(32L), con)
+  writeBin(as.double(y), con, size = 4L, endian = "little")
+
+  invisible(path)
+}
+
 test_that("extdata files are present", {
   ed <- read_extdata()
   expect_true(any(grepl("\\.asp$", ed)))
@@ -124,6 +157,49 @@ test_that("read_spc() gives expected output", {
     expect_equal(c(117.8, 1050.0))
   range(spc$spectra) |> round(2) |>
     expect_equal(c(0.08, 585.51))
+})
+
+test_that("read_spc() preserves explicitly stored X values", {
+  path <- file.path(tmp, "explicit-x-float.spc")
+  x <- c(-8, -3, 0, 4, 11, 25)
+  y <- c(0, 2, 17, 3, 4096, 7)
+  .write_test_spc(path, x, y)
+
+  spc <- read_spc(
+    path,
+    metadata = list(
+      file_name = "explicit-x-float.spc",
+      spectrum_identity = "synthetic explicit-X fixture"
+    )
+  )
+
+  expect_s3_class(spc, "OpenSpecy")
+  expect_true(check_OpenSpecy(spc))
+  expect_identical(names(spc), c("wavenumber", "spectra", "metadata"))
+  expect_equal(spc$wavenumber, x)
+  expect_equal(as.numeric(spc$spectra[, "intensity"]), y)
+  expect_false(isTRUE(all.equal(x, seq(x[[1L]], x[[length(x)]],
+                                      length.out = length(x)))))
+  expect_equal(spc$metadata$file_name, "explicit-x-float.spc")
+  expect_equal(spc$metadata$spectrum_identity,
+               "synthetic explicit-X fixture")
+
+  dispatched <- read_any(path)
+  expect_equal(dispatched$wavenumber, x)
+  expect_equal(as.numeric(dispatched$spectra[, "intensity"]), y)
+})
+
+test_that("read_spc() preserves implicit-X floating-point spectra", {
+  path <- file.path(tmp, "implicit-x-float.spc")
+  x <- seq(400, 800, length.out = 6L)
+  y <- c(1, 4, 9, 16, 25, 36)
+  .write_test_spc(path, x, y, explicit_x = FALSE)
+
+  spc <- read_spc(path)
+
+  expect_true(check_OpenSpecy(spc))
+  expect_equal(spc$wavenumber, x)
+  expect_equal(as.numeric(spc$spectra[, "intensity"]), y)
 })
 
 # Tidy up

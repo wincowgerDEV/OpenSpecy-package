@@ -242,9 +242,10 @@ truth_table <- function(cli) {
 canonical_material <- function(x) {
   x <- as.character(x)
   # Directional validation-only crosswalk. Raw library labels remain in every
-  # particle detail file. This one mapping makes the current explicit class
-  # spelling comparable with the published truth regular expression.
+  # particle detail file. These two representation-specific spellings denote
+  # the same class and are made comparable with the published truth regex.
   x[x == "polyethylene"] <- "poly(ethylene)"
+  x[x == "ftir_polyethylene"] <- "ftir_poly(ethylene)"
   x
 }
 
@@ -1429,8 +1430,9 @@ write_report <- function(cli, summary, paired_summary, direct_summary,
       "It evaluates these positive controls only; it does not estimate ",
       "population prevalence or replace validation on unseen environmental ",
       "matrices. The class crosswalk is directional and validation-only: ",
-      "`polyethylene` is scored as `poly(ethylene)` to match the published ",
-      "truth regex, while raw library labels remain in the trace files."
+      "`polyethylene` and model label `ftir_polyethylene` are scored as their ",
+      "parenthesized equivalents to match the published truth regex, while ",
+      "raw labels remain in the trace files."
     )
   )
   write_lines(report, file.path(directory, "positive_control_library_report.md"))
