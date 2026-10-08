@@ -51,7 +51,7 @@ preprocessing_controls <- tagList(
                 min = 4, max = 16, value = 6),
     note = c(
       "Creates a regular shared wavenumber axis at the selected resolution.",
-      "Mean Up only resamples the uploaded spectra up to the selected resolution when that resolution is finer than what was actually uploaded. Otherwise it leaves the uploaded axis untouched and conforms the reference library onto it instead: occupied bins are averaged and empty finer-axis positions are interpolated. This avoids discarding real uploaded resolution and keeps memory bounded, since only the (smaller) library expands.",
+      "Mean Up only resamples the uploaded spectra up to the selected resolution when that resolution is finer than what was actually uploaded. Otherwise it leaves the canonical uploaded axis untouched. For spectral-library identification, temporary query and typed-partition reference copies are cropped to their shared support envelope before the reference is conformed, missing values inside that envelope are mean-filled, and Pearson correlation is calculated; groups with fewer than three shared points are skipped.",
       "Linear Interpolation and Nearest always resample the uploaded spectra to the selected resolution."
     )
   ),
@@ -228,7 +228,17 @@ identification_controls <- tagList(
     footer = do.call(
       footnote,
       c(list("Identification options"),
-        as.list(app_guidance_text("identification_strategy")))
+        as.list(app_guidance_text("identification_strategy")),
+        list(paste(
+          "Real-library matching evaluates applicable FTIR, Raman, and NIR",
+          "support envelopes independently. Temporary query and reference",
+          "copies are cropped to shared support before reference conformation,",
+          "missing-value mean filling, and Pearson correlation; groups with",
+          "fewer than three shared points are skipped. The selected match crops",
+          "all visible spectrum traces to that same correlation interval. The",
+          "committed processed data and downloads remain unchanged by this",
+          "identification and display cropping."
+        )))
     ),
     pickerInput(
       "id_spec_type", "Spectrum Type",
@@ -421,9 +431,10 @@ advanced_controls <- tagList(
       value = 7, step = 1
     ),
     note = paste(
-      "Marks the highest derivative-zero maxima on the active processed",
-      "spectrum. Rank, wavenumber, and intensity remain available on hover;",
-      "changing the count is live and does not require Run."
+      "Marks the highest derivative-zero maxima on the final displayed active",
+      "trace, after any identification-range crop and display normalization.",
+      "Rank, wavenumber, and intensity remain available on hover; changing",
+      "the count is live and does not require Run."
     )
   ),
   app_control_box(

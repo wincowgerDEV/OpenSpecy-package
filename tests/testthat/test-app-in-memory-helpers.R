@@ -140,7 +140,10 @@ test_that("file-backed matching retains only one winner per eligible spectrum", 
   eligible <- rep(FALSE, specs_source_count(source))
   eligible[seq_len(11L)] <- TRUE
   library <- decompress_spec(source, index = c(1L, 6L, 11L))
-  prepared <- env$app_prepare_correlation_reference(library)
+  eager_query <- decompress_spec(source, index = which(eligible))
+  prepared <- env$app_prepare_correlation_reference(
+    library, eager_query, preserve_axis = TRUE
+  )
   progress <- list()
 
   streamed <- env$app_stream_filespec_best_matches(
@@ -151,7 +154,6 @@ test_that("file-backed matching retains only one winner per eligible spectrum", 
     },
     progress = function(...) progress[[length(progress) + 1L]] <<- list(...)
   )
-  eager_query <- decompress_spec(source, index = which(eligible))
   eager <- OpenSpecy:::.match_spec_blockwise(
     eager_query, library, top_n = 1L, block_size = 20L,
     conform = FALSE, type = "roll"
@@ -172,7 +174,9 @@ test_that("file-backed matching retains only one winner per eligible spectrum", 
   smooth_library <- filter_spec(
     smooth_query, logic = seq_len(ncol(smooth_query$spectra)) %in% c(1L, 6L, 11L)
   )
-  smooth_prepared <- env$app_prepare_correlation_reference(smooth_library)
+  smooth_prepared <- env$app_prepare_correlation_reference(
+    smooth_library, smooth_query, preserve_axis = TRUE
+  )
   smooth_streamed <- env$app_stream_filespec_best_matches(
     source, eligible = eligible, chunk_size = 3L, process = identity,
     identify = function(query) env$app_match_prepared_best(
@@ -208,19 +212,28 @@ test_that("Cluster Buster builds processed backgrounds and bounded decisions", {
   expect_true(attr(background, "preserve_uploaded_axis", exact = TRUE))
 
   reference <- filter_spec(processed, logic = c(TRUE, FALSE))
-  appended <- env$app_append_cluster_buster_background(reference, background)
-  expect_identical(colnames(appended$spectra), c("pixel-1", "background"))
-  expect_identical(appended$metadata$col_id, colnames(appended$spectra))
+  prepared <- env$app_prepare_cluster_buster_reference(
+    reference, background, processed, preserve_axis = TRUE
+  )
+  expect_length(prepared$groups, 2L)
+  expect_identical(prepared$library_id, c("pixel-1", "background"))
   expect_error(
-    env$app_append_cluster_buster_background(appended, background),
-    "already contains"
+    env$app_prepare_cluster_buster_reference(
+      background, background, processed, preserve_axis = TRUE
+    ),
+    "reserves"
   )
 
-  bounded <- env$app_match_bounded_best(
-    processed, appended, block_size = 1L
+  bounded <- env$app_match_bounded_prepared_best(
+    processed, prepared, block_size = 1L
+  )
+  combined <- as_OpenSpecy(
+    processed$wavenumber,
+    spectra = cbind(reference$spectra, background$spectra),
+    metadata = data.frame(col_id = c("pixel-1", "background"))
   )
   eager <- OpenSpecy:::.match_spec_blockwise(
-    processed, appended, top_n = 1L, block_size = 20L,
+    processed, combined, top_n = 1L, block_size = 20L,
     conform = FALSE, type = "roll"
   )
   expect_equal(bounded, eager, ignore_attr = TRUE, tolerance = 1e-12)
@@ -360,6 +373,9 @@ test_that("collapsed units reuse real member-pixel correlations", {
     library_id = c("a", "b", "c", "a", "b", "c"),
     match_val = c(0.9, 0.8, 0.1, 0.7, 0.6, 0.85)
   )
+  attr(matches, env$app_correlation_ranges_attribute) <- data.table::data.table(
+    library_id = c("a", "b", "c"), minimum = 800, maximum = 3200
+  )
   mapping <- data.table::data.table(
     pixel_id = c("p1", "p2"), unit_id = c("u1", "u1"),
     pixel_index = 1:2, kept = TRUE
@@ -375,6 +391,7 @@ test_that("collapsed units reuse real member-pixel correlations", {
   expect_equal(projected$match_val, c(0.9, 0.85))
   expect_identical(projected$source_pixel_id, c("p1", "p2"))
   expect_false(any(projected$match_val == mean(c(0.9, 0.7))))
+  expect_equal(env$app_match_correlation_range(projected, "a"), c(800, 3200))
 
   grouped <- env$app_aggregate_unit_matches(
     matches, mapping, unit_ids = "u1", library_ids = c("a", "b", "c"),
@@ -394,21 +411,455 @@ test_that("collapsed units reuse real member-pixel correlations", {
   expect_equal(nrow(split_projected), 4L)
 })
 
-test_that("uploaded-axis identification conforms only the reference", {
+test_that("shared-range matching crops extended tails and skips disjoint types", {
   env <- .source_in_memory_app_helpers()
-  reference <- as_OpenSpecy(
-    1:9, spectra = cbind(ref = 1:9),
-    metadata = data.frame(label = "ref")
+  query_axis <- 0:10
+  query_signal <- c(100, -80, 60, 1, 4, 2, 5, 3, -70, 90, -100)
+  query <- as_OpenSpecy(
+    query_axis,
+    spectra = matrix(query_signal, ncol = 1L,
+                     dimnames = list(NULL, "query")),
+    metadata = data.frame(col_id = "query")
   )
+
+  reference_axis <- 0:20
+  reference_values <- matrix(
+    NA_real_, nrow = length(reference_axis), ncol = 3L,
+    dimnames = list(NULL, c("raman-perfect", "raman-other", "nir-only"))
+  )
+  reference_values[reference_axis %in% 3:7, "raman-perfect"] <-
+    query_signal[query_axis %in% 3:7]
+  reference_values[reference_axis %in% 3:7, "raman-other"] <-
+    c(4, 1, 5, 2, 0)
+  reference_values[reference_axis %in% 15:19, "nir-only"] <- 1:5
+  reference <- as_OpenSpecy(
+    reference_axis, spectra = reference_values,
+    metadata = data.frame(
+      col_id = colnames(reference_values),
+      spectrum_type = c("raman", "raman", "nir"),
+      organization = c("A", "A", "B")
+    )
+  )
+
+  groups <- env$app_correlation_input_groups(
+    reference, query, preserve_axis = TRUE
+  )
+  expect_length(groups, 1L)
+  expect_identical(groups[[1L]]$query$wavenumber, 3:7)
+  expect_identical(
+    groups[[1L]]$query$wavenumber,
+    groups[[1L]]$reference$wavenumber
+  )
+  expect_identical(
+    colnames(groups[[1L]]$reference$spectra),
+    c("raman-perfect", "raman-other")
+  )
+  expect_identical(query$wavenumber, query_axis)
+
+  matches <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 2L, batch_size = 1L,
+    preserve_axis = TRUE
+  )
+  expect_identical(matches$library_id,
+                   c("raman-perfect", "raman-other"))
+  expect_equal(matches$match_val[[1L]], 1, tolerance = 1e-12)
+  expect_false("nir-only" %in% matches$library_id)
+})
+
+test_that("shared-range matching mean-fills NAs inside a typed envelope", {
+  env <- .source_in_memory_app_helpers()
+  axis <- 0:10
+  query_values <- c(100, -80, 60, 1, 4, 2, 5, 3, -70, 90, -100)
+  query <- as_OpenSpecy(
+    axis,
+    spectra = matrix(query_values, ncol = 1L,
+                     dimnames = list(NULL, "query"))
+  )
+  reference_values <- cbind(
+    narrow = c(NA, NA, NA, 1, 4, 2, 5, 3, NA, NA, NA),
+    wide = seq_along(axis)
+  )
+  reference <- as_OpenSpecy(
+    axis, spectra = reference_values,
+    metadata = data.frame(
+      col_id = colnames(reference_values), spectrum_type = "raman",
+      organization = c("A", "B")
+    )
+  )
+
+  groups <- env$app_correlation_input_groups(reference, query)
+  expect_length(groups, 1L)
+  expect_identical(groups[[1L]]$reference$wavenumber, axis)
+  expect_true(all(is.na(groups[[1L]]$reference$spectra[
+    c(1:3, 9:11), "narrow"
+  ])))
+
+  all_matches <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 2L, batch_size = 1L
+  )
+  expect_setequal(all_matches$library_id, c("narrow", "wide"))
+  expect_lt(all_matches[library_id == "narrow", match_val], 1)
+
+  dense <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 1L, batch_size = 1L
+  )
+  prepared <- env$app_prepare_correlation_reference(reference, query)
+  streamed <- env$app_match_prepared_best(
+    query, prepared, library_block_size = 1L
+  )
+  expect_equal(streamed, dense, ignore_attr = TRUE, tolerance = 1e-12)
+
+  # Legacy Full-library artifacts store spectra as data.table rather than a
+  # matrix. The same typed grouping and result must work without NSE column
+  # lookup or matrix-style subsetting errors.
+  legacy <- reference
+  legacy$spectra <- data.table::as.data.table(reference$spectra)
+  legacy_groups <- env$app_correlation_input_groups(legacy, query)
+  expect_length(legacy_groups, 1L)
+  expect_identical(legacy_groups[[1L]]$reference$wavenumber, axis)
+  expect_equal(
+    env$app_match_spec_shared_ranges(
+      query, legacy, top_n = 1L, batch_size = 1L
+    ),
+    dense, ignore_attr = TRUE, tolerance = 1e-12
+  )
+})
+
+test_that("shared-range matching filters sparse sources before conformation", {
+  env <- .source_in_memory_app_helpers()
+  query <- as_OpenSpecy(
+    seq(0, 4, by = 0.5),
+    spectra = matrix(c(1, 2, 4, 3, 5, 2, 6, 4, 7), ncol = 1L,
+                     dimnames = list(NULL, "query"))
+  )
+  reference_values <- cbind(
+    sparse = c(1, NA, 3),
+    valid = c(1, 4, 2)
+  )
+  reference <- as_OpenSpecy(
+    c(0, 2, 4), spectra = reference_values,
+    metadata = data.frame(
+      col_id = colnames(reference_values), spectrum_type = "raman",
+      organization = c("A", "B")
+    )
+  )
+
+  for(preserve_axis in c(TRUE, FALSE)) {
+    groups <- env$app_correlation_input_groups(
+      reference, query, preserve_axis = preserve_axis
+    )
+    expect_length(groups, 1L)
+    expect_identical(colnames(groups[[1L]]$reference$spectra), "valid")
+    matches <- env$app_match_spec_shared_ranges(
+      query, reference, top_n = 2L, batch_size = 1L,
+      preserve_axis = preserve_axis
+    )
+    expect_identical(matches$library_id, "valid")
+  }
+})
+
+test_that("shared-range matching crops reference tails before conformation", {
+  env <- .source_in_memory_app_helpers()
+  query <- as_OpenSpecy(
+    2:4,
+    spectra = matrix(c(1, 4, 2), ncol = 1L,
+                     dimnames = list(NULL, "query"))
+  )
+  make_reference <- function(tails) {
+    values <- c(tails[1:2], 1, 4, 2, tails[3:4])
+    as_OpenSpecy(
+      0:6,
+      spectra = matrix(values, ncol = 1L,
+                       dimnames = list(NULL, "reference")),
+      metadata = data.frame(
+        col_id = "reference", spectrum_type = "raman",
+        organization = "A"
+      )
+    )
+  }
+  reference_a <- make_reference(c(1000, -900, 800, -700))
+  reference_b <- make_reference(c(-10, 20, -30, 40))
+
+  for(preserve_axis in c(TRUE, FALSE)) {
+    aligned_a <- env$app_correlation_input_groups(
+      reference_a, query, preserve_axis = preserve_axis
+    )[[1L]]
+    aligned_b <- env$app_correlation_input_groups(
+      reference_b, query, preserve_axis = preserve_axis
+    )[[1L]]
+    expect_identical(aligned_a$reference$wavenumber, 2:4)
+    expect_equal(aligned_a$reference$spectra,
+                 aligned_b$reference$spectra, tolerance = 0)
+
+    match_a <- env$app_match_spec_shared_ranges(
+      query, reference_a, top_n = 1L, batch_size = 1L,
+      preserve_axis = preserve_axis
+    )
+    match_b <- env$app_match_spec_shared_ranges(
+      query, reference_b, top_n = 1L, batch_size = 1L,
+      preserve_axis = preserve_axis
+    )
+    expect_equal(match_a$match_val, match_b$match_val, tolerance = 0)
+    expect_equal(match_a$match_val, 1, tolerance = 1e-12)
+  }
+})
+
+test_that("shared-range matching retains and mean-fills internal missing values", {
+  env <- .source_in_memory_app_helpers()
+  axis <- 0:8
+  query_values <- c(90, -70, 1, 4, Inf, 2, 5, 80, -60)
+  reference_values <- c(NA, NA, 1, 4, 5, Inf, 5, NA, NA)
+  query <- as_OpenSpecy(
+    axis, spectra = matrix(query_values, ncol = 1L,
+                           dimnames = list(NULL, "query")),
+    metadata = data.frame(col_id = "query")
+  )
+  reference <- as_OpenSpecy(
+    axis, spectra = matrix(reference_values, ncol = 1L,
+                           dimnames = list(NULL, "reference")),
+    metadata = data.frame(
+      col_id = "reference", spectrum_type = "raman",
+      organization = "A"
+    )
+  )
+
+  groups <- env$app_correlation_input_groups(
+    reference, query, preserve_axis = TRUE
+  )
+  expect_length(groups, 1L)
+  expect_identical(groups[[1L]]$reference$wavenumber, 2:6)
+  expect_true(is.na(groups[[1L]]$query$spectra[3L, 1L]))
+  expect_true(is.na(groups[[1L]]$reference$spectra[4L, 1L]))
+
+  expected <- unname(cor_spec(
+    groups[[1L]]$query, groups[[1L]]$reference
+  )[[1L]])
+  pairwise <- stats::cor(
+    groups[[1L]]$query$spectra[, 1L],
+    groups[[1L]]$reference$spectra[, 1L],
+    use = "complete.obs"
+  )
+  matches <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 1L, batch_size = 1L,
+    preserve_axis = TRUE
+  )
+
+  expect_equal(matches$match_val[[1L]], expected, tolerance = 1e-12)
+  expect_false(isTRUE(all.equal(matches$match_val[[1L]], pairwise,
+                                tolerance = 1e-12)))
+})
+
+test_that("shared-range matching reranks groups and reports global progress", {
+  env <- .source_in_memory_app_helpers()
+  axis <- 1:12
+  query <- as_OpenSpecy(
+    axis,
+    spectra = matrix(c(1:5, 0, 0, 6:10), ncol = 1L,
+                     dimnames = list(NULL, "query")),
+    metadata = data.frame(col_id = "query")
+  )
+  values <- matrix(
+    NA_real_, nrow = length(axis), ncol = 3L,
+    dimnames = list(NULL, c("early-a", "late-a", "late-b"))
+  )
+  values[1:5, "early-a"] <- c(1, 2, 3, 5, 4)
+  values[8:12, "late-a"] <- c(10, 6, 9, 7, 8)
+  values[8:12, "late-b"] <- 6:10
+  reference <- as_OpenSpecy(
+    axis, spectra = values,
+    metadata = data.frame(
+      col_id = colnames(values),
+      spectrum_type = c("raman", "nir", "nir"),
+      organization = c("A", "A", "B")
+    )
+  )
+
+  global <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 1L, batch_size = 1L
+  )
+  expect_identical(global$library_id, "late-b")
+  expect_equal(global$match_val, 1, tolerance = 1e-12)
+
+  progress <- list()
+  grouped <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 1L, top_n_by = "organization",
+    batch_size = 1L,
+    progress = function(...) progress[[length(progress) + 1L]] <<- list(...)
+  )
+  expect_identical(grouped$library_id, c("late-b", "early-a"))
+  expect_identical(
+    vapply(progress, `[[`, numeric(1), "completed_blocks"), c(1, 2, 3)
+  )
+  expect_true(all(
+    vapply(progress, `[[`, numeric(1), "total_blocks") == 3
+  ))
+  expect_identical(
+    vapply(progress, `[[`, character(1), "group"), c("A", "A", "B")
+  )
+  expect_identical(
+    vapply(progress, `[[`, numeric(1), "completed_groups"), c(1, 2, 3)
+  )
+  expect_true(all(
+    vapply(progress, `[[`, numeric(1), "total_groups") == 3
+  ))
+})
+
+test_that("shared-range matching rejects references with insufficient overlap", {
+  env <- .source_in_memory_app_helpers()
+  query <- as_OpenSpecy(
+    0:3, spectra = matrix(c(8, 1, 2, 9), ncol = 1L,
+                          dimnames = list(NULL, "query"))
+  )
+  reference_values <- matrix(
+    c(NA, 1, 2, NA, NA, NA, NA, 3), nrow = 4L,
+    dimnames = list(NULL, c("two-points", "one-point"))
+  )
+  reference <- as_OpenSpecy(
+    0:3, spectra = reference_values,
+    metadata = data.frame(
+      col_id = colnames(reference_values),
+      spectrum_type = c("raman", "ftir"),
+      organization = c("A", "B")
+    )
+  )
+
+  expect_error(
+    env$app_match_spec_shared_ranges(
+      query, reference, top_n = 1L, batch_size = 1L,
+      preserve_axis = TRUE
+    ),
+    "three|overlap"
+  )
+  expect_error(
+    env$app_prepare_correlation_reference(
+      reference, query, preserve_axis = TRUE
+    ),
+    "three|overlap"
+  )
+})
+
+test_that("prepared shared-range matching accepts query supersets", {
+  env <- .source_in_memory_app_helpers()
+  query_axis <- 0:10
+  query_values <- cbind(
+    first = c(100, -80, 60, 1, 4, 2, 5, 3, -70, 90, -100),
+    second = c(-100, 80, -60, 5, 2, 4, 1, 3, 70, -90, 100)
+  )
+  query_values[query_axis == 5, "first"] <- Inf
+  query <- as_OpenSpecy(
+    query_axis, spectra = query_values,
+    metadata = data.frame(col_id = colnames(query_values))
+  )
+
+  reference_axis <- 0:20
+  reference_values <- matrix(
+    NA_real_, nrow = length(reference_axis), ncol = 3L,
+    dimnames = list(NULL, c("first-ref", "second-ref", "nir-only"))
+  )
+  reference_values[reference_axis %in% 3:7, "first-ref"] <-
+    c(1, 4, 2, 5, 3)
+  reference_values[reference_axis %in% 3:7, "second-ref"] <-
+    query_values[query_axis %in% 3:7, "second"]
+  reference_values[reference_axis %in% 15:19, "nir-only"] <- 1:5
+  reference <- as_OpenSpecy(
+    reference_axis, spectra = reference_values,
+    metadata = data.frame(
+      col_id = colnames(reference_values),
+      spectrum_type = c("raman", "raman", "nir"),
+      organization = c("A", "A", "B")
+    )
+  )
+
+  dense <- env$app_match_spec_shared_ranges(
+    query, reference, top_n = 1L, batch_size = 1L,
+    preserve_axis = TRUE
+  )
+  prepared <- env$app_prepare_correlation_reference(
+    reference, query, preserve_axis = TRUE
+  )
+  streamed <- env$app_match_prepared_best(
+    query, prepared, library_block_size = 1L
+  )
+
+  data.table::setorder(dense, object_id, library_id)
+  data.table::setorder(streamed, object_id, library_id)
+  expect_equal(streamed, dense, ignore_attr = TRUE, tolerance = 1e-12)
+  expect_identical(dense$library_id, c("first-ref", "second-ref"))
+  expect_true(all(is.finite(dense$match_val)))
+  expect_lt(dense$match_val[[1L]], 1)
+  expect_equal(dense$match_val[[2L]], 1, tolerance = 1e-12)
+  expect_identical(query$wavenumber, query_axis)
+})
+
+test_that("Cluster Buster scores one full-range background beside cropped references", {
+  env <- .source_in_memory_app_helpers()
+  axis <- 0:10
+  processed <- as_OpenSpecy(
+    axis,
+    spectra = cbind(
+      pixel_1 = c(9, -8, 7, 1, 4, 2, 5, 3, -7, 8, -9),
+      pixel_2 = c(-9, 8, -7, 5, 2, 4, 1, 3, 7, -8, 9)
+    ),
+    metadata = data.frame(col_id = c("pixel_1", "pixel_2"))
+  )
+  background <- env$app_cluster_buster_background(processed)
+  reference_values <- matrix(
+    NA_real_, nrow = 21L, ncol = 2L,
+    dimnames = list(NULL, c("raman-ref", "nir-only"))
+  )
+  reference_values[4:8, "raman-ref"] <- c(1, 4, 2, 5, 3)
+  reference_values[16:20, "nir-only"] <- 1:5
+  reference <- as_OpenSpecy(
+    0:20, spectra = reference_values,
+    metadata = data.frame(
+      col_id = colnames(reference_values),
+      spectrum_type = c("raman", "nir"), organization = c("A", "B")
+    )
+  )
+  prepared <- env$app_prepare_cluster_buster_reference(
+    reference, background, processed, preserve_axis = FALSE
+  )
+
+  expect_length(prepared$groups, 2L)
+  expect_setequal(
+    lapply(prepared$groups, `[[`, "wavenumber"),
+    list(3:7, axis)
+  )
+  expect_identical(
+    sum(vapply(prepared$groups, function(group) {
+      "background" %in% group$library_id
+    }, logical(1))),
+    1L
+  )
+  expect_false(any(vapply(prepared$groups, function(group) {
+    "nir-only" %in% group$library_id
+  }, logical(1))))
+
+  typed_group <- prepared$groups[[which(vapply(
+    prepared$groups, function(group) "raman-ref" %in% group$library_id,
+    logical(1)
+  ))]]
+  cluster_typed <- env$app_match_prepared_group_best(
+    processed, typed_group, library_block_size = 1L
+  )
+  ordinary_typed <- env$app_match_bounded_best(
+    processed, reference, block_size = 1L
+  )
+  expect_equal(cluster_typed, ordinary_typed, ignore_attr = TRUE,
+               tolerance = 1e-12)
+
+  matches <- env$app_match_bounded_prepared_best(
+    processed, prepared, block_size = 1L
+  )
+  expect_identical(matches$object_id, colnames(processed$spectra))
+})
+
+test_that("rejected-spectrum placeholders retain the uploaded axis", {
+  env <- .source_in_memory_app_helpers()
   query <- as_OpenSpecy(
     c(2, 5, 8), spectra = cbind(query = c(2, 5, 8)),
     metadata = data.frame(label = "query")
   )
-
-  conformed <- env$app_reference_for_query(reference, query, TRUE)
-  expect_identical(conformed$wavenumber, query$wavenumber)
-  expect_identical(query$wavenumber, c(2, 5, 8))
-  expect_equal(conformed$spectra[, 1L], c(2, 5, 8))
 
   rejected <- env$app_rejected_spectrum(query$wavenumber)
   expect_identical(rejected$wavenumber, query$wavenumber)
@@ -771,6 +1222,192 @@ test_that("app spectrum plot explains a selected logistic class", {
     heat$hovertemplate, "<extra>polyethylene</extra>", fixed = TRUE
   )
   expect_false(grepl("raman_polyethylene", heat$hovertemplate, fixed = TRUE))
+})
+
+test_that("identification plot inputs use the selected correlation range", {
+  env <- .source_in_memory_app_helpers()
+  active <- as_OpenSpecy(
+    0:10,
+    spectra = matrix(
+      c(9, -8, 7, 1, 4, 2, 5, 3, -7, 8, -9), ncol = 1L,
+      dimnames = list(NULL, "query")
+    )
+  )
+  raw <- as_OpenSpecy(
+    0:10,
+    spectra = matrix(seq_len(11), ncol = 1L,
+                     dimnames = list(NULL, "query"))
+  )
+  values <- matrix(
+    NA_real_, nrow = 21L, ncol = 3L,
+    dimnames = list(NULL, c("selected", "raman-sibling", "nir-only"))
+  )
+  values[4:8, "selected"] <- c(1, 4, 2, 5, 3)
+  values[3:9, "raman-sibling"] <- c(2, 3, 1, 5, 4, 7, 6)
+  values[16:20, "nir-only"] <- 1:5
+  library <- as_OpenSpecy(
+    0:20, spectra = values,
+    metadata = data.frame(
+      col_id = colnames(values),
+      spectrum_type = c("raman", "raman", "nir"),
+      organization = c("A", "A", "B")
+    )
+  )
+  selected <- filter_spec(
+    library, logic = colnames(library$spectra) == "selected"
+  )
+  peaks <- data.frame(
+    index = c(2L, 5L, 10L), wavenumber = c(1, 4, 9),
+    intensity = c(1, 4, 8), rank = 1:3,
+    label = c("1", "4", "9")
+  )
+  matches <- env$app_match_spec_shared_ranges(
+    active, library, top_n = 1L, batch_size = 1L
+  )
+  recorded_interval <- env$app_match_correlation_interval(
+    matches, "selected"
+  )
+  expect_equal(recorded_interval$range, c(2, 8))
+
+  inputs <- env$app_identification_plot_inputs(
+    active, raw, selected, library, peaks, preserve_axis = TRUE,
+    correlation_range = recorded_interval
+  )
+  expect_equal(inputs$correlation_range, c(2, 8))
+  expect_identical(inputs$active$wavenumber, 2:8)
+  expect_identical(inputs$reference$wavenumber, 2:8)
+  expect_identical(inputs$raw$wavenumber, 2:8)
+  expect_identical(inputs$peaks$wavenumber, 4)
+  expect_identical(active$wavenumber, 0:10)
+  expect_identical(raw$wavenumber, 0:10)
+
+  sparse_values <- matrix(
+    NA_real_, nrow = 11L, ncol = 2L,
+    dimnames = list(NULL, c("selected", "sparse-edge"))
+  )
+  sparse_values[4:8, "selected"] <- c(1, 4, 2, 5, 3)
+  sparse_values[10:11, "sparse-edge"] <- c(8, 9)
+  sparse_library <- as_OpenSpecy(
+    0:10, spectra = sparse_values,
+    metadata = data.frame(
+      col_id = colnames(sparse_values), spectrum_type = "raman",
+      organization = c("A", "B")
+    )
+  )
+  sparse_selected <- filter_spec(
+    sparse_library,
+    logic = colnames(sparse_library$spectra) == "selected"
+  )
+  sparse_matches <- env$app_match_spec_shared_ranges(
+    active, sparse_library, top_n = 1L, batch_size = 1L
+  )
+  sparse_interval <- env$app_match_correlation_interval(
+    sparse_matches, "selected"
+  )
+  expect_equal(sparse_interval$range, c(3, 7))
+  expect_equal(
+    env$app_identification_plot_inputs(
+      active, raw, sparse_selected, sparse_library,
+      correlation_range = sparse_interval
+    )$correlation_range,
+    c(3, 7)
+  )
+  # The slower fallback must reconstruct the same scoring range rather than
+  # use the sparse sibling's wider typed envelope.
+  expect_equal(
+    env$app_identification_plot_inputs(
+      active, raw, sparse_selected, sparse_library
+    )$correlation_range,
+    c(3, 7)
+  )
+
+  unchanged <- env$app_identification_plot_inputs(
+    active, raw, reference = NULL, peaks = peaks
+  )
+  expect_identical(unchanged$active$wavenumber, 0:10)
+  expect_identical(unchanged$raw$wavenumber, 0:10)
+  expect_null(unchanged$correlation_range)
+})
+
+test_that("recorded plot intervals replay differing-grid conformation", {
+  env <- .source_in_memory_app_helpers()
+  query_axis <- seq(0.2, 9.8, by = 0.8)
+  reference_axis <- seq(0, 10, by = 0.3)
+  query <- as_OpenSpecy(
+    query_axis,
+    spectra = matrix(
+      sin(query_axis), ncol = 1L, dimnames = list(NULL, "query")
+    )
+  )
+  values <- matrix(
+    NA_real_, nrow = length(reference_axis), ncol = 2L,
+    dimnames = list(NULL, c("selected", "sparse-edge"))
+  )
+  selected_rows <- reference_axis >= 2.4 & reference_axis <= 7.8
+  values[selected_rows, "selected"] <- sin(reference_axis[selected_rows])
+  values[c(1L, nrow(values)), "sparse-edge"] <- c(-1, 1)
+  library <- as_OpenSpecy(
+    reference_axis, spectra = values,
+    metadata = data.frame(
+      col_id = colnames(values), spectrum_type = "raman",
+      organization = c("A", "B")
+    )
+  )
+  selected <- filter_spec(
+    library, logic = colnames(library$spectra) == "selected"
+  )
+
+  scoring_group <- env$app_correlation_input_groups(
+    library, query, preserve_axis = TRUE
+  )[[1L]]
+  expected_reference <- filter_spec(
+    scoring_group$reference,
+    logic = colnames(scoring_group$reference$spectra) == "selected"
+  )
+  matches <- env$app_match_spec_shared_ranges(
+    query, library, top_n = 1L, batch_size = 1L,
+    preserve_axis = TRUE
+  )
+  interval <- env$app_match_correlation_interval(matches, "selected")
+  plotted <- env$app_identification_plot_inputs(
+    query, reference = selected, library = library,
+    preserve_axis = TRUE, correlation_range = interval
+  )
+
+  expect_equal(interval$range, range(scoring_group$query$wavenumber))
+  expect_identical(plotted$active$wavenumber,
+                   scoring_group$query$wavenumber)
+  expect_identical(plotted$reference$wavenumber,
+                   expected_reference$wavenumber)
+  expect_equal(plotted$reference$spectra,
+               expected_reference$spectra, tolerance = 0)
+})
+
+test_that("plot peaks are ranked and scaled on the final displayed range", {
+  env <- .source_in_memory_app_helpers()
+  spectrum <- as_OpenSpecy(
+    0:8,
+    spectra = matrix(
+      c(0, 10, 0, 0, 2, 0, 0, 5, 0), ncol = 1L,
+      dimnames = list(NULL, "query")
+    )
+  )
+  full_peak <- env$app_plot_peak_positions(
+    spectrum, top_n = 1L, make_relative = TRUE
+  )
+  cropped <- env$app_subset_wavenumbers(spectrum, 4:6)
+  cropped_peak <- env$app_plot_peak_positions(
+    cropped, top_n = 1L, make_relative = TRUE
+  )
+
+  expect_equal(full_peak$wavenumber, 1)
+  expect_equal(cropped_peak$wavenumber, 4)
+  expect_equal(cropped_peak$intensity, 1)
+  normalized <- make_rel(cropped, na.rm = TRUE)
+  expect_equal(
+    unname(cropped_peak$intensity),
+    unname(normalized$spectra[cropped_peak$index, 1L])
+  )
 })
 
 test_that("model explanations follow the selected spectrum and Top Matches row", {

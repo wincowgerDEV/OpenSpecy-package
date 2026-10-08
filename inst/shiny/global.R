@@ -724,19 +724,382 @@ app_ordinary_heatmap_data <- function(metadata, values, categorical,
   }
 }
 
-app_reference_for_query <- function(reference, query, preserve_axis = TRUE) {
-  if(identical(reference$wavenumber, query$wavenumber)) {
-    return(reference)
+app_subset_wavenumbers <- function(x, rows) {
+  result <- x
+  result$wavenumber <- x$wavenumber[rows]
+  columns <- seq_len(ncol(x$spectra))
+  result$spectra <- if(data.table::is.data.table(x$spectra)) {
+    as.matrix(x$spectra[rows, columns, with = FALSE])
+  } else if(is.data.frame(x$spectra)) {
+    as.matrix(x$spectra[rows, columns, drop = FALSE])
+  } else {
+    x$spectra[rows, columns, drop = FALSE]
   }
-  conform_spec(
-    reference, range = query$wavenumber, res = NULL,
-    # An "all" reference combines the independently ranged FTIR, Raman, and
-    # NIR libraries. References outside the query's support are deliberately
-    # NA padded and cor_spec() ignores them; rejecting those NAs here would
-    # make the complete-library option unusable.
-    allow_na = anyNA(reference$spectra),
+  result
+}
+
+# An "all" reference is stored on the union of independently ranged FTIR,
+# Raman, and NIR axes. Correlation must not treat padding between those typed
+# partitions as observed data. Within a typed partition, however, candidate
+# NAs retain the established mean-fill semantics after range cropping.
+app_reference_support_info <- function(reference) {
+  if(!inherits(reference, "OpenSpecy") || ncol(reference$spectra) < 1L) {
+    stop("The correlation reference must contain OpenSpecy spectra.",
+         call. = FALSE)
+  }
+  metadata <- data.table::as.data.table(reference$metadata)
+  if(nrow(metadata) != ncol(reference$spectra)) {
+    stop("Reference spectra and metadata must contain the same columns/rows.",
+         call. = FALSE)
+  }
+  spectrum_type <- rep.int("reference", ncol(reference$spectra))
+  if("spectrum_type" %in% names(metadata)) {
+    typed <- tolower(trimws(as.character(metadata$spectrum_type)))
+    usable <- !is.na(typed) & nzchar(typed)
+    spectrum_type[usable] <- typed[usable]
+  }
+  ranges <- lapply(seq_len(ncol(reference$spectra)), function(column) {
+    values <- if(is.data.frame(reference$spectra)) {
+      reference$spectra[[column]]
+    } else {
+      reference$spectra[, column]
+    }
+    supported <- is.finite(values)
+    positions <- which(supported)
+    if(!length(positions)) return(NULL)
+    c(first = min(positions), last = max(positions))
+  })
+  keep <- !vapply(ranges, is.null, logical(1))
+  columns <- which(keep)
+  if(!length(columns)) return(list())
+
+  type_levels <- unique(spectrum_type[columns])
+  typed_groups <- lapply(type_levels, function(type) {
+    group_columns <- columns[spectrum_type[columns] == type]
+    group_ranges <- ranges[group_columns]
+    first <- min(vapply(group_ranges, `[[`, numeric(1), "first"))
+    last <- max(vapply(group_ranges, `[[`, numeric(1), "last"))
+    list(
+      columns = group_columns,
+      rows = seq.int(first, last),
+      spectrum_types = type
+    )
+  })
+
+  # FTIR and Raman artifacts currently share an axis. Merge typed partitions
+  # only when their finite envelopes are identical so they can use one bounded
+  # correlation call without changing the range used by either partition.
+  range_keys <- vapply(
+    typed_groups,
+    function(group) paste(range(group$rows), collapse = ":"),
+    character(1)
+  )
+  merged <- split(
+    seq_along(typed_groups),
+    factor(range_keys, levels = unique(range_keys)),
+    drop = TRUE
+  )
+  lapply(merged, function(index) {
+    list(
+      columns = sort(unlist(lapply(typed_groups[index], `[[`, "columns"))),
+      rows = typed_groups[[index[[1L]]]]$rows,
+      spectrum_types = unlist(lapply(
+        typed_groups[index], `[[`, "spectrum_types"
+      ))
+    )
+  })
+}
+
+app_reference_support_group <- function(info, reference) {
+  result <- reference
+  result$wavenumber <- reference$wavenumber[info$rows]
+  result$spectra <- if(data.table::is.data.table(reference$spectra)) {
+    as.matrix(reference$spectra[info$rows, info$columns, with = FALSE])
+  } else if(is.data.frame(reference$spectra)) {
+    as.matrix(reference$spectra[info$rows, info$columns, drop = FALSE])
+  } else {
+    reference$spectra[info$rows, info$columns, drop = FALSE]
+  }
+  result$metadata <- data.table::as.data.table(reference$metadata)[info$columns]
+  result
+}
+
+app_reference_support_groups <- function(reference) {
+  lapply(
+    app_reference_support_info(reference),
+    app_reference_support_group, reference = reference
+  )
+}
+
+app_align_correlation_group <- function(reference, query,
+                                        preserve_axis = TRUE,
+                                        trim_outer = TRUE,
+                                        source_range = NULL,
+                                        target_range = NULL) {
+  if(is.null(source_range)) {
+    lower <- max(min(reference$wavenumber), min(query$wavenumber))
+    upper <- min(max(reference$wavenumber), max(query$wavenumber))
+  } else {
+    source_range <- sort(suppressWarnings(as.numeric(source_range)))
+    if(length(source_range) != 2L || any(!is.finite(source_range))) {
+      stop("The correlation source range must contain two finite values.",
+           call. = FALSE)
+    }
+    lower <- source_range[[1L]]
+    upper <- source_range[[2L]]
+  }
+  source_rows <- which(
+    reference$wavenumber >= lower & reference$wavenumber <= upper
+  )
+  if(length(source_rows) < 3L) return(NULL)
+  # Reject under-supported candidates before conformation can interpolate or
+  # repeat one or two genuine measurements onto three or more query positions.
+  source_finite <- colSums(is.finite(
+    reference$spectra[source_rows, , drop = FALSE]
+  ))
+  keep_columns <- source_finite >= 3L
+  if(!any(keep_columns)) return(NULL)
+  reference <- filter_spec(reference, logic = keep_columns)
+  reference <- app_subset_wavenumbers(reference, source_rows)
+  reference$spectra[!is.finite(reference$spectra)] <- NA_real_
+
+  if(is.null(target_range)) target_range <- c(lower, upper)
+  target_range <- sort(suppressWarnings(as.numeric(target_range)))
+  if(length(target_range) != 2L || any(!is.finite(target_range))) {
+    stop("The correlation target range must contain two finite values.",
+         call. = FALSE)
+  }
+  query_rows <- which(
+    query$wavenumber >= target_range[[1L]] &
+      query$wavenumber <= target_range[[2L]]
+  )
+  if(length(query_rows) < 3L) return(NULL)
+
+  target <- query$wavenumber[query_rows]
+  aligned_reference <- conform_spec(
+    reference, range = target, res = NULL, allow_na = FALSE,
     type = if(isTRUE(preserve_axis)) "mean_up" else "roll"
   )
+  aligned_reference$spectra[!is.finite(aligned_reference$spectra)] <- NA_real_
+  finite_values <- colSums(is.finite(aligned_reference$spectra))
+  keep_columns <- finite_values >= 3L
+  if(!any(keep_columns)) return(NULL)
+  aligned_reference <- filter_spec(aligned_reference, logic = keep_columns)
+
+  if(isTRUE(trim_outer)) {
+    supported <- rowSums(is.finite(aligned_reference$spectra)) > 0L
+    positions <- which(supported)
+    if(length(positions) < 3L) return(NULL)
+    rows <- seq.int(min(positions), max(positions))
+    aligned_reference <- app_subset_wavenumbers(aligned_reference, rows)
+  }
+  query_rows <- match(aligned_reference$wavenumber, query$wavenumber)
+  if(anyNA(query_rows) || length(query_rows) < 3L) return(NULL)
+  aligned_query <- app_subset_wavenumbers(query, query_rows)
+  aligned_query$spectra[!is.finite(aligned_query$spectra)] <- NA_real_
+
+  list(
+    query = aligned_query,
+    reference = aligned_reference,
+    source_range = c(lower, upper),
+    alignment_range = range(target)
+  )
+}
+
+app_correlation_input_groups <- function(reference, query,
+                                         preserve_axis = TRUE) {
+  if(!inherits(reference, "OpenSpecy") || !inherits(query, "OpenSpecy")) {
+    stop("Identification requires OpenSpecy query and reference objects.",
+         call. = FALSE)
+  }
+  groups <- lapply(
+    app_reference_support_groups(reference),
+    app_align_correlation_group, query = query,
+    preserve_axis = preserve_axis
+  )
+  groups <- Filter(Negate(is.null), groups)
+  if(!length(groups)) {
+    stop(
+      "The uploaded and reference spectra have fewer than three shared ",
+      "wavenumbers with finite reference values.", call. = FALSE
+    )
+  }
+  library_ids <- colnames(reference$spectra)
+  lapply(groups, function(group) {
+    group$library_order <- match(
+      colnames(group$reference$spectra), library_ids
+    )
+    group
+  })
+}
+
+app_rank_library_matches <- function(matches, query, reference, top_n,
+                                     top_n_by = NULL) {
+  matches <- data.table::copy(data.table::as.data.table(matches))
+  top_n <- suppressWarnings(as.integer(top_n)[1L])
+  if(is.na(top_n) || top_n < 1L) {
+    stop("'top_n' must be a positive whole number.", call. = FALSE)
+  }
+  matches[, .object_order := match(object_id, colnames(query$spectra))]
+  matches[, .library_order := match(library_id, colnames(reference$spectra))]
+  if(anyNA(matches$.object_order) || anyNA(matches$.library_order)) {
+    stop("Grouped identification returned an unknown spectrum identifier.",
+         call. = FALSE)
+  }
+
+  if(is.null(top_n_by)) {
+    data.table::setorder(
+      matches, .object_order, -match_val, .library_order, na.last = TRUE
+    )
+    matches <- matches[, head(.SD, top_n), by = .object_order]
+  } else {
+    metadata <- data.table::as.data.table(reference$metadata)
+    if(!top_n_by %in% names(metadata)) {
+      stop("'top_n_by' column '", top_n_by,
+           "' is not present in the library metadata", call. = FALSE)
+    }
+    group_values <- trimws(as.character(metadata[[top_n_by]]))
+    if(length(group_values) != ncol(reference$spectra) ||
+       anyNA(group_values) || any(!nzchar(group_values))) {
+      stop("'top_n_by' column '", top_n_by,
+           "' must contain one nonblank value per library spectrum",
+           call. = FALSE)
+    }
+    group_levels <- unique(group_values)
+    matches[, .match_group := group_values[.library_order]]
+    matches[, .group_order := match(.match_group, group_levels)]
+    data.table::setorder(
+      matches, .object_order, .group_order, -match_val, .library_order,
+      na.last = TRUE
+    )
+    matches <- matches[, head(.SD, top_n),
+                       by = c(".object_order", ".group_order")]
+  }
+  # Group order determines which Top N rows survive within each organization,
+  # but the retained rows must still be ranked globally for the canonical best
+  # match used by plots, metadata, and downloads.
+  data.table::setorder(
+    matches, .object_order, -match_val, .library_order, na.last = TRUE
+  )
+  drop_columns <- intersect(
+    c(".object_order", ".library_order", ".match_group", ".group_order"),
+    names(matches)
+  )
+  matches[, (drop_columns) := NULL]
+  matches[, .(object_id, library_id, match_val)]
+}
+
+app_correlation_ranges_attribute <- "openspecy_correlation_ranges"
+
+app_match_correlation_interval <- function(matches, library_id) {
+  ranges <- attr(
+    matches, app_correlation_ranges_attribute, exact = TRUE
+  )
+  selected_id <- as.character(library_id)[1L]
+  if(is.null(ranges) || is.na(selected_id) || !nzchar(selected_id)) return(NULL)
+  ranges <- data.table::as.data.table(ranges)
+  required <- c("library_id", "minimum", "maximum")
+  if(!all(required %in% names(ranges))) return(NULL)
+  row <- ranges[as.character(library_id) == selected_id]
+  if(nrow(row) != 1L || any(!is.finite(c(row$minimum, row$maximum)))) {
+    return(NULL)
+  }
+  read_range <- function(prefix, fallback) {
+    columns <- paste0(prefix, c("minimum", "maximum"))
+    if(!all(columns %in% names(row))) return(fallback)
+    values <- sort(as.numeric(unlist(row[, columns, with = FALSE])))
+    if(length(values) != 2L || any(!is.finite(values))) fallback else values
+  }
+  final_range <- sort(as.numeric(c(row$minimum[[1L]], row$maximum[[1L]])))
+  list(
+    range = final_range,
+    source_range = read_range("source_", final_range),
+    alignment_range = read_range("alignment_", final_range)
+  )
+}
+
+app_match_correlation_range <- function(matches, library_id) {
+  interval <- app_match_correlation_interval(matches, library_id)
+  if(is.null(interval)) NULL else interval$range
+}
+
+app_match_spec_shared_ranges <- function(
+    query, reference, top_n = 1L, top_n_by = NULL, batch_size = 1000L,
+    preserve_axis = TRUE, progress = NULL) {
+  groups <- app_correlation_input_groups(
+    reference, query, preserve_axis = preserve_axis
+  )
+  batch_size <- suppressWarnings(as.integer(batch_size)[1L])
+  if(is.na(batch_size) || batch_size < 1L) {
+    stop("'batch_size' must be a positive whole number.", call. = FALSE)
+  }
+  if(!is.null(top_n_by)) {
+    metadata <- data.table::as.data.table(reference$metadata)
+    if(!top_n_by %in% names(metadata)) {
+      stop("'top_n_by' column '", top_n_by,
+           "' is not present in the library metadata", call. = FALSE)
+    }
+    group_values <- trimws(as.character(metadata[[top_n_by]]))
+    if(length(group_values) != ncol(reference$spectra) ||
+       anyNA(group_values) || any(!nzchar(group_values))) {
+      stop("'top_n_by' column '", top_n_by,
+           "' must contain one nonblank value per library spectrum",
+           call. = FALSE)
+    }
+  }
+  query_blocks <- ceiling(ncol(query$spectra) / batch_size)
+  local_groups <- vapply(groups, function(group) {
+    if(is.null(top_n_by)) 1L else length(unique(trimws(as.character(
+      group$reference$metadata[[top_n_by]]
+    ))))
+  }, integer(1))
+  local_blocks <- as.integer(query_blocks * local_groups)
+  completed_before <- 0L
+  completed_groups_before <- 0L
+  results <- vector("list", length(groups))
+
+  for(i in seq_along(groups)) {
+    group <- groups[[i]]
+    report <- if(is.null(progress)) NULL else function(completed_blocks,
+                                                         total_blocks, ...) {
+      details <- list(...)
+      if(is.null(top_n_by)) {
+        details[c("group", "completed_groups", "total_groups")] <- NULL
+      } else {
+        details$completed_groups <- completed_groups_before +
+          details$completed_groups
+        details$total_groups <- sum(local_groups)
+      }
+      do.call(progress, c(list(
+        completed_blocks = completed_before + completed_blocks,
+        total_blocks = sum(local_blocks)
+      ), details))
+    }
+    results[[i]] <- match_spec(
+      group$query, group$reference, top_n = top_n, top_n_by = top_n_by,
+      batch_size = batch_size, conform = FALSE, type = "roll",
+      progress = report
+    )
+    completed_before <- completed_before + local_blocks[[i]]
+    completed_groups_before <- completed_groups_before + local_groups[[i]]
+  }
+  ranked <- app_rank_library_matches(
+    data.table::rbindlist(results, use.names = TRUE), query, reference,
+    top_n = top_n, top_n_by = top_n_by
+  )
+  ranges <- data.table::rbindlist(lapply(groups, function(group) {
+    data.table::data.table(
+      library_id = colnames(group$reference$spectra),
+      minimum = min(group$query$wavenumber),
+      maximum = max(group$query$wavenumber),
+      source_minimum = group$source_range[[1L]],
+      source_maximum = group$source_range[[2L]],
+      alignment_minimum = group$alignment_range[[1L]],
+      alignment_maximum = group$alignment_range[[2L]]
+    )
+  }))
+  attr(ranked, app_correlation_ranges_attribute) <- ranges
+  ranked
 }
 
 app_identification_block_progress <- function(
@@ -824,10 +1187,7 @@ app_intensity_snr_basis <- function(x, settings) {
   adjusted
 }
 
-app_prepare_correlation_reference <- function(reference) {
-  if(!inherits(reference, "OpenSpecy")) {
-    stop("The correlation reference must be OpenSpecy.", call. = FALSE)
-  }
+app_prepare_correlation_group <- function(reference) {
   values <- make_rel(reference$spectra, na.rm = TRUE)
   values <- OpenSpecy:::.matrix_mean_replace(values)
   list(
@@ -837,14 +1197,76 @@ app_prepare_correlation_reference <- function(reference) {
   )
 }
 
+app_prepare_correlation_reference <- function(reference, query = NULL,
+                                              preserve_axis = TRUE) {
+  if(!inherits(reference, "OpenSpecy")) {
+    stop("The correlation reference must be OpenSpecy.", call. = FALSE)
+  }
+  if(is.null(query)) return(app_prepare_correlation_group(reference))
+  groups <- app_correlation_input_groups(
+    reference, query, preserve_axis = preserve_axis
+  )
+  list(
+    groups = lapply(groups, function(group) {
+      app_prepare_correlation_group(group$reference)
+    }),
+    query_wavenumber = query$wavenumber,
+    library_id = colnames(reference$spectra)
+  )
+}
+
+app_prepare_cluster_buster_reference <- function(
+    reference, background, query, preserve_axis = TRUE) {
+  if(!inherits(reference, "OpenSpecy") ||
+     !inherits(background, "OpenSpecy") ||
+     !inherits(query, "OpenSpecy") || ncol(background$spectra) != 1L) {
+    stop(
+      "Cluster Buster requires OpenSpecy reference, query, and one background.",
+      call. = FALSE
+    )
+  }
+  if("background" %in% colnames(reference$spectra) ||
+     !identical(colnames(background$spectra), "background")) {
+    stop(
+      "Cluster Buster reserves the library identifier 'background'.",
+      call. = FALSE
+    )
+  }
+
+  # Keep the full-query background separate. Typed library groups are cropped
+  # from their original support before any conformation, filling, or scoring.
+  aligned_reference <- lapply(
+    app_reference_support_groups(reference), app_align_correlation_group,
+    query = query, preserve_axis = preserve_axis
+  )
+  aligned_reference <- Filter(Negate(is.null), aligned_reference)
+  aligned_background <- app_align_correlation_group(
+    background, query, preserve_axis = preserve_axis
+  )
+  if(is.null(aligned_background)) {
+    stop(
+      "The Cluster Buster background has fewer than three shared finite points.",
+      call. = FALSE
+    )
+  }
+  aligned <- c(aligned_reference, list(aligned_background))
+  list(
+    groups = lapply(aligned, function(group) {
+      app_prepare_correlation_group(group$reference)
+    }),
+    query_wavenumber = query$wavenumber,
+    library_id = c(colnames(reference$spectra), "background")
+  )
+}
+
 # Match one processed query chunk while bounding both score-matrix dimensions.
 # The scaled reference is reusable across file chunks; every library block is
 # discarded after updating one global winning score/index per query spectrum.
-app_match_prepared_best <- function(query, prepared,
-                                    library_block_size = 1000L) {
-  if(!inherits(query, "OpenSpecy") || !is.list(prepared) ||
-     !identical(query$wavenumber, prepared$wavenumber)) {
-    stop("The processed query and prepared reference axes must match.",
+app_match_prepared_group_best <- function(query, prepared,
+                                          library_block_size = 1000L) {
+  rows <- match(prepared$wavenumber, query$wavenumber)
+  if(anyNA(rows) || length(rows) < 3L) {
+    stop("The processed query does not contain the prepared reference axis.",
          call. = FALSE)
   }
   library_block_size <- suppressWarnings(as.integer(library_block_size)[1L])
@@ -857,7 +1279,9 @@ app_match_prepared_best <- function(query, prepared,
     stop("The prepared correlation reference is empty or invalid.",
          call. = FALSE)
   }
-  query_values <- make_rel(query$spectra, na.rm = TRUE)
+  query_values <- query$spectra[rows, , drop = FALSE]
+  query_values[!is.finite(query_values)] <- NA_real_
+  query_values <- make_rel(query_values, na.rm = TRUE)
   query_values <- OpenSpecy:::.matrix_mean_replace(query_values)
   scaled_query <- OpenSpecy:::.scale_correlation_spectra(query_values)
   query_count <- nrow(scaled_query)
@@ -895,18 +1319,49 @@ app_match_prepared_best <- function(query, prepared,
   )
 }
 
-app_match_bounded_best <- function(query, reference, block_size = 1000L,
-                                   progress = NULL) {
-  if(!inherits(query, "OpenSpecy") || !inherits(reference, "OpenSpecy") ||
-     !identical(query$wavenumber, reference$wavenumber)) {
-    stop("Bounded matching requires OpenSpecy objects on one axis.",
+app_match_prepared_best <- function(query, prepared,
+                                    library_block_size = 1000L) {
+  if(!inherits(query, "OpenSpecy") || !is.list(prepared)) {
+    stop("Prepared matching requires an OpenSpecy query and reference data.",
+         call. = FALSE)
+  }
+  if(is.null(prepared$groups)) {
+    return(app_match_prepared_group_best(
+      query, prepared, library_block_size = library_block_size
+    ))
+  }
+  candidates <- data.table::rbindlist(lapply(prepared$groups, function(group) {
+    app_match_prepared_group_best(
+      query, group, library_block_size = library_block_size
+    )
+  }), use.names = TRUE)
+  candidates[, .object_order := match(object_id, colnames(query$spectra))]
+  candidates[, .library_order := match(library_id, prepared$library_id)]
+  data.table::setorder(
+    candidates, .object_order, -match_val, .library_order, na.last = TRUE
+  )
+  result <- candidates[, .SD[1L], by = .object_order]
+  result[, c(".object_order", ".library_order") := NULL]
+  result[, .(object_id, library_id, match_val)]
+}
+
+app_match_bounded_prepared_best <- function(query, prepared,
+                                            block_size = 1000L,
+                                            progress = NULL) {
+  if(!inherits(query, "OpenSpecy") || !is.list(prepared) ||
+     is.null(prepared$groups)) {
+    stop("Bounded matching requires an OpenSpecy query and prepared groups.",
+         call. = FALSE)
+  }
+  if(!is.null(prepared$query_wavenumber) &&
+     !identical(prepared$query_wavenumber, query$wavenumber)) {
+    stop("The prepared reference and query wavenumber axes do not match.",
          call. = FALSE)
   }
   block_size <- suppressWarnings(as.integer(block_size)[1L])
   if(is.na(block_size) || block_size < 1L) {
     stop("'block_size' must be a positive whole number.", call. = FALSE)
   }
-  prepared <- app_prepare_correlation_reference(reference)
   chunks <- split(
     seq_len(ncol(query$spectra)),
     ceiling(seq_len(ncol(query$spectra)) / block_size)
@@ -925,6 +1380,21 @@ app_match_bounded_best <- function(query, reference, block_size = 1000L,
     }
   }
   data.table::rbindlist(result, use.names = TRUE)
+}
+
+app_match_bounded_best <- function(query, reference, block_size = 1000L,
+                                   progress = NULL) {
+  if(!inherits(query, "OpenSpecy") || !inherits(reference, "OpenSpecy")) {
+    stop("Bounded matching requires OpenSpecy query and reference objects.",
+         call. = FALSE)
+  }
+  prepared <- app_prepare_correlation_reference(
+    reference, query,
+    preserve_axis = isTRUE(attr(query, "preserve_uploaded_axis", exact = TRUE))
+  )
+  app_match_bounded_prepared_best(
+    query, prepared, block_size = block_size, progress = progress
+  )
 }
 
 # Stream a FileSpecs query through caller-owned processing and matching
@@ -1136,29 +1606,6 @@ app_cluster_buster_background <- function(processed) {
   attr(result, "preserve_uploaded_axis") <- isTRUE(attr(
     processed, "preserve_uploaded_axis", exact = TRUE
   ))
-  result
-}
-
-app_append_cluster_buster_background <- function(reference, background) {
-  if(!inherits(reference, "OpenSpecy") || !inherits(background, "OpenSpecy") ||
-     ncol(background$spectra) != 1L ||
-     !identical(reference$wavenumber, background$wavenumber)) {
-    stop("The reference and one-spectrum background must share an axis.",
-         call. = FALSE)
-  }
-  if("background" %in% colnames(reference$spectra)) {
-    stop("The selected library already contains a spectrum named 'background'.",
-         call. = FALSE)
-  }
-  result <- reference
-  result$spectra <- cbind(reference$spectra, background$spectra)
-  result$metadata <- data.table::rbindlist(
-    list(
-      data.table::as.data.table(reference$metadata),
-      data.table::as.data.table(background$metadata)
-    ), use.names = TRUE, fill = TRUE
-  )
-  result$metadata$col_id <- colnames(result$spectra)
   result
 }
 
@@ -2344,6 +2791,9 @@ app_selected_model_explanation <- function(predictions, library,
 # value remains an actual member-pixel correlation and carries its provenance.
 app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
                                        top_n = 10L, library_groups = NULL) {
+  correlation_ranges <- attr(
+    matches, app_correlation_ranges_attribute, exact = TRUE
+  )
   matches <- data.table::copy(data.table::as.data.table(matches))
   mapping <- data.table::copy(data.table::as.data.table(mapping))
   if(!all(c("object_id", "library_id", "match_val") %in% names(matches)) ||
@@ -2378,10 +2828,14 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
     allow.cartesian = TRUE
   )
   if(!nrow(joined)) {
-    return(data.table::data.table(
+    result <- data.table::data.table(
       object_id = character(), library_id = character(), match_val = numeric(),
       source_pixel_id = character()
-    ))
+    )
+    if(!is.null(correlation_ranges)) {
+      attr(result, app_correlation_ranges_attribute) <- correlation_ranges
+    }
+    return(result)
   }
   joined[, `:=`(
     source_pixel_id = object_id,
@@ -2404,9 +2858,13 @@ app_aggregate_unit_matches <- function(matches, mapping, unit_ids, library_ids,
   )
   ranked[, .rank := seq_len(.N), by = .(unit_id, library_group)]
   ranked <- ranked[.rank <= top_n]
-  ranked[, .(
+  result <- ranked[, .(
     object_id = unit_id, library_id, match_val, source_pixel_id
   )]
+  if(!is.null(correlation_ranges)) {
+    attr(result, app_correlation_ranges_attribute) <- correlation_ranges
+  }
+  result
 }
 
 # Join and format the already-ranked blockwise result used by every app
@@ -2723,10 +3181,10 @@ app_conform_axis <- function(x, resolution) {
 # "Mean Up" is a resolution-aware conform strategy, not a fixed conform type:
 # the uploaded spectra are only resampled to the requested resolution when
 # that target is finer (a smaller cm^-1 step) than what was actually
-# uploaded; otherwise the uploaded axis is left alone and the reference
-# library is conformed onto it instead (see identify_blockwise's
-# preserve_axis), since aggregating real uploaded data down to a coarser
-# axis would discard information the library doesn't have to begin with.
+# uploaded; otherwise the uploaded axis is left alone and each applicable
+# reference group is conformed only within its shared support (see
+# identify_blockwise's preserve_axis), since aggregating real uploaded data
+# down to a coarser axis would discard information the library lacks.
 app_conform_preserve_axis <- function(uploaded, conform_decision,
                                       conform_selection, conform_res) {
   if(!identical(conform_selection, "mean_up")) return(FALSE)
@@ -4793,6 +5251,129 @@ app_peak_positions <- function(x, top_n = 7L) {
     rank = seq_along(ordered),
     label = format(round(wn[ordered], 1L), trim = TRUE, nsmall = 0),
     stringsAsFactors = FALSE
+  )
+}
+
+app_plot_peak_positions <- function(active, top_n = 7L,
+                                    make_relative = FALSE) {
+  if(isTRUE(make_relative)) {
+    active <- OpenSpecy::make_rel(active, na.rm = TRUE)
+  }
+  app_peak_positions(active, top_n = top_n)
+}
+
+app_identification_plot_inputs <- function(active, raw = NULL,
+                                           reference = NULL, library = NULL,
+                                           peaks = NULL,
+                                           preserve_axis = TRUE,
+                                           correlation_range = NULL) {
+  result <- list(
+    active = active, raw = raw, reference = reference, peaks = peaks,
+    correlation_range = NULL
+  )
+  if(is.null(reference)) return(result)
+  if(!inherits(active, "OpenSpecy") || ncol(active$spectra) != 1L ||
+     !inherits(reference, "OpenSpecy") || ncol(reference$spectra) != 1L ||
+     (!is.null(raw) && !inherits(raw, "OpenSpecy"))) {
+    stop(
+      "Identification plot cropping requires one active/reference spectrum.",
+      call. = FALSE
+    )
+  }
+  reference_id <- colnames(reference$spectra)[[1L]]
+  aligned <- NULL
+  if(is.null(correlation_range)) {
+    if(is.null(library)) library <- reference
+    if(!inherits(library, "OpenSpecy")) {
+      stop("Identification plot cropping requires an OpenSpecy library.",
+           call. = FALSE)
+    }
+    groups <- app_correlation_input_groups(
+      library, active, preserve_axis = preserve_axis
+    )
+    group_index <- which(vapply(groups, function(group) {
+      reference_id %in% colnames(group$reference$spectra)
+    }, logical(1)))
+    if(length(group_index) != 1L) {
+      stop("The selected identification match has no unique support group.",
+           call. = FALSE)
+    }
+    group <- groups[[group_index]]
+    aligned <- list(
+      query = group$query,
+      reference = filter_spec(
+        group$reference,
+        logic = colnames(group$reference$spectra) == reference_id
+      )
+    )
+  } else {
+    interval <- if(is.list(correlation_range)) {
+      correlation_range
+    } else {
+      list(
+        range = correlation_range,
+        source_range = correlation_range,
+        alignment_range = correlation_range
+      )
+    }
+    bounds <- sort(suppressWarnings(as.numeric(interval$range)))
+    if(length(bounds) != 2L || any(!is.finite(bounds))) {
+      stop("The identification correlation range must contain two values.",
+           call. = FALSE)
+    }
+    aligned <- app_align_correlation_group(
+      reference, active, preserve_axis = preserve_axis, trim_outer = FALSE,
+      source_range = interval$source_range,
+      target_range = interval$alignment_range
+    )
+    if(!is.null(aligned)) {
+      final_rows <- which(
+        aligned$query$wavenumber >= bounds[[1L]] &
+          aligned$query$wavenumber <= bounds[[2L]]
+      )
+      if(length(final_rows) < 3L) {
+        stop(
+          "The identification correlation range has fewer than three points.",
+          call. = FALSE
+        )
+      }
+      aligned$query <- app_subset_wavenumbers(aligned$query, final_rows)
+      aligned$reference <- app_subset_wavenumbers(
+        aligned$reference, final_rows
+      )
+    }
+  }
+  if(is.null(aligned)) {
+    stop("The selected identification match has no plottable shared range.",
+         call. = FALSE)
+  }
+
+  bounds <- range(aligned$query$wavenumber)
+  cropped_raw <- raw
+  if(!is.null(raw)) {
+    raw_rows <- which(
+      raw$wavenumber >= bounds[[1L]] & raw$wavenumber <= bounds[[2L]]
+    )
+    cropped_raw <- if(length(raw_rows)) {
+      app_subset_wavenumbers(raw, raw_rows)
+    } else NULL
+  }
+  cropped_peaks <- peaks
+  if(!is.null(peaks) && nrow(peaks)) {
+    cropped_peaks <- peaks[
+      is.finite(peaks$wavenumber) &
+        peaks$wavenumber >= bounds[[1L]] &
+        peaks$wavenumber <= bounds[[2L]],
+      , drop = FALSE
+    ]
+  }
+
+  list(
+    active = aligned$query,
+    raw = cropped_raw,
+    reference = aligned$reference,
+    peaks = cropped_peaks,
+    correlation_range = bounds
   )
 }
 

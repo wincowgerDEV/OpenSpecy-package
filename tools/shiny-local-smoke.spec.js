@@ -2769,3 +2769,156 @@ test("library identification reports completed block percentages", async ({ page
     /Warning: Error in|Execution halted|plotly_click.*not registered/i
   );
 });
+
+test("extended spectrum axes use shared reference ranges", async ({ page }, testInfo) => {
+  test.setTimeout(360000);
+  const stderrStart = stderr.length;
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  const switchValues = {
+    identification_active: true,
+    smooth_decision: true,
+    derivative_abs: true,
+    make_rel_decision: true,
+    conform_decision: true,
+    spike_decision: false,
+    saturation_decision: false,
+    intensity_decision: false,
+    baseline_decision: false,
+    range_decision: false,
+    co2_decision: false,
+    collapse_decision: false,
+    threshold_decision: false,
+    cor_threshold_decision: false,
+    filter_lib: false,
+    top_n_per_organization: true,
+    simple_metadata: true,
+    show_peak_positions: true,
+  };
+  for (const [id, checked] of Object.entries(switchValues)) {
+    const input = page.locator(`#${id}`);
+    await input.evaluate((element, target) => {
+      if (element.checked !== target) element.click();
+    }, checked);
+    if (checked) await expect(input).toBeChecked();
+    else await expect(input).not.toBeChecked();
+  }
+  await pickerOption(page, "id_spec_type", "all");
+  await pickerOption(page, "id_strategy", "deriv");
+  await pickerOption(page, "lib_type", "medoid");
+  await selectizeOption(page, "conform_selection", "mean_up");
+  for (const [id, value] of Object.entries({
+    smoother: 3, derivative_order: 1, smoother_window: 90, conform_res: 6,
+    peak_count: 7,
+  })) {
+    await page.locator(`#${id}`).evaluate((element, next) => {
+      const slider = window.jQuery
+        ? window.jQuery(element).data("ionRangeSlider")
+        : null;
+      if (slider) slider.update({ from: next });
+      element.value = String(next);
+      element.dispatchEvent(new Event("change", { bubbles: true }));
+    }, value);
+  }
+  await page.locator("#top_n_input").evaluate((input) => {
+    input.value = "1";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  let spectrumPath = process.env.OPENSPECY_SHARED_RANGE_FIXTURE;
+  if (!spectrumPath) {
+    const bundledPath = path.join(repo, "inst", "extdata", "raman_hdpe.csv");
+    const lines = fs.readFileSync(bundledPath, "utf8").trim().split(/\r?\n/);
+    const rows = lines.slice(1).map((line) => line.split(",").map(Number));
+    const step = rows[1][0] - rows[0][0];
+    const lower = [];
+    for (let x = rows[0][0] - step; x >= -200; x -= step) {
+      lower.push([x, rows[0][1]]);
+    }
+    lower.reverse();
+    const upper = [];
+    for (let x = rows.at(-1)[0] + step; x <= 4700; x += step) {
+      upper.push([x, rows.at(-1)[1]]);
+    }
+    spectrumPath = testInfo.outputPath("extended_raman_hdpe.csv");
+    fs.writeFileSync(
+      spectrumPath,
+      [lines[0], ...lower, ...rows, ...upper]
+        .map((row) => Array.isArray(row) ? row.join(",") : row)
+        .join("\n") + "\n",
+      "utf8"
+    );
+  }
+  if (!fs.existsSync(spectrumPath)) {
+    throw new Error(`Missing shared-range spectrum fixture: ${spectrumPath}`);
+  }
+  await stageLocalFiles(page, spectrumPath);
+  await page.locator("#run_analysis").click();
+
+  const firstMatch = page.locator(
+    "#event .dataTables_scrollBody:visible tbody tr:not(:has(td.dataTables_empty))"
+  ).first();
+  await expect(firstMatch).toBeVisible({ timeout: 240000 });
+  await expect(firstMatch).toContainText(
+    /poly(?:esters|ethylene|\(ethylene\))/i
+  );
+  // The selectable-library table intentionally presents Correlation first.
+  // Read its populated scrolling body because DataTables leaves the original
+  // captioned table empty when scroll mode is enabled.
+  const scoreCell = firstMatch.locator("td").first();
+  await expect(scoreCell).toHaveText(
+    /^\s*-?(?:\d+(?:\.\d*)?|\.\d+)\s*$/
+  );
+  const score = Number((await scoreCell.innerText()).trim());
+  expect(score).toBeGreaterThan(0.88);
+  await testInfo.attach("shared-range-score", {
+    body: `${path.basename(spectrumPath)}: ${score}`,
+    contentType: "text/plain",
+  });
+  await expect.poll(() => nonemptyTraces(page), { timeout: 120000 }).toHaveLength(3);
+  const traceRanges = await page.locator("#MyPlotC").evaluate((plot) =>
+    Object.fromEntries((plot.data || []).filter((trace) =>
+      Array.isArray(trace.x) && Array.isArray(trace.y) && trace.x.length > 100
+    ).map((trace) => {
+      const x = trace.x.map(Number).filter(Number.isFinite);
+      return [trace.name, {
+        points: x.length, min: Math.min(...x), max: Math.max(...x),
+      }];
+    }))
+  );
+  const rawRange = traceRanges["Raw spectrum"];
+  const activeRange = traceRanges["Active spectrum"];
+  const referenceRange = traceRanges["Identification match"];
+  expect(rawRange).toBeDefined();
+  expect(activeRange).toBeDefined();
+  expect(referenceRange).toBeDefined();
+  expect(activeRange.min).toBeCloseTo(referenceRange.min, 8);
+  expect(activeRange.max).toBeCloseTo(referenceRange.max, 8);
+  expect(rawRange.min).toBeGreaterThanOrEqual(referenceRange.min - 1e-8);
+  expect(rawRange.max).toBeLessThanOrEqual(referenceRange.max + 1e-8);
+  await testInfo.attach("shared-range-plot-traces", {
+    body: JSON.stringify(traceRanges, null, 2),
+    contentType: "application/json",
+  });
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
+    timeout: 120000,
+  });
+  await page.screenshot({
+    path: testInfo.outputPath("local-app-shared-reference-range.png"),
+    fullPage: true,
+  });
+  await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
+  expect(severeErrors).toEqual([]);
+  expect(stderr.slice(stderrStart)).not.toMatch(
+    /Warning: Error in|Execution halted|plotly_click.*not registered/i
+  );
+});

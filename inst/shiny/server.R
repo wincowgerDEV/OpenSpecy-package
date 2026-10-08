@@ -1193,10 +1193,10 @@ observeEvent(input$run_analysis, {
     }
 
     result <- app_attach_correction_metadata(processed)
-    # identify_blockwise() reads this back so its "conform the library
-    # instead" decision always matches what actually happened to this
-    # specific object's axis, regardless of which pipeline stage called
-    # ordinary_process() (whole upload, cluster collapse, pixel subset, ...).
+    # identify_blockwise() reads this back so shared-range reference alignment
+    # always matches what actually happened to this specific object's axis,
+    # regardless of which pipeline stage called ordinary_process() (whole
+    # upload, cluster collapse, pixel subset, ...).
     attr(result, "preserve_uploaded_axis") <- preserve_uploaded_axis
     result
   }
@@ -1694,9 +1694,6 @@ observeEvent(input$run_analysis, {
     preserve_axis <- isTRUE(attr(object, "preserve_uploaded_axis", exact = TRUE))
     library <- analysis_library()
     req(!is.null(library))
-    reference <- app_reference_for_query(
-      library, object, preserve_axis = preserve_axis
-    )
     report_identification_progress <- function(completed_blocks = 0L,
                                                total_blocks = NULL,
                                                group = NULL,
@@ -1704,7 +1701,7 @@ observeEvent(input$run_analysis, {
                                                total_groups = NULL, ...) {
       state <- app_identification_block_progress(
         query_count = ncol(object$spectra),
-        library_count = ncol(reference$spectra),
+        library_count = ncol(library$spectra),
         block_size = batch_size,
         completed_blocks = completed_blocks,
         total_blocks = total_blocks
@@ -1719,12 +1716,12 @@ observeEvent(input$run_analysis, {
       analysis_phase(state$message, state$detail, state$progress)
     }
     report_identification_progress()
-    match_spec(
-      object, reference, top_n = top_n_value(), batch_size = batch_size,
+    app_match_spec_shared_ranges(
+      object, library, top_n = top_n_value(), batch_size = batch_size,
       top_n_by = if(isTRUE(input$top_n_per_organization)) {
         "organization"
       } else NULL,
-      conform = FALSE, type = "roll",
+      preserve_axis = preserve_axis,
       progress = function(completed_blocks, total_blocks, ...) {
         report_identification_progress(completed_blocks, total_blocks, ...)
       }
@@ -1732,7 +1729,7 @@ observeEvent(input$run_analysis, {
   }
 
   identify_filespec_best <- function(source, eligible, settings, batch_size,
-                                     library_override = NULL,
+                                     prepared_reference_override = NULL,
                                      spatial_smooth = FALSE,
                                      spatial_sigma = c(1, 1, 1)) {
     issues <- app_file_stream_processing_issues(
@@ -1745,11 +1742,16 @@ observeEvent(input$run_analysis, {
         ", or enable Load Entire File into Memory."
       ), call. = FALSE)
     }
-    library <- if(is.null(library_override)) analysis_library() else
-      library_override
-    req(!is.null(library), is_OpenSpecy(library))
-    reference <- NULL
-    prepared_reference <- NULL
+    library <- analysis_library()
+    if(is.null(prepared_reference_override)) {
+      req(!is.null(library), is_OpenSpecy(library))
+    } else if(!is.list(prepared_reference_override) ||
+              is.null(prepared_reference_override$query_wavenumber)) {
+      stop("The prepared correlation reference override is invalid.",
+           call. = FALSE)
+    }
+    query_wavenumber <- prepared_reference_override$query_wavenumber
+    prepared_reference <- prepared_reference_override
     total_queries <- sum(eligible, na.rm = TRUE)
     app_stream_filespec_best_matches(
       source, eligible = eligible, chunk_size = batch_size,
@@ -1760,12 +1762,12 @@ observeEvent(input$run_analysis, {
         preserve_axis <- isTRUE(attr(
           query, "preserve_uploaded_axis", exact = TRUE
         ))
-        if(is.null(reference)) {
-          reference <<- app_reference_for_query(
+        if(is.null(prepared_reference)) {
+          query_wavenumber <<- query$wavenumber
+          prepared_reference <<- app_prepare_correlation_reference(
             library, query, preserve_axis = preserve_axis
           )
-          prepared_reference <<- app_prepare_correlation_reference(reference)
-        } else if(!identical(reference$wavenumber, query$wavenumber)) {
+        } else if(!identical(query_wavenumber, query$wavenumber)) {
           stop(
             "Streamed preprocessing produced inconsistent wavenumber axes.",
             call. = FALSE
@@ -2018,14 +2020,12 @@ observeEvent(input$run_analysis, {
       }
 
       cluster_buster_reference <- function(background) {
-        original <- analysis_library()
-        reference <- app_reference_for_query(
-          original, background,
+        app_prepare_cluster_buster_reference(
+          analysis_library(), background, background,
           preserve_axis = isTRUE(attr(
             background, "preserve_uploaded_axis", exact = TRUE
           ))
         )
-        app_append_cluster_buster_background(reference, background)
       }
 
       cluster_buster_mapping <- function(source, signal_keep, pixel_matches) {
@@ -2171,12 +2171,12 @@ observeEvent(input$run_analysis, {
             spatial_smooth = run_settings$spatial_smooth,
             sigma = run_settings$spatial_sigma
           )
-          temporary_library <- cluster_buster_reference(background)
+          temporary_reference <- cluster_buster_reference(background)
           pixel_matches <- identify_filespec_best(
             spatial, eligible = signal_keep,
             settings = run_settings$processing,
             batch_size = run_settings$identify_batch_size,
-            library_override = temporary_library,
+            prepared_reference_override = temporary_reference,
             spatial_smooth = run_settings$spatial_smooth,
             spatial_sigma = run_settings$spatial_sigma
           )
@@ -2337,9 +2337,9 @@ observeEvent(input$run_analysis, {
         )
         processed_pixels <- ordinary_process(signal_subset)
         background <- app_cluster_buster_background(processed_pixels)
-        temporary_library <- cluster_buster_reference(background)
-        pixel_matches <- app_match_bounded_best(
-          processed_pixels, temporary_library,
+        temporary_reference <- cluster_buster_reference(background)
+        pixel_matches <- app_match_bounded_prepared_best(
+          processed_pixels, temporary_reference,
           block_size = run_settings$identify_batch_size,
           progress = function(completed_blocks, total_blocks, ...) {
             fraction <- completed_blocks / max(1L, total_blocks)
@@ -2809,18 +2809,6 @@ observeEvent(input$run_analysis, {
 
   DataR_plot <- reactive(active_spectrum_view())
 
-  active_peak_positions <- reactive({
-    if(!isTRUE(input$show_peak_positions)) return(NULL)
-    viewed <- active_spectrum_view()
-    if(!identical(attr(viewed, "openspecy_selection_status"), "retained")) {
-      return(NULL)
-    }
-    if(isTRUE(input$make_rel_decision)) {
-      viewed <- make_rel(viewed, na.rm = TRUE)
-    }
-    app_peak_positions(viewed, top_n = input$peak_count)
-  })
-
   # SNR ----
   # The selected metric always controls S/N calculation and display. The
   # threshold owner controls only whether its bounds reject/black out pixels.
@@ -3137,17 +3125,15 @@ observeEvent(input$run_analysis, {
     req(identical(attr(query, "openspecy_selection_status"), "retained"))
     library <- analysis_library()
     req(!is.null(library), is_OpenSpecy(library))
-    reference <- app_reference_for_query(
-      library, query,
-      preserve_axis = isTRUE(attr(query, "preserve_uploaded_axis", exact = TRUE))
-    )
-    match_spec(
-      query, reference, top_n = state$settings$top_n,
+    app_match_spec_shared_ranges(
+      query, library, top_n = state$settings$top_n,
       batch_size = state$settings$identify_batch_size,
       top_n_by = if(isTRUE(state$settings$top_n_per_organization)) {
         "organization"
       } else NULL,
-      conform = FALSE, type = "roll"
+      preserve_axis = isTRUE(attr(
+        query, "preserve_uploaded_axis", exact = TRUE
+      ))
     )
   })
 
@@ -3351,6 +3337,45 @@ observeEvent(input$run_analysis, {
       tryCatch(
         match_selected(),
         shiny.silent.error = function(e) NULL
+      )
+  })
+
+  selected_match_correlation_interval <- reactive({
+      reference <- selected_match()
+      if(is.null(reference)) return(NULL)
+      library_id <- colnames(reference$spectra)[[1L]]
+      interval <- app_match_correlation_interval(
+        identification_matches(), library_id
+      )
+      if(is.null(interval)) {
+        interval <- app_match_correlation_interval(
+          canonical_state()$pixel_matches, library_id
+        )
+      }
+      interval
+  })
+
+  active_peak_positions <- reactive({
+      if(!isTRUE(input$show_peak_positions)) return(NULL)
+      viewed <- active_spectrum_view()
+      if(!identical(attr(viewed, "openspecy_selection_status"), "retained")) {
+        return(NULL)
+      }
+      reference <- selected_match()
+      if(!is.null(reference)) {
+        viewed <- app_identification_plot_inputs(
+          active = viewed,
+          reference = reference,
+          library = analysis_library(),
+          preserve_axis = isTRUE(attr(
+            viewed, "preserve_uploaded_axis", exact = TRUE
+          )),
+          correlation_range = selected_match_correlation_interval()
+        )$active
+      }
+      app_plot_peak_positions(
+        viewed, top_n = input$peak_count,
+        make_relative = isTRUE(input$make_rel_decision)
       )
   })
 
@@ -3879,13 +3904,26 @@ output$progress_bars <- renderUI({
       raw <- RawR_plot()
       reference <- selected_match()
       explanation <- selected_model_explanation()
-      app_spectrum_plot(
+      plot_inputs <- app_identification_plot_inputs(
         active = primary,
         raw = raw,
         reference = reference,
+        library = if(is.null(reference)) NULL else analysis_library(),
+        peaks = active_peak_positions(),
+        preserve_axis = isTRUE(attr(
+          primary, "preserve_uploaded_axis", exact = TRUE
+        )),
+        correlation_range = if(is.null(reference)) {
+          NULL
+        } else selected_match_correlation_interval()
+      )
+      app_spectrum_plot(
+        active = plot_inputs$active,
+        raw = plot_inputs$raw,
+        reference = plot_inputs$reference,
         model = explanation$model,
         model_class = explanation$model_class,
-        peaks = active_peak_positions(),
+        peaks = plot_inputs$peaks,
         make_rel = isTRUE(input$make_rel_decision),
         source = "B",
         plot_width = session$clientData$output_MyPlotC_width

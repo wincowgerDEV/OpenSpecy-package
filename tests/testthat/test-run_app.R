@@ -400,7 +400,9 @@ test_that("bundled Shiny app avoids app-local library data assumptions", {
   expect_false(any(grepl("data/.*\\.rds", server_source)))
   expect_true(any(grepl("load_app_library", server_source, fixed = TRUE)))
   expect_false(any(grepl("apply\\(library\\$spectra, 2", server_source)))
-  expect_true(any(grepl("match_spec(", server_source, fixed = TRUE)))
+  expect_true(any(grepl(
+    "app_match_spec_shared_ranges(", server_source, fixed = TRUE
+  )))
   expect_true(any(grepl("batch_size = batch_size", server_source,
                         fixed = TRUE)))
   expect_false(any(grepl("vapply\\(\\.\\$spectra", server_source)))
@@ -678,6 +680,11 @@ test_that("bundled app runs corrections and identification unconditionally", {
   expect_match(server_source, "app_attach_quantification", fixed = TRUE)
   expect_match(server_source, "RawR_plot <- reactive({", fixed = TRUE)
   expect_match(server_source, "reference <- selected_match()", fixed = TRUE)
+  expect_match(server_source, "selected_match_correlation_interval <- reactive({",
+               fixed = TRUE)
+  expect_match(server_source, "app_match_correlation_interval(", fixed = TRUE)
+  expect_match(server_source, "app_identification_plot_inputs(", fixed = TRUE)
+  expect_match(server_source, "app_plot_peak_positions(", fixed = TRUE)
   expect_match(server_source, "app_spectrum_plot(", fixed = TRUE)
   expect_match(server_source, 'report = "all"', fixed = TRUE)
   expect_match(server_source, "quality_findings <- reactive({", fixed = TRUE)
@@ -691,8 +698,8 @@ test_that("bundled app runs corrections and identification unconditionally", {
                fixed = TRUE)
   expect_match(server_source, "current_heatmap_data <- reactive({",
                fixed = TRUE)
-  expect_match(server_source, "match_spec(",
-               fixed = TRUE)
+  expect_match(server_source, "app_match_spec_shared_ranges(",
+                fixed = TRUE)
   expect_match(server_source, "app_identification_block_progress(",
                fixed = TRUE)
   expect_match(
@@ -702,9 +709,12 @@ test_that("bundled app runs corrections and identification unconditionally", {
   expect_match(global_source, "open_specs(spectral_paths)", fixed = TRUE)
   expect_match(server_source, ".filespec_collapse_connected_mean(",
                fixed = TRUE)
-  expect_match(server_source, "conform = FALSE, type = \"roll\"",
+  expect_match(global_source, "conform = FALSE, type = \"roll\"",
+                fixed = TRUE)
+  expect_match(server_source, "app_prepare_correlation_reference(",
                fixed = TRUE)
-  expect_match(server_source, "app_reference_for_query(", fixed = TRUE)
+  expect_match(server_source, "app_prepare_cluster_buster_reference(",
+               fixed = TRUE)
   expect_match(ui_source, 'role = "group"', fixed = TRUE)
   expect_match(ui_source, '"quality_automatic_details"', fixed = TRUE)
   expect_match(ui_source, '"quality_warning_details"', fixed = TRUE)
@@ -1273,7 +1283,8 @@ test_that("bundled app exposes the gated Cluster Buster strategy", {
                fixed = TRUE)
   expect_match(server_source, "app_stream_filespec_processed_mean(",
                fixed = TRUE)
-  expect_match(server_source, "library_override = temporary_library",
+  expect_match(server_source,
+               "prepared_reference_override = temporary_reference",
                fixed = TRUE)
   expect_match(server_source, "app_cluster_buster_decisions(", fixed = TRUE)
 })
@@ -1317,7 +1328,7 @@ test_that("Mean Up conform replaces the preserve-uploaded-axis switch", {
   # uploaded spectra or leave the axis alone, and stamps that decision onto
   # its result so identify_blockwise() (called separately, on the already-
   # processed object, from several different pipeline stages) makes exactly
-  # the same choice for conforming the library.
+  # the same choice when aligning shared reference support.
   expect_match(
     server_source,
     paste0(

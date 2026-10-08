@@ -1,5 +1,12 @@
 # OpenSpecy 2.0.3
 
+- The bundled app now crops temporary query and reference copies to each
+  applicable FTIR, Raman, or NIR reference partition's shared range before
+  normalization, mean filling, and correlation. This restores library-match
+  scores for uploads whose axes extend beyond the reference data. While a
+  library match is selected, the plot crops its raw, active, and reference
+  display traces to that same correlation interval; canonical processed data
+  and downloads remain unchanged by identification and display cropping.
 - Fixed `read_spc()` for SPC files with explicitly stored X coordinates. These
   files now preserve their nonlinear wavenumber axis and read the actual
   intensity block instead of displaying the X coordinates as a straight-line
