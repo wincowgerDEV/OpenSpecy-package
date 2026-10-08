@@ -940,12 +940,33 @@ test_that("hosted deployment exports the exact current bundled app", {
     "test.setTimeout(largeUploads.length ? 2400000 : 1800000)", smoke,
     fixed = TRUE
   )))
+  transport_identification_off <- grep(
+    'await setShinyCheckbox(identificationActive, false);', smoke,
+    fixed = TRUE
+  )
+  transport_idle_boundary <- grep(
+    "Do not replace the upload while the preceding run still owns WebR",
+    smoke, fixed = TRUE
+  )
+  map_identification_on <- grep(
+    'await setShinyCheckbox(identificationActive, true);', smoke,
+    fixed = TRUE
+  )
+  expect_length(transport_identification_off, 1L)
+  expect_length(transport_idle_boundary, 1L)
+  expect_length(map_identification_on, 1L)
+  expect_lt(transport_identification_off, transport_idle_boundary)
+  expect_lt(transport_idle_boundary, map_identification_on)
   expect_true(any(grepl("timeout: 600000", smoke, fixed = TRUE)))
   expect_true(any(grepl("toBeChecked()", smoke, fixed = TRUE)))
   expect_true(any(grepl('toHaveValue("Top Matches")', smoke,
                         fixed = TRUE)))
   expect_false(any(grepl("downloadSelectize", smoke, fixed = TRUE)))
   expect_true(any(grepl("verifyNativeDownload", smoke, fixed = TRUE)))
+  expect_true(any(grepl(
+    'selectDownload(downloadSelection, downloadLink, "Test Data")',
+    smoke, fixed = TRUE
+  )))
   expect_true(any(grepl("savedFirstBytesHex", smoke, fixed = TRUE)))
   expect_true(any(grepl("contentType", smoke, fixed = TRUE)))
   expect_true(any(grepl("disposition", smoke, fixed = TRUE)))
@@ -979,6 +1000,16 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl("tinyEnviFiles", smoke, fixed = TRUE)))
   expect_true(any(grepl("#openspecy_workerfs_files", smoke, fixed = TRUE)))
+  expect_true(any(grepl("#openspecy_workerfs_file_count", smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('toHaveText("No files uploaded")', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('toHaveText("1 file uploaded")', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('toHaveText("2 files uploaded")', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('"data-openspecy-upload-count", "1"', smoke,
+                        fixed = TRUE)))
   expect_true(any(grepl('locator("#settings_csv")', smoke, fixed = TRUE)))
   expect_true(any(grepl(
     "input[type='file']:not(#openspecy_workerfs_files):not(#settings_csv)",

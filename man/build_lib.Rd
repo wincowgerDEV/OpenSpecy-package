@@ -118,6 +118,8 @@ build_model_lib(
   weights = TRUE,
   make_relative = TRUE,
   method = c("logistic_regression", "random_forest"),
+  hierarchy_col = NULL,
+  selection_rule = c("guardrailed", "macro", "overall"),
   ...
 )
 
@@ -132,6 +134,8 @@ train_spec_model(
   weights = TRUE,
   make_relative = TRUE,
   method = c("logistic_regression", "random_forest"),
+  hierarchy_col = NULL,
+  selection_rule = c("guardrailed", "macro", "overall"),
   ...
 )
 
@@ -340,6 +344,16 @@ logistic regression or inverse-frequency case sampling for random forest.}
 backward-compatible default) or \code{"random_forest"}. The latter requires
 the suggested \pkg{ranger} package.}
 
+\item{hierarchy_col}{optional metadata column defining the broad parent of
+each \code{class_col} value. Supplying it trains a hierarchical logistic
+model; \code{NULL} retains the flat model. Hierarchical random forests are
+not supported.}
+
+\item{selection_rule}{logistic lambda-selection policy. \code{"guardrailed"}
+protects maximum overall and macro accuracy within fixed absolute 0.01
+windows before minimizing log loss; \code{"macro"} and \code{"overall"}
+reproduce single-metric selection policies.}
+
 \item{nearest}{logical; if \code{TRUE}, \code{assess_lib()} compares each
 spectrum with its highest-correlation neighbor and reports the fraction where
 that neighbor has the same \code{class_col} value.}
@@ -531,7 +545,14 @@ missing values are preserved.
 regression model (\code{method = "logistic_regression"}) or an experimental
 probability random forest (\code{method = "random_forest"}). Logistic
 regression uses inverse class weights and stratified cross-validation to
-select the lambda with the highest out-of-fold macro class accuracy. Random
+select a lambda from grouped out-of-fold predictions. The default
+guardrailed rule keeps candidates within one absolute percentage point of
+the maximum overall accuracy, then within one point of the best eligible
+macro accuracy, minimizes multiclass log loss, and prefers the largest
+lambda on ties. The historical macro-only and overall-only rules remain
+available. Supplying \code{hierarchy_col} trains a broad root followed by
+conditional class models and combines their probabilities along each path.
+Random
 forest uses inverse-frequency balanced case sampling and out-of-bag
 predictions. This improves minority-class representation in each bootstrap
 sample without applying a second class-vote correction.

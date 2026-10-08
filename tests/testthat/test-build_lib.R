@@ -273,7 +273,9 @@ test_that("build_model_lib() returns the model library artifact structure", {
   expect_named(model, c("model", "model_type", "lambda_selected",
                         "lambda_path_complete", "selected_lambda_converged",
                         "convergence_error", "training_groups", "selection_metric",
-                        "lambda_metrics", "dimension_conversion", "tests",
+                        "selection_rule", "selection_accuracy_tolerance",
+                        "lambda_metrics", "class_metrics", "fold_assignments",
+                        "dimension_conversion", "tests",
                         "coefficients", "class_names", "class_num",
                         "observation_count", "fill", "support",
                         "class_support", "fill_method", "fill_replaced",
@@ -281,10 +283,16 @@ test_that("build_model_lib() returns the model library artifact structure", {
                         "all_variables", "variables_in"))
   expect_true(is_OpenSpecy(model$fill))
   expect_identical(model$model_type, "logistic_regression")
-  expect_identical(model$selection_metric, "macro_class_accuracy")
+  expect_identical(
+    model$selection_metric, "guardrailed_overall_macro_log_loss"
+  )
+  expect_identical(model$selection_rule, "guardrailed")
+  expect_equal(model$selection_accuracy_tolerance, 0.01)
   expect_identical(model$fill_method, "wavenumber_mean")
   expect_true(all(c("lambda", "macro_class_accuracy", "overall_accuracy",
-                    "selected", "selection_scope", "selection_rule") %in%
+                    "log_loss", "brier_score", "overall_eligible",
+                    "macro_eligible", "selected", "selection_scope",
+                    "selection_rule", "accuracy_tolerance") %in%
                     names(model$lambda_metrics)))
   expect_true(all(c("factor_num", "name") %in%
                     names(model$dimension_conversion)))
@@ -335,7 +343,8 @@ test_that("release sanitizers retain runtime state and remove assessments", {
   slim_model <- OpenSpecy:::.lib_slim_model(model)
   expect_true(all(names(slim_model) %in%
                     OpenSpecy:::.lib_runtime_model_fields()))
-  expect_false(any(c("tests", "lambda_metrics", "support") %in%
+  expect_false(any(c("tests", "lambda_metrics", "class_metrics",
+                     "fold_assignments", "support") %in%
                      names(slim_model)))
   expect_null(attr(slim_model, "training_warnings", exact = TRUE))
   expect_true(check_OpenSpecy(slim_model$fill))
@@ -2476,7 +2485,10 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_named(first$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(first$medoids, c("derivative", "nobaseline"))
-  expect_named(first$models, "logistic_regression")
+  expect_named(
+    first$models,
+    c("logistic_regression", "hierarchical_logistic_regression")
+  )
   expect_true(all(vapply(first$libraries, function(recipe) {
     all(vapply(recipe, check_OpenSpecy, logical(1)))
   }, logical(1))))
@@ -2522,6 +2534,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
       "model_derivative.rds", "model_nobaseline.rds",
       "model_logistic_regression_derivative.rds",
       "model_logistic_regression_nobaseline.rds",
+      "model_hierarchical_logistic_regression_derivative.rds",
+      "model_hierarchical_logistic_regression_nobaseline.rds",
       "assessments.rds", "quarantined_spectra.rds",
       "reference_library_build.rds")
   ))))
@@ -2570,7 +2584,9 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   model_fields <- OpenSpecy:::.lib_runtime_model_fields()
   for (component in c(
     "model_logistic_regression_derivative",
-    "model_logistic_regression_nobaseline"
+    "model_logistic_regression_nobaseline",
+    "model_hierarchical_logistic_regression_derivative",
+    "model_hierarchical_logistic_regression_nobaseline"
   )) {
     artifact <- readRDS(file.path(release_dir, paste0(component, ".rds")))
     for (model in artifact) {
@@ -2578,6 +2594,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
       expect_false(any(c(
         "tests", "lambda_metrics", "oob_metrics", "oob_class_accuracy",
         "feature_importance", "training_parameters", "class_weights",
+        "class_metrics", "hierarchy_metrics", "fold_assignments",
         "support", "class_support"
       ) %in% names(model)))
       expect_null(attr(model, "training_warnings", exact = TRUE))
@@ -2589,7 +2606,10 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   )
   expect_named(resolved$libraries, c("raw", "derivative", "nobaseline"))
   expect_named(resolved$medoids, c("derivative", "nobaseline"))
-  expect_named(resolved$models, "logistic_regression")
+  expect_named(
+    resolved$models,
+    c("logistic_regression", "hierarchical_logistic_regression")
+  )
   expect_s3_class(resolved$quarantine, "OpenSpecyQuarantine")
   expect_identical(
     resolved$quarantine$manifest$schema,
@@ -3015,15 +3035,118 @@ test_that("medoid selection restores original missing values", {
 
 test_that("macro lambda metrics choose class-balanced accuracy", {
   outcome <- c(1L, 1L, 1L, 2L)
-  predictions <- array(0, dim = c(4, 2, 2))
+  predictions <- array(-1, dim = c(4, 2, 2))
   predictions[cbind(seq_len(4), c(1, 1, 1, 1), 1)] <- 1
   predictions[cbind(seq_len(4), c(1, 2, 2, 2), 2)] <- 1
   metrics <- OpenSpecy:::.lib_macro_lambda_metrics(
-    predictions, outcome, lambda = c(1, 0.1)
+    predictions, outcome, lambda = c(1, 0.1), selection_rule = "macro"
   )
   expect_equal(metrics$macro_class_accuracy, c(0.5, 2 / 3))
   expect_equal(metrics$overall_accuracy, c(0.75, 0.5))
+  expect_true(all(metrics$log_loss >= 0))
+  expect_true(all(metrics$brier_score >= 0 & metrics$brier_score <= 2))
   expect_identical(which(metrics$selected), 2L)
+})
+
+test_that("multinomial cross-validation links become probabilities", {
+  links <- matrix(c(10, 0, -10, -3, -3, -3), nrow = 2, byrow = TRUE)
+  probabilities <- OpenSpecy:::.lib_multinomial_link_probabilities(links)
+  expect_equal(rowSums(probabilities), c(1, 1), tolerance = 1e-12)
+  expect_true(all(probabilities >= 0 & probabilities <= 1))
+  expect_equal(probabilities[2, ], rep(1 / 3, 3), tolerance = 1e-12)
+})
+
+test_that("guardrailed lambda selection uses absolute one-point windows", {
+  metrics <- data.table::data.table(
+    lambda = c(1, 0.5, 0.1),
+    overall_accuracy = c(0.900, 0.890, 0.870),
+    macro_class_accuracy = c(0.700, 0.790, 0.900),
+    log_loss = c(0.50, 0.40, 0.30),
+    brier_score = c(0.30, 0.25, 0.20)
+  )
+  selected <- OpenSpecy:::.lib_select_lambda_metrics(
+    metrics, selection_rule = "guardrailed", accuracy_tolerance = 0.01
+  )
+  expect_equal(selected$overall_eligible, c(TRUE, TRUE, FALSE))
+  expect_equal(selected$macro_eligible, c(FALSE, TRUE, FALSE))
+  expect_identical(which(selected$selected), 2L)
+  expect_equal(selected$accuracy_tolerance, rep(0.01, 3))
+})
+
+test_that("hierarchical logistic models compose normalized leaf probabilities", {
+  skip_if_not_installed("glmnet")
+  set.seed(8102)
+  wavenumber <- seq(800, 1190, by = 10)
+  classes <- rep(c("polyethylene", "polyvinylalcohols",
+                   "organic matter", "mineral", "cellulose"), each = 6)
+  broad <- ifelse(
+    classes %in% c("polyethylene", "polyvinylalcohols"), "plastic",
+    ifelse(classes == "cellulose", "natural", "not plastic")
+  )
+  prototypes <- list(
+    polyethylene = sin(seq(0, pi, length.out = length(wavenumber))),
+    polyvinylalcohols = cos(seq(0, pi, length.out = length(wavenumber))),
+    `organic matter` = seq(0, 1, length.out = length(wavenumber)),
+    mineral = rev(seq(0, 1, length.out = length(wavenumber))),
+    cellulose = sin(seq(0, 2 * pi, length.out = length(wavenumber)))
+  )
+  spectra <- vapply(seq_along(classes), function(i) {
+    prototypes[[classes[[i]]]] + stats::rnorm(length(wavenumber), sd = 0.01)
+  }, numeric(length(wavenumber)))
+  colnames(spectra) <- paste0("hierarchy_", seq_along(classes))
+  x <- as_OpenSpecy(
+    wavenumber, spectra = spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra), material_class = classes,
+      material_type = broad, spectrum_type = "ftir"
+    ),
+    attributes = list(intensity_unit = "absorbance")
+  )
+
+  model <- suppressMessages(suppressWarnings(train_spec_model(
+    x, hierarchy_col = "material_type", min_n = 3, nlambda = 4,
+    selection_rule = "guardrailed"
+  )))
+  expect_identical(model$model_type, "hierarchical_logistic_regression")
+  expect_setequal(names(model$branch_models),
+                  c("ftir_natural", "ftir_not plastic", "ftir_plastic"))
+  expect_true(model$branch_models$ftir_natural$deterministic)
+  expect_equal(unique(model$lambda_metrics$accuracy_tolerance), 0.01)
+  expect_true(all(c("leaf", "broad") %in% model$hierarchy_metrics$scope))
+  expect_false(any(model$fold_assignments[,
+    data.table::uniqueN(fold), by = group_id]$V1 > 1L, na.rm = TRUE))
+
+  ranked <- suppressWarnings(match_spec(x, model, top_n = 5L))
+  expect_equal(ranked[, sum(value), by = x]$V1, rep(1, ncol(x$spectra)),
+               tolerance = 1e-10)
+  expect_setequal(ranked$name, paste0("ftir_", unique(classes)))
+
+  slim <- OpenSpecy:::.lib_slim_model(model)
+  expect_equal(
+    suppressWarnings(match_spec(x, slim, top_n = 5L)), ranked,
+    tolerance = 1e-12
+  )
+  appended <- OpenSpecy:::.append_particle_matches(
+    x, slim, material_col = "material", library_id_col = "sample_name"
+  )
+  winners <- ranked[rank == 1L][order(x)]$name
+  expect_equal(appended$metadata$material, winners)
+
+  incomplete <- x
+  incomplete$metadata$material_type[[1L]] <- NA_character_
+  expect_error(
+    train_spec_model(
+      incomplete, hierarchy_col = "material_type", min_n = 3, nlambda = 3
+    ),
+    "without 'material_type'"
+  )
+  expect_error(
+    train_spec_model(
+      x, hierarchy_col = "material_type", min_n = 3,
+      method = "random_forest"
+    ),
+    "supports logistic regression only"
+  )
 })
 
 test_that("rebuild_lib_artifacts reuses completed libraries downstream", {

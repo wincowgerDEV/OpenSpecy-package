@@ -141,7 +141,14 @@
 #' regression model (\code{method = "logistic_regression"}) or an experimental
 #' probability random forest (\code{method = "random_forest"}). Logistic
 #' regression uses inverse class weights and stratified cross-validation to
-#' select the lambda with the highest out-of-fold macro class accuracy. Random
+#' select a lambda from grouped out-of-fold predictions. The default
+#' guardrailed rule keeps candidates within one absolute percentage point of
+#' the maximum overall accuracy, then within one point of the best eligible
+#' macro accuracy, minimizes multiclass log loss, and prefers the largest
+#' lambda on ties. The historical macro-only and overall-only rules remain
+#' available. Supplying \code{hierarchy_col} trains a broad root followed by
+#' conditional class models and combines their probabilities along each path.
+#' Random
 #' forest uses inverse-frequency balanced case sampling and out-of-bag
 #' predictions. This improves minority-class representation in each bootstrap
 #' sample without applying a second class-vote correction.
@@ -293,6 +300,14 @@
 #' \code{[0, 1]}. Cross-class correlations strictly greater than this value
 #' are conflicts when \code{cross_class = TRUE}.
 #' @param class_col,type_col metadata columns used for model labels.
+#' @param hierarchy_col optional metadata column defining the broad parent of
+#' each \code{class_col} value. Supplying it trains a hierarchical logistic
+#' model; \code{NULL} retains the flat model. Hierarchical random forests are
+#' not supported.
+#' @param selection_rule logistic lambda-selection policy. \code{"guardrailed"}
+#' protects maximum overall and macro accuracy within fixed absolute 0.01
+#' windows before minimizing log loss; \code{"macro"} and \code{"overall"}
+#' reproduce single-metric selection policies.
 #' @param nearest logical; if \code{TRUE}, \code{assess_lib()} compares each
 #' spectrum with its highest-correlation neighbor and reports the fraction where
 #' that neighbor has the same \code{class_col} value.
@@ -3925,11 +3940,14 @@ build_model_lib <- function(x, class_col = "material_class",
                             grouped = TRUE, weights = TRUE,
                             make_relative = TRUE,
                             method = c("logistic_regression", "random_forest"),
+                            hierarchy_col = NULL,
+                            selection_rule = c("guardrailed", "macro", "overall"),
                             ...) {
   train_spec_model(
     x = x, class_col = class_col, type_col = type_col, min_n = min_n,
     alpha = alpha, seed = seed, grouped = grouped, weights = weights,
-    make_relative = make_relative, method = method, ...
+    make_relative = make_relative, hierarchy_col = hierarchy_col,
+    selection_rule = selection_rule, method = method, ...
   )
 }
 
@@ -3971,6 +3989,611 @@ build_model_lib <- function(x, class_col = "material_class",
   do.call(glmnet::cv.glmnet, arguments)
 }
 
+.lib_model_labels <- function(metadata, class_col, type_col = NULL) {
+  labels <- as.character(metadata[[class_col]])
+  if (!is.null(type_col) && type_col %in% names(metadata)) {
+    types <- as.character(metadata[[type_col]])
+    labels <- ifelse(is.na(types), labels, paste(types, labels, sep = "_"))
+  }
+  labels
+}
+
+.lib_model_fold_assignment <- function(group_ids, labels, seed) {
+  outcome <- as.integer(factor(labels))
+  group_labels <- unique(data.table::data.table(
+    group_id = as.character(group_ids), outcome = outcome
+  ))
+  mixed_groups <- group_labels[, data.table::uniqueN(outcome), by = group_id][
+    V1 > 1L, group_id
+  ]
+  if (length(mixed_groups)) {
+    stop("Stable spectral groups span multiple model classes", call. = FALSE)
+  }
+  class_groups <- split(group_labels$group_id, group_labels$outcome)
+  nfolds <- min(5L, min(lengths(class_groups)))
+  if (nfolds < 3L) {
+    return(list(
+      foldid = rep.int(NA_integer_, length(group_ids)), nfolds = nfolds,
+      groups = group_labels[, fold := NA_integer_][]
+    ))
+  }
+  set.seed(seed)
+  group_fold <- character()
+  fold_value <- integer()
+  for (groups in class_groups) {
+    assignments <- sample(rep(seq_len(nfolds), length.out = length(groups)))
+    group_fold <- c(group_fold, groups)
+    fold_value <- c(fold_value, assignments)
+  }
+  foldid <- fold_value[match(group_ids, group_fold)]
+  group_labels[, fold := fold_value[match(group_id, group_fold)]]
+  list(foldid = as.integer(foldid), nfolds = as.integer(nfolds),
+       groups = group_labels)
+}
+
+.lib_probability_matrix <- function(predictions, n) {
+  dimensions <- dim(predictions)
+  if (is.null(dimensions)) {
+    predictions <- matrix(predictions, nrow = n)
+  } else if (length(dimensions) == 3L) {
+    predictions <- predictions[, , 1L, drop = FALSE]
+    dim(predictions) <- dimensions[1:2]
+  } else if (length(dimensions) != 2L) {
+    stop("Unexpected multinomial prediction shape", call. = FALSE)
+  }
+  predictions <- as.matrix(predictions)
+  if (nrow(predictions) != n) {
+    stop("Model predictions do not align with training spectra", call. = FALSE)
+  }
+  predictions
+}
+
+.lib_multinomial_link_probabilities <- function(link) {
+  link <- as.matrix(link)
+  probabilities <- matrix(
+    NA_real_, nrow = nrow(link), ncol = ncol(link), dimnames = dimnames(link)
+  )
+  valid <- apply(link, 1L, function(values) all(is.finite(values)))
+  if (!any(valid)) return(probabilities)
+  centered <- link[valid, , drop = FALSE] -
+    apply(link[valid, , drop = FALSE], 1L, max)
+  exponentiated <- exp(centered)
+  probabilities[valid, ] <- exponentiated / rowSums(exponentiated)
+  probabilities
+}
+
+.lib_probability_summary <- function(probabilities, outcome) {
+  probabilities <- as.matrix(probabilities)
+  scores <- probabilities
+  scores[!is.finite(scores)] <- -Inf
+  predicted <- max.col(scores, ties.method = "first")
+  valid <- rowSums(is.finite(probabilities)) > 0L
+  predicted[!valid] <- NA_integer_
+  class_rows <- split(seq_along(outcome), outcome)
+  class_accuracy <- vapply(class_rows, function(rows) {
+    mean(predicted[rows] == outcome[rows], na.rm = TRUE)
+  }, numeric(1L))
+  true_probability <- probabilities[cbind(seq_along(outcome), outcome)]
+  true_probability <- pmin(pmax(true_probability, .Machine$double.eps), 1)
+  log_loss <- if (all(!is.finite(true_probability))) NA_real_ else
+    mean(-log(true_probability), na.rm = TRUE)
+  one_hot <- matrix(0, nrow = length(outcome), ncol = ncol(probabilities))
+  one_hot[cbind(seq_along(outcome), outcome)] <- 1
+  row_brier <- rowSums((probabilities - one_hot)^2)
+  list(
+    overall_accuracy = if (all(!valid)) NA_real_ else
+      mean(predicted == outcome, na.rm = TRUE),
+    macro_class_accuracy = if (all(is.na(class_accuracy))) NA_real_ else
+      mean(class_accuracy, na.rm = TRUE),
+    log_loss = log_loss,
+    brier_score = if (all(!is.finite(row_brier))) NA_real_ else
+      mean(row_brier, na.rm = TRUE),
+    predicted = predicted,
+    class_accuracy = class_accuracy
+  )
+}
+
+.lib_select_lambda_metrics <- function(metrics, selection_rule,
+                                       accuracy_tolerance = 0.01) {
+  metrics <- data.table::copy(data.table::as.data.table(metrics))
+  selection_rule <- match.arg(
+    selection_rule, c("guardrailed", "macro", "overall")
+  )
+  metrics[, `:=`(
+    overall_eligible = FALSE, macro_eligible = FALSE, selected = FALSE,
+    selection_scope = "out_of_fold", selection_rule = selection_rule,
+    accuracy_tolerance = as.numeric(accuracy_tolerance)
+  )]
+  finite_overall <- which(is.finite(metrics$overall_accuracy))
+  finite_macro <- which(is.finite(metrics$macro_class_accuracy))
+  if (!length(finite_overall) || !length(finite_macro)) {
+    stop("No finite out-of-fold accuracy is available for lambda selection",
+         call. = FALSE)
+  }
+  if (identical(selection_rule, "guardrailed")) {
+    maximum <- max(metrics$overall_accuracy[finite_overall])
+    eligible <- finite_overall[
+      abs(metrics$overall_accuracy[finite_overall] - maximum) <=
+        accuracy_tolerance + sqrt(.Machine$double.eps)
+    ]
+    metrics[eligible, overall_eligible := TRUE]
+    best_macro <- max(metrics$macro_class_accuracy[eligible], na.rm = TRUE)
+    eligible <- eligible[
+      is.finite(metrics$macro_class_accuracy[eligible]) &
+        abs(metrics$macro_class_accuracy[eligible] - best_macro) <=
+          accuracy_tolerance + sqrt(.Machine$double.eps)
+    ]
+    metrics[eligible, macro_eligible := TRUE]
+    finite_loss <- eligible[is.finite(metrics$log_loss[eligible])]
+    if (length(finite_loss)) {
+      best_loss <- min(metrics$log_loss[finite_loss])
+      eligible <- finite_loss[metrics$log_loss[finite_loss] == best_loss]
+    }
+  } else if (identical(selection_rule, "macro")) {
+    best_macro <- max(metrics$macro_class_accuracy[finite_macro])
+    eligible <- finite_macro[metrics$macro_class_accuracy[finite_macro] ==
+                               best_macro]
+    metrics[eligible, `:=`(overall_eligible = TRUE, macro_eligible = TRUE)]
+  } else {
+    maximum <- max(metrics$overall_accuracy[finite_overall])
+    eligible <- finite_overall[metrics$overall_accuracy[finite_overall] ==
+                                  maximum]
+    metrics[eligible, `:=`(overall_eligible = TRUE, macro_eligible = TRUE)]
+  }
+  selected <- eligible[which.max(metrics$lambda[eligible])]
+  metrics[selected, selected := TRUE]
+  metrics[]
+}
+
+.lib_logistic_coefficients <- function(model, lambda, dimension_conversion) {
+  coefficients <- stats::coef(model, s = lambda)
+  coef_list <- if (is.list(coefficients)) coefficients else list(coefficients)
+  rows <- lapply(seq_along(coef_list), function(item) {
+    data.table::data.table(
+      dimensions_used = coef_list[[item]]@i,
+      dimension_units = coef_list[[item]]@x,
+      variable = item
+    )
+  })
+  coefficient_values <- data.table::rbindlist(rows)
+  wave <- data.table::data.table(
+    names = coef_list[[1L]]@Dimnames[[1L]],
+    id = seq_along(coef_list[[1L]]@Dimnames[[1L]]) - 1L
+  )
+  out <- merge(
+    coefficient_values, dimension_conversion,
+    by.x = "variable", by.y = "factor_num", all.x = TRUE
+  )
+  out <- merge(
+    out, wave, by.x = "dimensions_used", by.y = "id", all.x = FALSE
+  )
+  out$names <- suppressWarnings(as.numeric(ifelse(
+    out$names == "(Intercept)", "0", out$names
+  )))
+  out
+}
+
+.lib_fit_logistic_node <- function(train, labels, group_ids, fold_info = NULL,
+                                   alpha, grouped, weights, seed,
+                                   selection_rule, user_args = list()) {
+  outcome_factor <- factor(labels)
+  outcome <- as.integer(outcome_factor)
+  class_names <- levels(outcome_factor)
+  if (length(class_names) < 2L) {
+    stop("A fitted logistic node requires at least two classes", call. = FALSE)
+  }
+  dimension_conversion <- data.table::data.table(
+    factor_num = seq_along(class_names), name = class_names
+  )
+  weight_vec <- NULL
+  if (weights) {
+    weight_vec <- 1 /
+      (table(outcome)[as.character(outcome)] / length(outcome))
+  }
+  glmnet_args <- list(
+    x = train, y = outcome, alpha = alpha, family = "multinomial",
+    intercept = FALSE,
+    type.multinomial = if (grouped) "grouped" else "ungrouped",
+    maxit = 1000000L
+  )
+  if (!is.null(weight_vec)) glmnet_args$weights <- as.numeric(weight_vec)
+  glmnet_args[names(user_args)] <- user_args
+
+  if (is.null(fold_info)) {
+    fold_info <- .lib_model_fold_assignment(group_ids, labels, seed)
+  }
+  nfolds <- as.integer(fold_info$nfolds)
+  oof_probabilities <- NULL
+  if (nfolds >= 3L) {
+    cv_args <- glmnet_args
+    cv_args$foldid <- as.integer(fold_info$foldid)
+    cv_args$nfolds <- nfolds
+    cv_args$type.measure <- "class"
+    cv_args$keep <- TRUE
+    fit <- .lib_cv_glmnet(
+      cv_args, workers = .lib_build_workers(), folds = nfolds, seed = seed
+    )
+    model <- fit$glmnet.fit
+    lambda_metrics <- .lib_macro_lambda_metrics(
+      fit$fit.preval, outcome = outcome, lambda = fit$lambda,
+      selection_rule = selection_rule
+    )
+    selected_index <- which(lambda_metrics$selected)[[1L]]
+    lambda <- lambda_metrics$lambda[selected_index]
+    selected_oof <- fit$fit.preval[, , selected_index, drop = FALSE]
+    oof_probabilities <- .lib_multinomial_link_probabilities(
+      .lib_probability_matrix(
+        selected_oof, n = length(outcome)
+      )
+    )
+  } else {
+    model <- do.call(glmnet::glmnet, glmnet_args)
+    lambda <- min(model$lambda)
+    selected_index <- length(model$lambda)
+    lambda_metrics <- data.table::data.table(
+      lambda = as.numeric(lambda), macro_class_accuracy = NA_real_,
+      overall_accuracy = NA_real_, log_loss = NA_real_, brier_score = NA_real_,
+      overall_eligible = TRUE, macro_eligible = TRUE, selected = TRUE,
+      selection_scope = "minimum_lambda_insufficient_folds",
+      selection_rule = "minimum_lambda_without_three_folds",
+      accuracy_tolerance = 0.01
+    )
+  }
+  convergence_error <- if (is.null(model$jerr)) 0L else as.integer(model$jerr)
+  selected_lambda_converged <- convergence_error == 0L ||
+    selected_index < length(model$lambda)
+  model$call <- NULL
+  coefficients <- .lib_logistic_coefficients(
+    model, lambda, dimension_conversion
+  )
+  full_probabilities <- .lib_probability_matrix(
+    predict(model, newx = train, s = lambda, type = "response"),
+    n = nrow(train)
+  )
+  colnames(full_probabilities) <- as.character(
+    dimension_conversion$factor_num
+  )
+  if (!is.null(oof_probabilities)) {
+    colnames(oof_probabilities) <- colnames(full_probabilities)
+    selected_summary <- .lib_probability_summary(oof_probabilities, outcome)
+    class_metrics <- data.table::data.table(
+      class = class_names,
+      spectra = as.integer(table(outcome)[as.character(seq_along(class_names))]),
+      recall = as.numeric(selected_summary$class_accuracy)
+    )
+  } else {
+    class_metrics <- data.table::data.table(
+      class = class_names,
+      spectra = as.integer(table(outcome)[as.character(seq_along(class_names))]),
+      recall = NA_real_
+    )
+  }
+  list(
+    model = model, lambda_selected = as.numeric(lambda),
+    lambda_path_complete = convergence_error == 0L,
+    selected_lambda_converged = selected_lambda_converged,
+    convergence_error = convergence_error,
+    selection_metric = if (identical(selection_rule, "guardrailed")) {
+      "guardrailed_overall_macro_log_loss"
+    } else if (identical(selection_rule, "macro")) {
+      "macro_class_accuracy"
+    } else {
+      "overall_accuracy"
+    },
+    lambda_metrics = lambda_metrics,
+    class_metrics = class_metrics,
+    dimension_conversion = dimension_conversion,
+    class_names = class_names,
+    coefficients = coefficients,
+    full_probabilities = full_probabilities,
+    oof_probabilities = oof_probabilities,
+    fold_info = fold_info
+  )
+}
+
+.lib_model_training_tests <- function(probabilities, labels, metadata,
+                                      type_col, dimension_conversion,
+                                      provenance = "model_fit") {
+  summary <- .lib_probability_summary(
+    probabilities, match(labels, dimension_conversion$name)
+  )
+  predicted <- dimension_conversion$name[summary$predicted]
+  score <- probabilities[cbind(seq_along(labels), summary$predicted)]
+  ids <- if ("sample_name" %in% names(metadata)) {
+    as.character(metadata$sample_name)
+  } else {
+    rownames(probabilities)
+  }
+  if (is.null(ids)) ids <- paste0("spectrum_", seq_along(labels))
+  technique <- if (!is.null(type_col) && type_col %in% names(metadata)) {
+    as.character(metadata[[type_col]])
+  } else {
+    NA_character_
+  }
+  data.table::data.table(
+    spectrum_id = ids, technique = technique,
+    expected_class = labels, predicted_class = predicted,
+    correct = labels == predicted, score = as.numeric(score),
+    split = "training", provenance = provenance
+  )
+}
+
+.lib_deterministic_logistic_node <- function(class_name, n) {
+  conversion <- data.table::data.table(factor_num = 1L, name = class_name)
+  probabilities <- matrix(
+    1, nrow = n, ncol = 1L,
+    dimnames = list(NULL, "1")
+  )
+  list(
+    model = NULL, deterministic = TRUE, lambda_selected = NA_real_,
+    lambda_path_complete = TRUE, selected_lambda_converged = TRUE,
+    convergence_error = 0L, selection_metric = "deterministic_single_class",
+    lambda_metrics = data.table::data.table(),
+    class_metrics = data.table::data.table(
+      class = class_name, spectra = as.integer(n), recall = 1
+    ),
+    dimension_conversion = conversion, class_names = class_name,
+    coefficients = data.table::data.table(),
+    full_probabilities = probabilities, oof_probabilities = probabilities
+  )
+}
+
+.lib_logistic_node_runtime <- function(fitted) {
+  list(
+    model = fitted$model,
+    deterministic = isTRUE(fitted$deterministic),
+    lambda_selected = fitted$lambda_selected,
+    dimension_conversion = fitted$dimension_conversion,
+    class_names = fitted$class_names,
+    selected_lambda_converged = fitted$selected_lambda_converged,
+    lambda_path_complete = fitted$lambda_path_complete
+  )
+}
+
+.lib_predict_fitted_logistic_node <- function(fitted, train) {
+  if (isTRUE(fitted$deterministic)) {
+    return(matrix(
+      1, nrow = nrow(train), ncol = 1L,
+      dimnames = list(NULL, "1")
+    ))
+  }
+  out <- .lib_probability_matrix(
+    predict(
+      fitted$model, newx = train, s = fitted$lambda_selected,
+      type = "response"
+    ),
+    n = nrow(train)
+  )
+  colnames(out) <- as.character(fitted$dimension_conversion$factor_num)
+  out
+}
+
+.lib_normalize_probability_rows <- function(probabilities) {
+  totals <- rowSums(probabilities, na.rm = FALSE)
+  valid <- is.finite(totals) & totals > 0
+  probabilities[valid, ] <- probabilities[valid, , drop = FALSE] /
+    totals[valid]
+  probabilities
+}
+
+.lib_train_hierarchical_logistic <- function(
+    train, labels, broad_labels, metadata, type_col, group_ids, fold_info,
+    alpha, grouped, weights, seed, selection_rule, user_args, fill, support,
+    class_support, fill_replaced, fold_assignments) {
+  leaf_factor <- factor(labels)
+  leaf_names <- levels(leaf_factor)
+  leaf_conversion <- data.table::data.table(
+    factor_num = seq_along(leaf_names), name = leaf_names
+  )
+  broad_factor <- factor(broad_labels)
+  broad_names <- levels(broad_factor)
+  broad_conversion <- data.table::data.table(
+    factor_num = seq_along(broad_names), name = broad_names
+  )
+  hierarchy <- unique(data.table::data.table(
+    branch = broad_labels, leaf = labels
+  ))
+  hierarchy[, `:=`(
+    branch_factor_num = broad_conversion$factor_num[
+      match(branch, broad_conversion$name)
+    ],
+    factor_num = leaf_conversion$factor_num[match(leaf, leaf_conversion$name)]
+  )]
+  data.table::setorder(hierarchy, branch_factor_num, factor_num)
+
+  if (length(broad_names) == 1L) {
+    root <- .lib_deterministic_logistic_node(
+      broad_names[[1L]], nrow(train)
+    )
+  } else {
+    message(sprintf(
+      "train_spec_model: fitting hierarchy root (%d spectra; %d classes)",
+      nrow(train), length(broad_names)
+    ))
+    root <- .lib_fit_logistic_node(
+      train = train, labels = broad_labels, group_ids = group_ids,
+      fold_info = fold_info, alpha = alpha, grouped = grouped,
+      weights = weights, seed = seed, selection_rule = selection_rule,
+      user_args = user_args
+    )
+  }
+
+  branch_fits <- stats::setNames(vector("list", length(broad_names)), broad_names)
+  for (branch_i in seq_along(broad_names)) {
+    branch <- broad_names[[branch_i]]
+    rows <- which(broad_labels == branch)
+    branch_leaves <- sort(unique(labels[rows]))
+    if (length(branch_leaves) == 1L) {
+      branch_fits[[branch]] <- .lib_deterministic_logistic_node(
+        branch_leaves[[1L]], length(rows)
+      )
+      next
+    }
+    message(sprintf(
+      paste0("train_spec_model: fitting hierarchy branch '%s' ",
+             "(%d spectra; %d classes)"),
+      branch, length(rows), length(branch_leaves)
+    ))
+    branch_fold <- list(
+      foldid = fold_info$foldid[rows], nfolds = fold_info$nfolds,
+      groups = fold_info$groups[group_id %in% unique(group_ids[rows])]
+    )
+    branch_fits[[branch]] <- .lib_fit_logistic_node(
+      train = train[rows, , drop = FALSE], labels = labels[rows],
+      group_ids = group_ids[rows], fold_info = branch_fold,
+      alpha = alpha, grouped = grouped, weights = weights,
+      seed = seed + branch_i, selection_rule = selection_rule,
+      user_args = user_args
+    )
+  }
+
+  compose <- function(use_oof) {
+    root_probability <- if (isTRUE(use_oof)) {
+      root$oof_probabilities
+    } else {
+      root$full_probabilities
+    }
+    if (is.null(root_probability)) return(NULL)
+    probabilities <- matrix(
+      0, nrow = nrow(train), ncol = length(leaf_names),
+      dimnames = list(rownames(train), as.character(seq_along(leaf_names)))
+    )
+    for (branch in broad_names) {
+      fitted <- branch_fits[[branch]]
+      conditional <- .lib_predict_fitted_logistic_node(fitted, train)
+      own_rows <- which(broad_labels == branch)
+      if (isTRUE(use_oof) && !isTRUE(fitted$deterministic)) {
+        if (is.null(fitted$oof_probabilities)) return(NULL)
+        conditional[own_rows, ] <- fitted$oof_probabilities
+      }
+      root_column <- broad_conversion$factor_num[
+        match(branch, broad_conversion$name)
+      ]
+      for (leaf in fitted$class_names) {
+        leaf_column <- leaf_conversion$factor_num[
+          match(leaf, leaf_conversion$name)
+        ]
+        child_column <- fitted$dimension_conversion$factor_num[
+          match(leaf, fitted$dimension_conversion$name)
+        ]
+        probabilities[, leaf_column] <-
+          root_probability[, root_column] * conditional[, child_column]
+      }
+    }
+    .lib_normalize_probability_rows(probabilities)
+  }
+
+  full_probabilities <- compose(FALSE)
+  oof_probabilities <- if (fold_info$nfolds >= 3L) compose(TRUE) else NULL
+  tests <- .lib_model_training_tests(
+    full_probabilities, labels, metadata, type_col, leaf_conversion,
+    provenance = "hierarchical_model_fit"
+  )
+
+  lambda_rows <- list()
+  class_rows <- list()
+  add_node_metrics <- function(fitted, node, role) {
+    if (nrow(fitted$lambda_metrics)) {
+      lambda <- data.table::copy(fitted$lambda_metrics)
+      lambda[, `:=`(node = node, node_role = role)]
+      lambda_rows[[length(lambda_rows) + 1L]] <<- lambda
+    }
+    classes <- data.table::copy(fitted$class_metrics)
+    classes[, `:=`(node = node, node_role = role)]
+    class_rows[[length(class_rows) + 1L]] <<- classes
+  }
+  add_node_metrics(root, "root", "broad")
+  for (branch in broad_names) {
+    add_node_metrics(
+      branch_fits[[branch]], paste0("branch:", branch), "conditional"
+    )
+  }
+  lambda_metrics <- data.table::rbindlist(lambda_rows, fill = TRUE)
+  class_metrics <- data.table::rbindlist(class_rows, fill = TRUE)
+
+  hierarchy_metrics <- data.table::data.table()
+  if (!is.null(oof_probabilities)) {
+    leaf_summary <- .lib_probability_summary(
+      oof_probabilities, as.integer(leaf_factor)
+    )
+    broad_summary <- .lib_probability_summary(
+      root$oof_probabilities, as.integer(broad_factor)
+    )
+    hierarchy_metrics <- data.table::data.table(
+      scope = c("leaf", "broad"),
+      overall_accuracy = c(
+        leaf_summary$overall_accuracy, broad_summary$overall_accuracy
+      ),
+      macro_class_accuracy = c(
+        leaf_summary$macro_class_accuracy, broad_summary$macro_class_accuracy
+      ),
+      log_loss = c(leaf_summary$log_loss, broad_summary$log_loss),
+      brier_score = c(leaf_summary$brier_score, broad_summary$brier_score),
+      folds = rep.int(as.integer(fold_info$nfolds), 2L)
+    )
+  }
+
+  branch_models <- lapply(branch_fits, .lib_logistic_node_runtime)
+  converged <- c(
+    root$selected_lambda_converged,
+    vapply(branch_fits, `[[`, logical(1L), "selected_lambda_converged")
+  )
+  complete_path <- c(
+    root$lambda_path_complete,
+    vapply(branch_fits, `[[`, logical(1L), "lambda_path_complete")
+  )
+  errors <- c(
+    root$convergence_error,
+    vapply(branch_fits, `[[`, integer(1L), "convergence_error")
+  )
+  coefficient_axes <- c(
+    root$coefficients$names,
+    unlist(lapply(branch_fits, function(fitted) fitted$coefficients$names),
+           use.names = FALSE)
+  )
+
+  list(
+    model = root$model,
+    model_type = "hierarchical_logistic_regression",
+    broad_deterministic = isTRUE(root$deterministic),
+    broad_dimension_conversion = broad_conversion,
+    branch_models = branch_models,
+    hierarchy = hierarchy,
+    lambda_selected = root$lambda_selected,
+    lambda_path_complete = all(complete_path),
+    selected_lambda_converged = all(converged),
+    convergence_error = if (length(errors)) max(errors) else 0L,
+    training_groups = data.table::uniqueN(group_ids),
+    selection_metric = if (identical(selection_rule, "guardrailed")) {
+      "guardrailed_overall_macro_log_loss"
+    } else if (identical(selection_rule, "macro")) {
+      "macro_class_accuracy"
+    } else {
+      "overall_accuracy"
+    },
+    selection_rule = selection_rule,
+    selection_accuracy_tolerance = 0.01,
+    lambda_metrics = lambda_metrics,
+    class_metrics = class_metrics,
+    hierarchy_metrics = hierarchy_metrics,
+    fold_assignments = fold_assignments,
+    dimension_conversion = leaf_conversion,
+    tests = tests,
+    coefficients = data.table::data.table(),
+    class_names = leaf_names,
+    class_num = length(leaf_names),
+    observation_count = length(labels),
+    fill = fill,
+    support = support,
+    class_support = class_support,
+    fill_method = "wavenumber_mean",
+    fill_replaced = as.integer(fill_replaced),
+    variable_num = length(unique(coefficient_axes[is.finite(coefficient_axes)])),
+    all_variables = suppressWarnings(as.numeric(colnames(train))),
+    variables_in = sort(unique(coefficient_axes[is.finite(coefficient_axes)]))
+  )
+}
+
 #' @rdname build_lib
 #' @export
 train_spec_model <- function(x, class_col = "material_class",
@@ -3979,10 +4602,26 @@ train_spec_model <- function(x, class_col = "material_class",
                              grouped = TRUE, weights = TRUE,
                              make_relative = TRUE,
                              method = c("logistic_regression", "random_forest"),
+                             hierarchy_col = NULL,
+                             selection_rule = c("guardrailed", "macro", "overall"),
                              ...) {
   method <- match.arg(method)
+  selection_rule <- match.arg(selection_rule)
+  if (!is.null(hierarchy_col) &&
+      (!is.character(hierarchy_col) || length(hierarchy_col) != 1L ||
+       is.na(hierarchy_col) || !nzchar(hierarchy_col))) {
+    stop("'hierarchy_col' must be NULL or one nonempty column name",
+         call. = FALSE)
+  }
+  if (!is.null(hierarchy_col) && identical(method, "random_forest")) {
+    stop("Hierarchical training currently supports logistic regression only",
+         call. = FALSE)
+  }
   x <- as_OpenSpecy(x)
   .lib_require_cols(x$metadata, class_col, "metadata")
+  if (!is.null(hierarchy_col)) {
+    .lib_require_cols(x$metadata, hierarchy_col, "metadata")
+  }
 
   supported <- .lib_filter_spectral_support(x, min_fraction = 0.1)
   x <- supported$object
@@ -3993,12 +4632,8 @@ train_spec_model <- function(x, class_col = "material_class",
   if (make_relative) spectra <- make_rel(spectra, na.rm = TRUE)
   metadata <- data.table::copy(x$metadata)
 
-  labels <- as.character(metadata[[class_col]])
-  if (!is.null(type_col) && type_col %in% names(metadata)) {
-    types <- as.character(metadata[[type_col]])
-    labels <- ifelse(is.na(types), labels, paste(types, labels, sep = "_"))
-  }
-  keep <- !is.na(labels)
+  labels <- .lib_model_labels(metadata, class_col, type_col)
+  keep <- !is.na(labels) & nzchar(trimws(labels))
   tab <- table(labels[keep])
   class_support <- data.table::data.table(
     class = names(tab), spectra = as.integer(tab),
@@ -4020,19 +4655,39 @@ train_spec_model <- function(x, class_col = "material_class",
   grouping_object$metadata <- metadata
   group_ids <- .lib_stable_group_info(grouping_object)$group_id
 
+  broad_labels <- NULL
+  if (!is.null(hierarchy_col)) {
+    broad_raw <- as.character(metadata[[hierarchy_col]])
+    incomplete <- is.na(broad_raw) | !nzchar(trimws(broad_raw))
+    if (any(incomplete)) {
+      stop(
+        "Hierarchical model metadata has ", sum(incomplete),
+        " retained spectrum/spectra without '", hierarchy_col, "'",
+        call. = FALSE
+      )
+    }
+    hierarchy_metadata <- data.table::copy(metadata)
+    hierarchy_metadata[[hierarchy_col]] <- broad_raw
+    broad_labels <- .lib_model_labels(
+      hierarchy_metadata, hierarchy_col, type_col
+    )
+    leaf_branch <- unique(data.table::data.table(
+      leaf = labels, branch = broad_labels
+    ))
+    ambiguous <- leaf_branch[, data.table::uniqueN(branch), by = leaf][V1 > 1L]
+    if (nrow(ambiguous)) {
+      stop(
+        "Each final model class must map to exactly one hierarchy parent; ",
+        "ambiguous class(es): ", paste(ambiguous$leaf, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+
   filled <- .lib_wavenumber_mean_replace(spectra)
   spectra <- filled$spectra
   train <- t(spectra)
   colnames(train) <- as.character(wavenumbers)
-
-  outcome <- as.integer(factor(labels))
-  weight_vec <- NULL
-  if (weights) weight_vec <- 1 / (table(outcome)[as.character(outcome)] / length(outcome))
-
-  dimension_conversion <- unique(data.table::data.table(
-    factor_num = outcome,
-    name = labels
-  ))
   fill_values <- filled$means
   fill <- as_OpenSpecy(
     wavenumbers,
@@ -4044,6 +4699,12 @@ train_spec_model <- function(x, class_col = "material_class",
   )
 
   if (identical(method, "random_forest")) {
+    outcome_factor <- factor(labels)
+    outcome <- as.integer(outcome_factor)
+    dimension_conversion <- data.table::data.table(
+      factor_num = seq_along(levels(outcome_factor)),
+      name = levels(outcome_factor)
+    )
     return(.lib_build_random_forest(
       train = train, outcome = outcome, labels = labels, metadata = metadata,
       type_col = type_col, weights = weights, seed = seed,
@@ -4052,156 +4713,72 @@ train_spec_model <- function(x, class_col = "material_class",
       fill_replaced = filled$replaced, ...
     ))
   }
-
-  set.seed(seed)
-  glmnet_args <- list(
-    x = train,
-    y = outcome,
-    alpha = alpha,
-    family = "multinomial",
-    intercept = FALSE,
-    type.multinomial = if (grouped) "grouped" else "ungrouped",
-    maxit = 1000000L
-  )
-  if (!is.null(weight_vec)) glmnet_args$weights <- as.numeric(weight_vec)
+  fold_info <- .lib_model_fold_assignment(group_ids, labels, seed)
   user_args <- list(...)
-  glmnet_args[names(user_args)] <- user_args
 
-  group_labels <- unique(data.table::data.table(
-    group_id = group_ids, outcome = outcome
-  ))
-  mixed_groups <- group_labels[, data.table::uniqueN(outcome), by = group_id][
-    V1 > 1L, group_id
-  ]
-  if (length(mixed_groups)) {
-    stop("Stable spectral groups span multiple model classes", call. = FALSE)
-  }
-  class_groups <- split(group_labels$group_id, group_labels$outcome)
-  nfolds <- min(5L, min(lengths(class_groups)))
-  if (nfolds >= 3L) {
-    group_fold <- character()
-    fold_value <- integer()
-    for (groups in class_groups) {
-      assignments <- sample(rep(seq_len(nfolds), length.out = length(groups)))
-      group_fold <- c(group_fold, groups)
-      fold_value <- c(fold_value, assignments)
-    }
-    foldid <- fold_value[match(group_ids, group_fold)]
-    cv_args <- glmnet_args
-    cv_args$foldid <- foldid
-    cv_args$nfolds <- nfolds
-    cv_args$type.measure <- "class"
-    cv_args$keep <- TRUE
-    fit <- .lib_cv_glmnet(
-      cv_args, workers = .lib_build_workers(), folds = nfolds, seed = seed
-    )
-    model <- fit$glmnet.fit
-    lambda_metrics <- .lib_macro_lambda_metrics(
-      fit$fit.preval, outcome = outcome, lambda = fit$lambda
-    )
-    selected_index <- which(lambda_metrics$selected)[[1L]]
-    lambda <- lambda_metrics$lambda[selected_index]
-  } else {
-    model <- do.call(glmnet::glmnet, glmnet_args)
-    lambda <- min(model$lambda)
-    selected_index <- length(model$lambda)
-    lambda_metrics <- data.table::data.table(
-      lambda = as.numeric(lambda), macro_class_accuracy = NA_real_,
-      overall_accuracy = NA_real_, selected = TRUE,
-      selection_scope = "minimum_lambda_insufficient_folds",
-      selection_rule = "minimum_lambda_without_three_folds"
-    )
-  }
-  convergence_error <- if (is.null(model$jerr)) 0L else as.integer(model$jerr)
-  selected_lambda_converged <- convergence_error == 0L ||
-    selected_index < length(model$lambda)
-  # Calls produced through do.call() can capture the complete training matrix
-  # and outcome. They are not used by coef() or predict(), and retaining them
-  # needlessly adds many megabytes to checkpoints and release artifacts.
-  model$call <- NULL
-  coefficients <- stats::coef(model, s = lambda)
-
-  coef_list <- if (is.list(coefficients)) coefficients else list(coefficients)
-  rows <- lapply(seq_along(coef_list), function(item) {
-    data.table::data.table(
-      dimensions_used = coef_list[[item]]@i,
-      dimension_units = coef_list[[item]]@x,
-      variable = item
-    )
-  })
-  coefficient_values <- data.table::rbindlist(rows)
-  wave <- data.table::data.table(
-    names = coef_list[[1]]@Dimnames[[1]],
-    id = seq_along(coef_list[[1]]@Dimnames[[1]]) - 1L
-  )
-  coefficients_join <- merge(coefficient_values, dimension_conversion,
-                             by.x = "variable", by.y = "factor_num",
-                             all.x = TRUE)
-  coefficients_join <- merge(coefficients_join, wave,
-                             by.x = "dimensions_used", by.y = "id",
-                             all.x = FALSE)
-  coefficients_join$names <- suppressWarnings(as.numeric(ifelse(
-    coefficients_join$names == "(Intercept)", "0", coefficients_join$names
-  )))
-
-  predictions <- predict(model, newx = train, s = lambda, type = "response")
-  pred <- .ai_prediction_table(predictions, n = nrow(train))
-  actual <- data.table::data.table(row_id = seq_along(outcome),
-                                   actual_label = outcome,
-                                   actual_name = labels)
-  tests <- merge(pred, actual, by.x = "x", by.y = "row_id", all.x = TRUE)
-  tests <- merge(tests, dimension_conversion, by.x = "y",
-                 by.y = "factor_num", all.x = TRUE)
-  names(tests)[names(tests) == "name"] <- "predicted_class"
   ids <- if ("sample_name" %in% names(metadata)) {
     as.character(metadata$sample_name)
   } else {
     rownames(train)
   }
   if (is.null(ids)) ids <- paste0("spectrum_", seq_len(nrow(train)))
-  technique <- if (!is.null(type_col) && type_col %in% names(metadata)) {
-    as.character(metadata[[type_col]])
-  } else {
-    NA_character_
+  fold_assignments <- data.table::data.table(
+    spectrum_id = ids, group_id = as.character(group_ids),
+    fold = as.integer(fold_info$foldid), final_class = labels,
+    broad_class = if (is.null(broad_labels)) NA_character_ else broad_labels
+  )
+
+  if (!is.null(hierarchy_col)) {
+    return(.lib_train_hierarchical_logistic(
+      train = train, labels = labels, broad_labels = broad_labels,
+      metadata = metadata, type_col = type_col, group_ids = group_ids,
+      fold_info = fold_info, alpha = alpha, grouped = grouped,
+      weights = weights, seed = seed, selection_rule = selection_rule,
+      user_args = user_args, fill = fill, support = support,
+      class_support = class_support, fill_replaced = filled$replaced,
+      fold_assignments = fold_assignments
+    ))
   }
-  tests[, `:=`(
-    spectrum_id = ids[x],
-    technique = technique[x],
-    expected_class = actual_name,
-    correct = actual_name == predicted_class,
-    score = value,
-    split = "training",
-    provenance = "model_fit"
-  )]
-  tests <- tests[, .(
-    spectrum_id, technique, expected_class, predicted_class, correct, score,
-    split, provenance
-  )]
+
+  fitted <- .lib_fit_logistic_node(
+    train = train, labels = labels, group_ids = group_ids,
+    fold_info = fold_info, alpha = alpha, grouped = grouped,
+    weights = weights, seed = seed, selection_rule = selection_rule,
+    user_args = user_args
+  )
+  tests <- .lib_model_training_tests(
+    fitted$full_probabilities, labels, metadata, type_col,
+    fitted$dimension_conversion
+  )
 
   list(
-    model = model,
+    model = fitted$model,
     model_type = "logistic_regression",
-    lambda_selected = lambda,
-    lambda_path_complete = convergence_error == 0L,
-    selected_lambda_converged = selected_lambda_converged,
-    convergence_error = convergence_error,
+    lambda_selected = fitted$lambda_selected,
+    lambda_path_complete = fitted$lambda_path_complete,
+    selected_lambda_converged = fitted$selected_lambda_converged,
+    convergence_error = fitted$convergence_error,
     training_groups = data.table::uniqueN(group_ids),
-    selection_metric = "macro_class_accuracy",
-    lambda_metrics = lambda_metrics,
-    dimension_conversion = dimension_conversion,
+    selection_metric = fitted$selection_metric,
+    selection_rule = selection_rule,
+    selection_accuracy_tolerance = 0.01,
+    lambda_metrics = fitted$lambda_metrics,
+    class_metrics = fitted$class_metrics,
+    fold_assignments = fold_assignments,
+    dimension_conversion = fitted$dimension_conversion,
     tests = tests,
-    coefficients = coefficients_join,
-    class_names = unique(labels),
-    class_num = length(unique(outcome)),
+    coefficients = fitted$coefficients,
+    class_names = fitted$class_names,
+    class_num = length(fitted$class_names),
     observation_count = length(labels),
     fill = fill,
     support = support,
     class_support = class_support,
     fill_method = "wavenumber_mean",
     fill_replaced = as.integer(filled$replaced),
-    variable_num = nrow(coefficients_join),
+    variable_num = nrow(fitted$coefficients),
     all_variables = as.numeric(colnames(train)),
-    variables_in = coefficients_join$names
+    variables_in = fitted$coefficients$names
   )
 }
 
@@ -4407,32 +4984,34 @@ train_spec_model <- function(x, class_col = "material_class",
   list(spectra = spectra, means = means, replaced = sum(missing))
 }
 
-.lib_macro_lambda_metrics <- function(predictions, outcome, lambda) {
+.lib_macro_lambda_metrics <- function(
+    predictions, outcome, lambda,
+    selection_rule = c("guardrailed", "macro", "overall")) {
+  selection_rule <- match.arg(selection_rule)
   dimensions <- dim(predictions)
   if (length(dimensions) != 3L || dimensions[1L] != length(outcome) ||
       dimensions[3L] != length(lambda)) {
     stop("Unexpected multinomial cross-validation prediction shape",
          call. = FALSE)
   }
-  predicted <- apply(predictions, c(1L, 3L), which.max)
-  if (is.null(dim(predicted))) {
-    predicted <- matrix(predicted, nrow = length(outcome))
-  }
-  macro <- vapply(seq_along(lambda), function(i) {
-    class_accuracy <- vapply(split(seq_along(outcome), outcome), function(rows) {
-      mean(predicted[rows, i] == outcome[rows], na.rm = TRUE)
-    }, numeric(1))
-    mean(class_accuracy, na.rm = TRUE)
-  }, numeric(1))
-  overall <- vapply(seq_along(lambda), function(i) {
-    mean(predicted[, i] == outcome, na.rm = TRUE)
-  }, numeric(1))
-  best <- which.max(macro)
-  data.table::data.table(
-    lambda = as.numeric(lambda), macro_class_accuracy = macro,
-    overall_accuracy = overall, selected = seq_along(lambda) == best,
-    selection_scope = "out_of_fold",
-    selection_rule = "max_macro_accuracy_then_largest_lambda"
+  summaries <- lapply(seq_along(lambda), function(i) {
+    .lib_probability_summary(
+      .lib_multinomial_link_probabilities(predictions[, , i]), outcome
+    )
+  })
+  metrics <- data.table::data.table(
+    lambda = as.numeric(lambda),
+    macro_class_accuracy = vapply(
+      summaries, `[[`, numeric(1L), "macro_class_accuracy"
+    ),
+    overall_accuracy = vapply(
+      summaries, `[[`, numeric(1L), "overall_accuracy"
+    ),
+    log_loss = vapply(summaries, `[[`, numeric(1L), "log_loss"),
+    brier_score = vapply(summaries, `[[`, numeric(1L), "brier_score")
+  )
+  .lib_select_lambda_metrics(
+    metrics, selection_rule = selection_rule, accuracy_tolerance = 0.01
   )
 }
 
@@ -4766,15 +5345,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   local_assessments$metadata_finalization <- finalized$assessment
 
-  models <- checkpoints$get("models_logistic_regression_parallel_rng_v2")
+  models <- checkpoints$get("models_guardrailed_hierarchy_v1")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
     model_result <- .lib_build_models(
-      libraries, medoids, report = report, checkpoints = checkpoints
+      libraries, medoids, report = report, checkpoints = checkpoints,
+      methods = c("logistic_regression", "hierarchical_logistic_regression")
     )
     models <- model_result$models
     model_warnings <- model_result$warnings
-    checkpoints$put("models_logistic_regression_parallel_rng_v2", models)
+    checkpoints$put("models_guardrailed_hierarchy_v1", models)
   }
 
   build <- list(
@@ -4790,14 +5370,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "typed-legacy-bundles-v18-accuracy-comparison"
+      assessment_version = "hierarchical-bundles-v19-accuracy-comparison"
     ),
     algo = "sha256"
   )
   fallback_assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "selected-lambda-logistic-v14"
+      assessment_version = "guardrailed-logistic-v15"
     ),
     algo = "sha256"
   )
@@ -4807,7 +5387,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!is.null(cached_assessments)) {
     build$assessments <- cached_assessments
     validated_models <- checkpoints$get(
-      "validated_models_parallel_rng_v1", key = assessment_key
+      "validated_models_hierarchy_v2", key = assessment_key
     )
     if (!is.null(validated_models)) build$models <- validated_models
   } else if (!is.null(previous_library_dir)) {
@@ -4821,7 +5401,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
       checkpoints$put(
-        "validated_models_parallel_rng_v1", build$models, key = assessment_key
+        "validated_models_hierarchy_v2", build$models, key = assessment_key
       )
       comparison$models <- NULL
     }
@@ -4888,7 +5468,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   quarantine <- input$quarantine
   signature <- digest::digest(list(
     input = input$signature,
-    downstream_version = "full-library-random-forest-model-v5-range-flat-filter"
+    downstream_version = "guardrailed-hierarchical-model-v6"
   ), algo = "sha256")
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = signature, reuse = reuse, report = report
@@ -4913,32 +5493,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   if (is.null(completed)) completed <- list()
   completed$metadata_finalization <- finalized$assessment
-  models <- checkpoints$get("models_logistic_regression_parallel_rng_v2")
+  models <- checkpoints$get("models_guardrailed_hierarchy_v1")
   model_warnings <- .lib_warning_schema()
   if (is.null(models)) {
-    supplied_models <- input$models
-    if (!is.null(supplied_models$logistic_regression)) {
-      for (recipe in names(supplied_models$logistic_regression)) {
-        for (type in names(supplied_models$logistic_regression[[recipe]])) {
-          stage <- paste(
-            "model", "logistic_regression", recipe, type, sep = "_"
-          )
-          stage <- paste0(stage, "_parallel_rng_v1")
-          if (is.null(checkpoints$get(stage))) {
-            model <- supplied_models$logistic_regression[[recipe]][[type]]
-            if (is.null(model$model_type)) model$model_type <- "logistic_regression"
-            checkpoints$put(stage, model)
-          }
-        }
-      }
-      report("reusing compatible logistic models supplied by the completed build")
-    }
+    report("reusing completed libraries/medoids and refitting model candidates")
     result <- .lib_build_models(
-      libraries, medoids, report = report, checkpoints = checkpoints
+      libraries, medoids, report = report, checkpoints = checkpoints,
+      methods = c("logistic_regression", "hierarchical_logistic_regression")
     )
     models <- result$models
     model_warnings <- result$warnings
-    checkpoints$put("models_logistic_regression_parallel_rng_v2", models)
+    checkpoints$put("models_guardrailed_hierarchy_v1", models)
   }
   build <- list(
     libraries = libraries, medoids = medoids, models = models,
@@ -4950,11 +5515,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "typed-legacy-bundles-v18-accuracy-comparison"
+    assessment_version = "hierarchical-bundles-v19-accuracy-comparison"
   ), algo = "sha256")
   fallback_assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "selected-lambda-logistic-v14"
+    assessment_version = "guardrailed-logistic-v15"
   ), algo = "sha256")
   cached <- checkpoints$get(
     "assessment_components_parallel_rng_v1", key = assessment_key
@@ -4962,7 +5527,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!is.null(cached)) {
     build$assessments <- cached
     validated <- checkpoints$get(
-      "validated_models_parallel_rng_v1", key = assessment_key
+      "validated_models_hierarchy_v2", key = assessment_key
     )
     if (!is.null(validated)) build$models <- validated
   } else if (!is.null(previous_library_dir)) {
@@ -4976,7 +5541,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
       checkpoints$put(
-        "validated_models_parallel_rng_v1", build$models, key = assessment_key
+        "validated_models_hierarchy_v2", build$models, key = assessment_key
       )
       comparison$models <- NULL
     }
@@ -5072,7 +5637,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     models <- x$models
     quarantine <- x$quarantine
     if (!is.null(models) &&
-        !any(c("logistic_regression", "random_forest") %in% names(models))) {
+        !any(c("logistic_regression", "hierarchical_logistic_regression",
+               "random_forest") %in% names(models))) {
       models <- list(logistic_regression = models)
     }
     if (is.null(source_signature)) {
@@ -7158,7 +7724,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                               methods = "logistic_regression",
                               random_forest_args = list()) {
   methods <- match.arg(
-    methods, c("logistic_regression", "random_forest"), several.ok = TRUE
+    methods,
+    c("logistic_regression", "hierarchical_logistic_regression",
+      "random_forest"),
+    several.ok = TRUE
   )
   if (!is.list(random_forest_args) ||
       (length(random_forest_args) &&
@@ -7171,12 +7740,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     logistic_regression = list(
       source = medoids,
       recipes = intersect(c("derivative", "nobaseline"), names(medoids)),
-      args = list()
+      method = "logistic_regression",
+      args = list(selection_rule = "guardrailed")
+    ),
+    hierarchical_logistic_regression = list(
+      source = medoids,
+      recipes = intersect(c("derivative", "nobaseline"), names(medoids)),
+      method = "logistic_regression",
+      args = list(
+        hierarchy_col = "material_type", selection_rule = "guardrailed"
+      )
     ),
     random_forest = list(
       source = libraries,
       recipes = intersect(c("raw", "derivative", "nobaseline"),
                           names(libraries)),
+      method = "random_forest",
       args = random_forest_args
     )
   )
@@ -7192,7 +7771,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       # member. Probability forests are deployed as typed models, so fitting a
       # second forest over the already-covered FTIR and Raman rows would only
       # duplicate the two largest training jobs.
-      if (identical(algorithm, "logistic_regression") &&
+      if (algorithm %in% c(
+          "logistic_regression", "hierarchical_logistic_regression"
+        ) &&
           all(c("ftir", "raman") %in% names(sources))) {
         sources$both <- .lib_bind_same_axis(
           list(sources$ftir, sources$raman),
@@ -7203,8 +7784,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       for (type in names(sources)) {
       stage <- paste0(
         paste("model", algorithm, recipe, type, sep = "_"),
-        if (identical(algorithm, "logistic_regression")) {
-          "_parallel_rng_v1"
+        if (algorithm %in% c(
+            "logistic_regression", "hierarchical_logistic_regression"
+          )) {
+          "_selection_guardrail_v1"
         } else {
           ""
         }
@@ -7246,7 +7829,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           do.call(
             train_spec_model,
             c(
-              list(sources[[type]], method = algorithm),
+              list(sources[[type]], method = configuration$method),
               configuration$args
             )
           ),
@@ -7295,12 +7878,39 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             parameters$mtry, metrics$macro_class_accuracy,
             proc.time()[["elapsed"]] - model_started
           ))
-        } else {
+        } else if (identical(algorithm, "hierarchical_logistic_regression")) {
+          hierarchy_metrics <- fitted$hierarchy_metrics
+          leaf_accuracy <- if (is.null(hierarchy_metrics) ||
+              !nrow(hierarchy_metrics)) NA_real_ else
+            hierarchy_metrics[scope == "leaf", overall_accuracy][[1L]]
           report(sprintf(
             paste0("model complete (%s/%s/%s; observations=%d; classes=%d; ",
-                   "filled=%d; lambda=%.6g by macro class accuracy; %.1fs)"),
+                   "filled=%d; root lambda=%s; OOF leaf accuracy=%s; %.1fs)"),
+            algorithm, recipe, type, fitted$observation_count,
+            fitted$class_num, fill_replaced,
+            if (is.finite(fitted$lambda_selected)) {
+              format(fitted$lambda_selected, digits = 6L)
+            } else {
+              "deterministic"
+            },
+            if (is.finite(leaf_accuracy)) {
+              format(leaf_accuracy, digits = 4L)
+            } else {
+              "unavailable"
+            },
+            proc.time()[["elapsed"]] - model_started
+          ))
+        } else {
+          selection_metric <- fitted$selection_metric
+          if (is.null(selection_metric) || !length(selection_metric)) {
+            selection_metric <- "configured selection rule"
+          }
+          report(sprintf(
+            paste0("model complete (%s/%s/%s; observations=%d; classes=%d; ",
+                   "filled=%d; lambda=%.6g by %s; %.1fs)"),
             algorithm, recipe, type, fitted$observation_count,
             fitted$class_num, fill_replaced, fitted$lambda_selected,
+            selection_metric,
             proc.time()[["elapsed"]] - model_started
           ))
         }
@@ -7308,6 +7918,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
     }
   }
+  has_trained_model <- function(recipes) {
+    any(vapply(recipes, function(types) {
+      any(!vapply(types, is.null, logical(1L)))
+    }, logical(1L)))
+  }
+  models <- Filter(has_trained_model, models)
   list(
     models = models,
     warnings = if (length(warnings)) {
@@ -7577,7 +8193,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 .lib_model_assessment_tables <- function(models) {
   table_fields <- c(
     "tests", "lambda_metrics", "oob_metrics", "oob_class_accuracy",
-    "feature_importance", "training_parameters", "class_weights"
+    "feature_importance", "training_parameters", "class_weights",
+    "class_metrics", "hierarchy_metrics", "fold_assignments"
   )
   out <- stats::setNames(vector("list", length(table_fields)), table_fields)
   for (algorithm in names(models)) {
@@ -7789,6 +8406,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_class_support = class_support,
     model_training_tests = model_tables$tests,
     model_lambda_metrics = model_tables$lambda_metrics,
+    model_class_metrics = model_tables$class_metrics,
+    model_hierarchy_metrics = model_tables$hierarchy_metrics,
+    model_fold_assignments = model_tables$fold_assignments,
     model_oob_metrics = model_tables$oob_metrics,
     model_oob_class_accuracy = model_tables$oob_class_accuracy,
     model_feature_importance = model_tables$feature_importance,
@@ -8119,7 +8739,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   evidence_names <- intersect(
     c("split_manifest", "library_tests", "model_training_tests", "model_tests",
-      "model_lambda_metrics", "model_oob_metrics", "model_oob_class_accuracy",
+      "model_lambda_metrics", "model_class_metrics",
+      "model_hierarchy_metrics", "model_fold_assignments",
+      "model_oob_metrics", "model_oob_class_accuracy",
       "model_feature_importance", "model_training_parameters",
       "model_class_weights", "medoid_model_summary", "medoid_model_support",
       "model_class_support", "warnings", "old_new_compatibility",
@@ -8518,7 +9140,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   model_tests <- list()
   updated_models <- build$models
   algorithms <- intersect(
-    c("logistic_regression", "random_forest"), names(updated_models)
+    c("logistic_regression", "hierarchical_logistic_regression",
+      "random_forest"),
+    names(updated_models)
   )
   for (algorithm in algorithms) {
     recipes <- names(updated_models[[algorithm]])
@@ -8578,7 +9202,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           )
           stage <- paste0(
             "assessment_model_complete_", algorithm, "_", recipe, "_", type,
-            "_", source, "_v1"
+            "_", source, "_v2"
           )
           tests <- if (is.null(checkpoints)) NULL else
             checkpoints$get(stage, key = checkpoint_key)
@@ -9200,6 +9824,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!is.null(build$models$random_forest)) {
     expected$random_forest <- lapply(build$libraries, names)
   }
+  if (!is.null(build$models$hierarchical_logistic_regression)) {
+    expected$hierarchical_logistic_regression <- lapply(
+      build$medoids, function(types) {
+        out <- names(types)
+        if (all(c("ftir", "raman") %in% out)) out <- c(out, "both")
+        out
+      }
+    )
+  }
   problems <- character()
   if (is.null(expected$logistic_regression)) {
     problems <- c(problems, "logistic_regression missing")
@@ -9217,7 +9850,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         if (!all(required %in% names(model)) || !is_OpenSpecy(model$fill)) {
           problems <- c(problems, paste0(label, " incomplete"))
         }
-        if (identical(algorithm, "logistic_regression") &&
+        if (algorithm %in% c(
+            "logistic_regression", "hierarchical_logistic_regression"
+          ) &&
             !.lib_selected_lambda_converged(model)) {
           problems <- c(problems, paste0(label, " selected lambda unconverged"))
         }
@@ -9295,7 +9930,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   c(
     "model", "model_type", "lambda_selected", "dimension_conversion",
     "coefficients", "class_names", "class_num", "observation_count", "fill",
-    "fill_method", "variable_num", "all_variables", "variables_in"
+    "fill_method", "variable_num", "all_variables", "variables_in",
+    "selection_metric", "selection_rule", "selection_accuracy_tolerance",
+    "broad_deterministic", "broad_dimension_conversion", "branch_models",
+    "hierarchy", "lambda_path_complete", "selected_lambda_converged",
+    "convergence_error"
   )
 }
 
@@ -9337,6 +9976,24 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   out <- model[fields]
   if (inherits(out$model, "glmnet")) {
     out$model <- .lib_slim_glmnet_model(out$model, out$lambda_selected)
+  }
+  if (identical(out$model_type, "hierarchical_logistic_regression") &&
+      length(out$branch_models)) {
+    out$branch_models <- lapply(out$branch_models, function(node) {
+      keep <- intersect(
+        c("model", "deterministic", "lambda_selected",
+          "dimension_conversion", "class_names", "lambda_path_complete",
+          "selected_lambda_converged"),
+        names(node)
+      )
+      node <- node[keep]
+      if (inherits(node$model, "glmnet")) {
+        node$model <- .lib_slim_glmnet_model(
+          node$model, node$lambda_selected
+        )
+      }
+      node
+    })
   }
   if (is_OpenSpecy(out$fill)) out$fill <- .lib_slim_reference_object(out$fill)
   out
@@ -9394,7 +10051,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- stats::setNames(
     lapply(medoid_components, load_artifact), sub("^medoid_", "", medoid_components)
   )
-  models <- list(logistic_regression = list(), random_forest = list())
+  models <- list(
+    logistic_regression = list(),
+    hierarchical_logistic_regression = list(),
+    random_forest = list()
+  )
   for (algorithm in names(models)) {
     prefix <- paste0("model_", algorithm, "_")
     components <- names(index$artifacts)[startsWith(names(index$artifacts), prefix)]

@@ -86,7 +86,7 @@ test_that("compact Top Matches obeys requested and default Top N", {
     match_threshold = 0.5, top_n = 2, top_n_by = "organization",
     simple = FALSE
   )
-  grouped_counts <- grouped[, .N, by = .(col_id, organization)]
+  grouped_counts <- grouped[, .N, by = .(col_id, `Library Name`)]
   expect_true(all(grouped_counts$N == 2L))
   expect_true(all(grouped[, .N, by = col_id]$N == 4L))
 
@@ -119,7 +119,7 @@ test_that("compact Top Matches obeys requested and default Top N", {
     match_threshold = 0.5, top_n = 1, simple = TRUE
   )
   expect_identical(names(simple), c(
-    "Material Class", "Correlation", "Spectrum Identity", "Organization",
+    "Material Class", "Correlation", "Spectrum Identity", "Library Name",
     "Signal to Noise", "File Name", "Column ID"
   ))
   expect_false(any(grepl(
@@ -1540,6 +1540,7 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   metadata <- data.frame(
     file_name = "particle.dat", col_id = "particle-1",
     material_class = "ftir_polyethylene", match_val = 0.912345,
+    organization = "Example reference library",
     signal_to_noise = 12.3456, first_x = 1, first_y = 2, area = 4,
     perimeter = 8.7654, rectangular_min = 1.23456,
     feret_min = 2.34567, feret_max = 5.67891,
@@ -1591,6 +1592,8 @@ test_that("simple selection metadata is friendly, ordered, and model-neutral", {
   )
   expect_true(all(c("first_x_pixel", "first_y_pixel", "area_pixel2") %in%
                     names(detailed)))
+  expect_identical(detailed[["Library Name"]], "Example reference library")
+  expect_false("organization" %in% names(detailed))
   expect_false("Material Class" %in% names(detailed))
 })
 

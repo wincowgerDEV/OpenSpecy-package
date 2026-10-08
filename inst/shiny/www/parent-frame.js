@@ -361,7 +361,23 @@
     if (!isWasmMode()) return;
     var container = document.getElementById("openspecy_workerfs_upload");
     var input = document.getElementById("openspecy_workerfs_files");
-    if (!container || !input) return;
+    var fileCount = document.getElementById("openspecy_workerfs_file_count");
+    if (!container || !input || !fileCount) return;
+    var acceptedFileCount = 0;
+
+    function uploadedFileLabel(count) {
+      if (!count) return "No files uploaded";
+      return count + " file" + (count === 1 ? "" : "s") + " uploaded";
+    }
+
+    function showAcceptedFileCount() {
+      fileCount.textContent = uploadedFileLabel(acceptedFileCount);
+      document.documentElement.setAttribute(
+        "data-openspecy-upload-count", String(acceptedFileCount)
+      );
+    }
+
+    showAcceptedFileCount();
 
     workerfsRequest("capability").then(function () {
       input.disabled = false;
@@ -375,6 +391,8 @@
     input.addEventListener("change", async function () {
       var files = Array.prototype.slice.call(input.files || []);
       if (!files.length) return;
+      fileCount.textContent = "Mounting " + files.length + " file" +
+        (files.length === 1 ? "" : "s") + "...";
       document.documentElement.setAttribute(
         "data-openspecy-materialized", "pending"
       );
@@ -387,18 +405,20 @@
       }, 0);
       if (total > mountedFileLimit) {
         input.value = "";
+        showAcceptedFileCount();
         showUploadError(
           "The selected files exceed the 10 GiB total upload ceiling. " +
           "Choose fewer or smaller files and try again."
         );
         return;
       }
-      var fileCount = files.length + " file" + (files.length === 1 ? "" : "s");
-      recordUploadStatus("Mounting " + fileCount + " in the browser.");
+      var fileSummary = files.length + " file" +
+        (files.length === 1 ? "" : "s");
+      recordUploadStatus("Mounting " + fileSummary + " in the browser.");
       beginBusyAction(input, {
         action: "upload",
         message: "Mounting selected files",
-        detail: "Making " + fileCount +
+        detail: "Making " + fileSummary +
           " available to Shinylive without copying the upload body.",
         progress: 3
       });
@@ -410,6 +430,8 @@
         window.Shiny.setInputValue(
           "mounted_files", mountedPayload(response), { priority: "event" }
         );
+        acceptedFileCount = files.length;
+        showAcceptedFileCount();
         // WORKERFS has accepted the browser File handles and mounted_files is
         // now queued on the same ordered Shiny connection as the next Run
         // click. Unlock here so a large File/Blob does not wait on a separate
@@ -417,7 +439,7 @@
         // validation still resets the picker if the metadata is rejected.
         setRunButtonReady(true);
         busyState.message = "Files mounted and ready";
-        busyState.detail = fileCount +
+        busyState.detail = fileSummary +
           " mounted. Click Run to read and analyze the complete dataset.";
         busyState.progress = Math.max(busyState.progress, 10);
         recordUploadStatus(busyState.message + ": " + busyState.detail);
@@ -425,6 +447,8 @@
         scheduleBusy(true);
       } catch (error) {
         input.value = "";
+        acceptedFileCount = 0;
+        showAcceptedFileCount();
         showUploadError(
           "Browser mounting failed: " + error.message +
           " Reload the app or use local Open Specy.",
@@ -680,6 +704,9 @@
       window.Shiny.addCustomMessageHandler("openspecy-mounted-reset", function (_state) {
         var input = document.getElementById("openspecy_workerfs_files");
         if (input) input.value = "";
+        var fileCount = document.getElementById("openspecy_workerfs_file_count");
+        if (fileCount) fileCount.textContent = "No files uploaded";
+        document.documentElement.setAttribute("data-openspecy-upload-count", "0");
         workerfsRequest("unmount").catch(function () {});
       });
 

@@ -262,14 +262,14 @@ identification_controls <- tagList(
     conditionalPanel(
       condition = "input.lib_type != 'model'",
       prettySwitch(
-        "top_n_per_organization", "Top N per organization",
-        inline = TRUE, value = TRUE, status = "success", fill = TRUE
+        "top_n_per_organization", "Top N per Library Name",
+        inline = TRUE, value = FALSE, status = "success", fill = TRUE
       ),
       tags$p(
         class = "text-muted",
         paste(
-          "When enabled, this many matches are retained from every selected",
-          "library organization. When off, Top N applies across the full",
+          "When enabled, this many matches are retained for each selected",
+          "Library Name. When off, Top N applies across the full",
           "reference library. The best score overall remains the identity."
         )
       )
@@ -280,10 +280,10 @@ identification_controls <- tagList(
     app_control_box(
       "filter_lib", "Filter Library", FALSE,
       pickerInput(
-        "lib_org", "Library Organization", choices = NULL,
+        "lib_org", "Library Name", choices = NULL,
         multiple = TRUE, options = list(`actions-box` = TRUE)
       ),
-      note = "Limit matching to one or more reference-library organizations."
+      note = "Limit matching to one or more named reference libraries."
     )
   )
 )
@@ -1437,6 +1437,38 @@ dashboardPage(
           gap: 6px;
         }
         .openspecy-local-picker .btn { width: 100%; }
+        .openspecy-workerfs-upload {
+          display: grid;
+          gap: 6px;
+        }
+        .openspecy-workerfs-file-input {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .openspecy-workerfs-file-button {
+          width: 100%;
+          margin: 0;
+          cursor: pointer;
+        }
+        .openspecy-workerfs-file-input:disabled +
+          .openspecy-workerfs-file-button {
+          cursor: not-allowed;
+          opacity: .65;
+        }
+        .openspecy-workerfs-file-count {
+          min-height: 1.25rem;
+          margin: 0;
+          color: var(--openspecy-muted);
+          font-size: .82rem;
+          line-height: 1.25;
+        }
         .openspecy-filesystem-fallback {
           font-size: .82rem;
           opacity: .92;
@@ -1507,17 +1539,30 @@ dashboardPage(
             tags$div(
               id = "openspecy_workerfs_upload",
               class = "openspecy-workerfs-upload",
-              tags$label(
-                `for` = "openspecy_workerfs_files", "Upload spectra"
-              ),
               tags$input(
                 id = "openspecy_workerfs_files", type = "file", multiple = NA,
                 disabled = NA,
+                class = "openspecy-workerfs-file-input",
+                `aria-describedby` = "openspecy_workerfs_file_count",
                 accept = paste(c(
                   ".csv", ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData",
                   ".spa", ".0", ".zip", ".img", ".h5", ".txt", ".json",
                   ".rds", ".hdr", ".dat", ".jpg", ".jpeg", ".png"
                 ), collapse = ",")
+              ),
+              tags$label(
+                `for` = "openspecy_workerfs_files",
+                class = paste(
+                  "btn btn-default action-button",
+                  "openspecy-workerfs-file-button"
+                ),
+                icon("folder-open"), "Choose files"
+              ),
+              tags$span(
+                id = "openspecy_workerfs_file_count",
+                class = "openspecy-workerfs-file-count",
+                role = "status", `aria-live` = "polite",
+                "No files uploaded"
               )
             )
           } else {
@@ -1727,6 +1772,13 @@ dashboardPage(
               id = "sidebar_tables",
               tabPanel(
                 "Library Matches",
+                tags$p(
+                  class = "text-muted openspecy-library-matches-help",
+                  paste(
+                    "If you want to change the number of top matches then",
+                    "choose in Identification > Top N matches retained"
+                  )
+                ),
                 fluidRow(
                   style = "padding:1rem;overflow-x:auto",
                   DT::DTOutput("event")

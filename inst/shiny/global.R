@@ -149,7 +149,7 @@ app_guidance_registry <- list(
       "top_n_input", "top_n_per_organization", "filter_lib", "lib_org"
     ),
     body = c(
-      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime. Top N limits retained model probabilities too; for spectral libraries, Top N per organization retains that many candidates from every selected organization and turning it off applies Top N globally.",
+      "Spectrum Type limits candidate references when the measurement type is known; All searches FTIR, Raman, and NIR. Library Type trades reference detail against runtime. Top N limits retained model probabilities too; for spectral libraries, Top N per Library Name retains that many candidates from every selected library and turning it off applies Top N globally.",
       "Derivative requires absolute first-derivative preprocessing. No Baseline requires baseline correction and no active derivative. A mismatch can make scores scientifically misleading, so Run reports a nonblocking warning with the corrective controls.",
       "Turning Identification off skips library/model loading, matching, Top Matches, and material-dependent spatial grouping. Filter Library is also a no-op while its owner switch is off."
     )
@@ -2030,7 +2030,12 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
       result$material_class
     )
   }
-  if(!isTRUE(simple)) return(result)
+  if(!isTRUE(simple)) {
+    if("organization" %in% names(result)) {
+      data.table::setnames(result, "organization", "Library Name")
+    }
+    return(result)
+  }
   if(!"match_val" %in% names(result) && "max_cor_val" %in% names(result)) {
     result[, match_val := max_cor_val]
   }
@@ -2060,7 +2065,7 @@ app_selection_metadata_display <- function(metadata, simple = TRUE,
     material_class = "Material Class",
     match_val = match_label,
     spectrum_identity = "Spectrum Identity",
-    organization = "Organization",
+    organization = "Library Name",
     signal_to_noise = signal_label,
     file_name = "File Name",
     col_id = "Column ID"
@@ -2715,12 +2720,17 @@ app_top_matches_table <- function(matches_to_single_result, model_library,
   }
   result <- data.table::as.data.table(result)
   result <- app_round_reported_metadata(result)
-  if(!isTRUE(simple)) return(result)
+  if(!isTRUE(simple)) {
+    if("organization" %in% names(result)) {
+      data.table::setnames(result, "organization", "Library Name")
+    }
+    return(result)
+  }
   result <- app_selection_metadata_display(
     result, simple = TRUE, library = TRUE, match_label = match_label
   )
   columns <- intersect(
-    c(match_label, "Material Class", "Spectrum Identity", "Organization"),
+    c(match_label, "Material Class", "Spectrum Identity", "Library Name"),
     names(result)
   )
   result[, columns, with = FALSE]
@@ -2995,6 +3005,8 @@ app_top_matches_export_compact <- function(
       result, simple = TRUE, particle = FALSE, library = TRUE,
       match_label = match_label, signal_label = signal_label
     )
+  } else if("organization" %in% names(result)) {
+    data.table::setnames(result, "organization", "Library Name")
   }
   data.table::as.data.table(result)
 }

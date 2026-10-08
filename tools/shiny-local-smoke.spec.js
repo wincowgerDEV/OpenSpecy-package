@@ -740,7 +740,7 @@ test("settings tabs show active state and quantification clears before upload", 
   await expect(page.locator("#cor_threshold_decision")).toBeChecked();
   await expect(page.locator("#load_entire_map")).not.toBeChecked();
   await expect(page.locator("#id_spec_type")).toHaveValue("all");
-  await expect(page.locator("#top_n_per_organization")).toBeChecked();
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
   await expect(page.locator("#co2_decision")).not.toBeChecked();
   await expect(page.locator("#co2_automate")).toBeChecked();
   await expect(page.locator("#range_decision")).not.toBeChecked();
@@ -750,6 +750,43 @@ test("settings tabs show active state and quantification clears before upload", 
   await expect(page.locator("#run_analysis")).toBeDisabled();
   await settingsCard.screenshot({
     path: testInfo.outputPath("local-app-settings-tab-active-state.png"),
+  });
+});
+
+test("library labels use Library Name and global Top N by default", async ({ page }, testInfo) => {
+  test.setTimeout(180000);
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+
+  await page.getByRole("link", {
+    name: "Identification", exact: true,
+  }).click();
+  await expect(page.getByText("Top N per Library Name", {
+    exact: true,
+  })).toBeVisible();
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
+  await expect(page.locator('label[for="lib_org"]')).toHaveText("Library Name");
+
+  const spectraCard = page.locator("#spectra_box");
+  await page.locator("#mycardsidebar").click();
+  await expect(spectraCard).toHaveClass(/direct-chat-contacts-open/);
+  const help = page.locator(".openspecy-library-matches-help");
+  await expect(help).toBeVisible();
+  await expect(help).toHaveText(
+    "If you want to change the number of top matches then choose in " +
+      "Identification > Top N matches retained"
+  );
+  await page.waitForTimeout(600);
+  await testInfo.attach("library-name-guidance", {
+    body: await help.innerText(),
+    contentType: "text/plain",
+  });
+  await page.screenshot({
+    path: testInfo.outputPath("local-app-library-name-guidance.png"),
+    fullPage: true,
   });
 });
 
@@ -1056,7 +1093,7 @@ test("map-scale Top Matches download stays fast and leaves the session healthy",
   const rows = topMatches.content.split(/\r?\n/).filter(Boolean);
   expect(rows).toHaveLength(209);
   expect(rows[0]).toBe(
-    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name,Column ID"
+    "Material Class,Correlation,Spectrum Identity,Library Name,Signal Over Noise,File Name,Column ID"
   );
 
   await page.locator("#download_selection").evaluate((select) => {
@@ -2468,7 +2505,7 @@ test("local app renders spectra, matches, and one informative progress overlay",
   const topMatchesText = topMatchesDownload.content.toString("utf8");
   const topMatchLines = topMatchesText.split(/\r?\n/).filter(Boolean);
   expect(topMatchLines[0]).toBe(
-    "Material Class,Correlation,Spectrum Identity,Organization,Signal Over Noise,File Name,Column ID"
+    "Material Class,Correlation,Spectrum Identity,Library Name,Signal Over Noise,File Name,Column ID"
   );
   expect(topMatchLines[0]).not.toMatch(/col_id|quantification|area|perimeter|feret|first_x|first_y/i);
   expect(topMatchLines.length).toBe(7);

@@ -372,10 +372,13 @@ range-restricted object, so published medoids retain their original `NA`
 positions. Groups with more than 3,000 spectra use five deterministic
 1,000-spectrum PAM samples; each candidate set is scored against the complete
 group with the same correlation distance, avoiding a full oversized
-dissimilarity matrix. `models` is algorithm-first (`logistic_regression` or
-`random_forest`), then recipe and type. Logistic regression retains
-derivative/nobaseline medoid training and fills restored gaps with the finite
-mean at each wavenumber across training medoids. Random forests use the complete
+dissimilarity matrix. `models` is algorithm-first (`logistic_regression`,
+`hierarchical_logistic_regression`, or `random_forest`), then recipe and type.
+Flat and hierarchical logistic regression retain derivative/nobaseline medoid
+training and fill restored gaps with the finite mean at each wavenumber across
+training medoids. The hierarchical model first predicts `material_type`, then
+predicts `material_class` within that branch; deployed leaf probabilities are
+the normalized products of those two path probabilities. Random forests use the complete
 eligible raw, derivative, and nobaseline type libraries, relative normalization,
 wavenumber-mean filling, inverse-frequency balanced case sampling, 500
 probability trees, permutation importance, and all available ranger threads.
@@ -385,10 +388,17 @@ out-of-bag accuracy optimistic, treat OOB results as fit diagnostics. The
 release assessment separately applies each deployed model to its complete
 corresponding source dataset.
 `train_spec_model()` exposes both engines; `build_model_lib()` remains a
-compatible wrapper. Each model stores its filler, support audit, training
-diagnostics, and one tidy `tests` table. Logistic lambda selection remains
-maximum out-of-fold macro class accuracy with its calibrated alpha,
-no-intercept, grouped multinomial, and weighting settings unchanged.
+compatible wrapper. Supplying `hierarchy_col` requests the hierarchical
+logistic topology; `NULL` retains the flat model, and hierarchical random
+forests are not supported. Each model stores its filler, support audit,
+training diagnostics, and one tidy `tests` table. Logistic nodes use one
+stable-group fold assignment. The default `selection_rule = "guardrailed"`
+keeps lambdas within an absolute 0.01 of maximum overall accuracy, then within
+0.01 of the best eligible macro accuracy, minimizes multiclass log loss, and
+prefers the largest lambda on ties. Thus 0.01 means one percentage point on the
+0--1 accuracy scale, not a relative one-percent decrease. The `"macro"` and
+`"overall"` policies remain available for controlled comparisons. Alpha,
+no-intercept, grouped multinomial, and weighting settings are unchanged.
 
 Full assessment uses every candidate and downloaded legacy artifact. Candidate
 and legacy artifacts independently use a seeded approximately ten-percent

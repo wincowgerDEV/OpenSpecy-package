@@ -1,5 +1,17 @@
 # OpenSpecy 2.0.3
 
+- `train_spec_model()` and `build_model_lib()` now support hierarchical
+  logistic models that predict a broad material group before a conditional
+  final class and deploy normalized joint path probabilities through the
+  existing `match_spec()` and particle-analysis interfaces. Official library
+  builds retain flat models and add separately named hierarchical artifacts;
+  legacy model aliases remain flat.
+- Logistic lambda selection now defaults to a multi-metric guardrail: retain
+  candidates within an absolute 0.01 of maximum overall accuracy, then within
+  0.01 of the best eligible macro accuracy, minimize multiclass log loss, and
+  prefer the largest lambda on ties. Macro-only and overall-only policies are
+  retained for reproducible comparisons, with grouped out-of-fold node and
+  hierarchy diagnostics stored in build evidence.
 - The bundled app now crops temporary query and reference copies to each
   applicable FTIR, Raman, or NIR reference partition's shared range before
   normalization, mean filling, and correlation. This restores library-match
@@ -7,6 +19,10 @@
   library match is selected, the plot crops its raw, active, and reference
   display traces to that same correlation interval; canonical processed data
   and downloads remain unchanged by identification and display cropping.
+- The bundled app now labels reference provenance as Library Name, applies
+  Top N globally by default, explains where to change Top N beside Library
+  Matches, and keeps the hosted upload control's accepted file count visible
+  through analysis until the next upload or a rejected-selection reset.
 - Fixed `read_spc()` for SPC files with explicitly stored X coordinates. These
   files now preserve their nonlinear wavenumber axis and read the actual
   intensity block instead of displaying the X coordinates as a straight-line

@@ -513,8 +513,15 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   const fullscreenButton = page.locator("#openspecy-fullscreen");
   await expect(fullscreenButton).toBeEnabled();
   const mountedInput = appFrame.locator("#openspecy_workerfs_files");
-  await expect(mountedInput).toBeVisible({ timeout: 180000 });
+  const uploadedFileCount = appFrame.locator(
+    "#openspecy_workerfs_file_count"
+  );
+  await expect(mountedInput).toBeAttached({ timeout: 180000 });
   await expect(mountedInput).toBeEnabled({ timeout: 180000 });
+  await expect(uploadedFileCount).toHaveText("No files uploaded");
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-upload-count", "0"
+  );
   await expect(appFrame.locator("#file")).toHaveCount(0);
   const settingsInput = appFrame.locator("#settings_csv");
   await expect(settingsInput).toHaveCount(1);
@@ -630,8 +637,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     path: testInfo.outputPath("openspecy-app-fullscreen.png"),
   });
 
-  await expect(downloadSelection).toHaveValue("Test Data");
-  await expect(downloadLink).toContainText("Download Test Data");
+  // Selectize can expose its default value before Shiny has acknowledged it,
+  // leaving the server-owned button label at "Download selected". Cross one
+  // real value boundary so this first native-download assertion owns a fresh
+  // input/output generation instead of depending on startup timing.
+  await selectDownload(downloadSelection, downloadLink, "Test Map");
+  await selectDownload(downloadSelection, downloadLink, "Test Data");
   await verifyNativeDownload({
     page,
     link: downloadLink,
@@ -707,6 +718,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   });
 
   await mountedInput.setInputFiles(uploadPath);
+  await expect(uploadedFileCount).toHaveText("1 file uploaded", {
+    timeout: 120000,
+  });
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-upload-count", "1"
+  );
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-busy-action", "upload", { timeout: 30000 }
   );
@@ -728,6 +745,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     /\bopenspecy-busy-visible\b/, { timeout: 30000 }
   );
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
+  await expect(uploadedFileCount).toHaveText("1 file uploaded");
 
   {
     await appFrame.locator("html").evaluate(() => {
@@ -785,7 +803,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   }
 
   // Every hosted selection uses WORKERFS. The server emits this marker only
-  // after Run owns read_any(), manage_na(), and OpenSpecy validation.
+  // after Run owns read_any(), manage_na(), and OpenSpecy validation. This
+  // fixture probes transport only, so do not spend the single WebR thread on
+  // an identification result that the test never inspects.
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-materialized", "workerfs", {
       timeout: 60000,
@@ -794,7 +814,12 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(runButton).not.toHaveAttribute("aria-busy", "true", {
     timeout: 60000,
   });
+  const identificationActive = appFrame.locator("#identification_active");
+  await setShinyCheckbox(identificationActive, false);
   await mountedInput.setInputFiles(tinyEnviFiles());
+  await expect(uploadedFileCount).toHaveText("2 files uploaded", {
+    timeout: 60000,
+  });
   await expect.poll(async () => mountedInput.evaluate((input) =>
     Array.from(input.files || [], (file) => file.name)
   )).toEqual(["mounted-tiny.hdr", "mounted-tiny.dat"]);
@@ -811,6 +836,24 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     JSON.stringify(["mounted-tiny.hdr", "mounted-tiny.dat"]),
     { timeout: 60000 }
   );
+  // Do not replace the upload while the preceding run still owns WebR. The
+  // busy overlay intentionally intercepts clicks, which otherwise makes the
+  // next tab click consume the test's entire global timeout.
+  await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 300000,
+  });
+  await expect(appFrame.locator("html")).not.toHaveClass(
+    /\bopenspecy-busy-visible\b/, { timeout: 300000 }
+  );
+  await expect(runButton).not.toHaveAttribute("aria-busy", "true", {
+    timeout: 300000,
+  });
+  await expect(uploadedFileCount).toHaveText("2 files uploaded");
+  await setShinyCheckbox(identificationActive, true);
+  const identificationTab = appFrame.getByRole("link", {
+    name: "Identification", exact: true,
+  });
+  await expect(identificationTab).toBeVisible({ timeout: 60000 });
 
   // A real multi-spectrum map is the memory-sensitive Top Matches case. Keep
   // identification enabled here: the one-spectrum fixture cannot expose a
@@ -818,6 +861,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   const mapUploadPath = path.resolve("inst", "extdata", "CA_tiny_map.zip");
   expect(fs.existsSync(mapUploadPath)).toBe(true);
   await mountedInput.setInputFiles(mapUploadPath);
+  await expect(uploadedFileCount).toHaveText("1 file uploaded", {
+    timeout: 60000,
+  });
   await expect.poll(async () => mountedInput.evaluate((input) =>
     input.files?.[0]?.name || ""
   )).toBe("CA_tiny_map.zip");
@@ -833,9 +879,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     await settingsBox.locator('[data-card-widget="collapse"]').first().click();
     await expect(settingsBox).not.toHaveClass(/\bcollapsed-card\b/);
   }
-  await appFrame.getByRole("link", {
-    name: "Identification", exact: true,
-  }).click();
+  await identificationTab.click({ timeout: 60000 });
   const mapTopNInput = appFrame.locator("#top_n_input");
   await expect(mapTopNInput).toBeVisible();
   await mapTopNInput.fill("1");

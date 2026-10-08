@@ -1709,7 +1709,7 @@ observeEvent(input$run_analysis, {
       if(isTruthy(group) && !is.null(completed_groups) &&
          !is.null(total_groups)) {
         state$detail <- paste0(
-          state$detail, " Organization ", completed_groups, " of ",
+          state$detail, " Library Name ", completed_groups, " of ",
           total_groups, ": ", group, "."
         )
       }

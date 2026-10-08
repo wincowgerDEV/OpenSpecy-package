@@ -3,7 +3,9 @@
 #'
 #' @description
 #' \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
-#' based on similarity.
+#' based on similarity. Trained flat models return class probabilities;
+#' hierarchical logistic models return normalized joint leaf probabilities
+#' formed from the broad-class and conditional leaf paths.
 #' \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 #' knowns and one with unknowns.
 #' \code{ident_spec()} retrieves the top match values from a correlation matrix
@@ -23,6 +25,8 @@
 #' will use base R's \code{cor()}
 #' @param library an \code{OpenSpecy} or trained model object representing the
 #' reference library of spectra or model to use in identification.
+#' Hierarchical model artifacts must retain their root, branch, hierarchy,
+#' class-conversion, predictor-axis, and training-filler runtime state.
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating correlations. Default is \code{TRUE}.
 #' @param top_n integer; specifying the number of top matches to return.
@@ -682,6 +686,107 @@ ai_classify.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
+.ai_logistic_probability_matrix <- function(model, newx, n) {
+  if (isTRUE(model$deterministic)) {
+    return(matrix(
+      1, nrow = n, ncol = 1L,
+      dimnames = list(rownames(newx), "1")
+    ))
+  }
+  if (is.null(model$model) || !inherits(model$model, "glmnet")) {
+    stop("A hierarchical logistic node has no deployable glmnet model",
+         call. = FALSE)
+  }
+  probabilities <- .lib_probability_matrix(
+    predict(
+      model$model, newx = newx, s = model$lambda_selected,
+      type = "response"
+    ),
+    n = n
+  )
+  conversion <- data.table::as.data.table(model$dimension_conversion)
+  if (ncol(probabilities) != nrow(conversion)) {
+    stop("Hierarchical node probabilities do not match its class conversion",
+         call. = FALSE)
+  }
+  colnames(probabilities) <- as.character(conversion$factor_num)
+  probabilities
+}
+
+.ai_hierarchical_probabilities <- function(newx, library) {
+  required <- c(
+    "broad_dimension_conversion", "branch_models", "dimension_conversion"
+  )
+  missing <- required[!vapply(required, function(name) {
+    !is.null(library[[name]])
+  }, logical(1L))]
+  if (length(missing)) {
+    stop(
+      "Hierarchical model is missing runtime state: ",
+      paste(missing, collapse = ", "), call. = FALSE
+    )
+  }
+  n <- nrow(newx)
+  broad_model <- list(
+    model = library$model,
+    deterministic = isTRUE(library$broad_deterministic),
+    lambda_selected = library$lambda_selected,
+    dimension_conversion = library$broad_dimension_conversion
+  )
+  broad_probability <- .ai_logistic_probability_matrix(
+    broad_model, newx, n
+  )
+  broad_conversion <- data.table::as.data.table(
+    library$broad_dimension_conversion
+  )
+  leaf_conversion <- data.table::as.data.table(library$dimension_conversion)
+  probabilities <- matrix(
+    0, nrow = n, ncol = nrow(leaf_conversion),
+    dimnames = list(rownames(newx), as.character(leaf_conversion$factor_num))
+  )
+  assigned <- rep.int(0L, nrow(leaf_conversion))
+  for (branch in as.character(broad_conversion$name)) {
+    node <- library$branch_models[[branch]]
+    if (is.null(node)) {
+      stop("Hierarchical model has no branch for '", branch, "'",
+           call. = FALSE)
+    }
+    conditional <- .ai_logistic_probability_matrix(node, newx, n)
+    branch_factor <- broad_conversion$factor_num[match(
+      branch, broad_conversion$name
+    )]
+    branch_probability <- broad_probability[, as.character(branch_factor)]
+    node_conversion <- data.table::as.data.table(node$dimension_conversion)
+    for (leaf in as.character(node_conversion$name)) {
+      leaf_factor <- leaf_conversion$factor_num[match(
+        leaf, leaf_conversion$name
+      )]
+      if (is.na(leaf_factor)) {
+        stop("Hierarchical branch contains an unknown leaf class '", leaf,
+             "'", call. = FALSE)
+      }
+      child_factor <- node_conversion$factor_num[match(
+        leaf, node_conversion$name
+      )]
+      probabilities[, as.character(leaf_factor)] <-
+        branch_probability * conditional[, as.character(child_factor)]
+      assigned[[leaf_factor]] <- assigned[[leaf_factor]] + 1L
+    }
+  }
+  if (any(assigned != 1L)) {
+    stop("Every hierarchical leaf class must occur in exactly one branch",
+         call. = FALSE)
+  }
+  probabilities <- .lib_normalize_probability_rows(probabilities)
+  array(
+    probabilities,
+    dim = c(nrow(probabilities), ncol(probabilities), 1L),
+    dimnames = list(
+      rownames(newx), colnames(probabilities), "hierarchical_joint"
+    )
+  )
+}
+
 #' @rdname match_spec
 #'
 #' @export
@@ -706,7 +811,9 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, top_n = 1L, ...) {
   } else {
     "logistic_regression"
   }
-  if (identical(model_type, "random_forest")) {
+  if (identical(model_type, "hierarchical_logistic_regression")) {
+    pred <- .ai_hierarchical_probabilities(proc, library)
+  } else if (identical(model_type, "random_forest")) {
     if (!requireNamespace("ranger", quietly = TRUE)) {
       stop(
         "Using a random-forest model requires the suggested 'ranger' package",

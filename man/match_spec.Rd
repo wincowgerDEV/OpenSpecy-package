@@ -107,7 +107,9 @@ os_similarity(x, ...)
 \item{x}{an \code{OpenSpecy} object, typically with unknowns.}
 
 \item{library}{an \code{OpenSpecy} or trained model object representing the
-reference library of spectra or model to use in identification.}
+reference library of spectra or model to use in identification.
+Hierarchical model artifacts must retain their root, branch, hierarchy,
+class-conversion, predictor-axis, and training-filler runtime state.}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating correlations. Default is \code{TRUE}.}
@@ -198,7 +200,9 @@ current test cases.
 }
 \description{
 \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
-based on similarity.
+based on similarity. Trained flat models return class probabilities;
+hierarchical logistic models return normalized joint leaf probabilities
+formed from the broad-class and conditional leaf paths.
 \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 knowns and one with unknowns.
 \code{ident_spec()} retrieves the top match values from a correlation matrix

@@ -298,9 +298,51 @@ test_that("local and hosted modes render exactly one upload control", {
   expect_false(grepl('id="local_files"', hosted_html, fixed = TRUE))
   expect_false(grepl('id="local_native_files"', hosted_html, fixed = TRUE))
   expect_match(hosted_html, 'id="openspecy_workerfs_files"', fixed = TRUE)
+  expect_match(hosted_html, 'id="openspecy_workerfs_file_count"',
+               fixed = TRUE)
+  expect_match(hosted_html, "Choose files", fixed = TRUE)
+  expect_match(hosted_html, "No files uploaded", fixed = TRUE)
   expect_match(hosted_html, " disabled", fixed = TRUE)
   expect_false(grepl('id="upload_status"', hosted_html, fixed = TRUE))
   expect_false(grepl("Mounted files bypass", hosted_html, fixed = TRUE))
+})
+
+test_that("app labels reference libraries by name and default to global Top N", {
+  app_path <- run_app(test_mode = TRUE)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  global_source <- paste(
+    readLines(file.path(app_path, "global.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  server_source <- paste(
+    readLines(file.path(app_path, "server.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  bridge_source <- paste(
+    readLines(file.path(app_path, "www", "parent-frame.js"), warn = FALSE),
+    collapse = "\n"
+  )
+
+  expect_match(
+    ui_source,
+    '"top_n_per_organization", "Top N per Library Name"', fixed = TRUE
+  )
+  expect_match(ui_source, "inline = TRUE, value = FALSE", fixed = TRUE)
+  expect_match(ui_source, '"lib_org", "Library Name"', fixed = TRUE)
+  expect_match(ui_source,
+               "If you want to change the number of top matches then",
+               fixed = TRUE)
+  expect_match(ui_source,
+               "choose in Identification > Top N matches retained",
+               fixed = TRUE)
+  expect_match(global_source, 'organization = "Library Name"', fixed = TRUE)
+  expect_match(server_source, '" Library Name "', fixed = TRUE)
+  expect_match(bridge_source, "acceptedFileCount", fixed = TRUE)
+  expect_match(bridge_source, "data-openspecy-upload-count", fixed = TRUE)
+  expect_match(bridge_source, '"No files uploaded"', fixed = TRUE)
+  expect_false(grepl("Top N per organization", ui_source, fixed = TRUE))
+  expect_false(grepl("Library Organization", ui_source, fixed = TRUE))
 })
 
 test_that("bundled app has one mode-specific direct or mounted read route", {
@@ -2714,12 +2756,12 @@ test_that("app_top_matches_table populates AI mode instead of erroring", {
   expect_identical(nrow(library_result), 2L)
   expect_identical(
     names(library_result),
-    c("match_val", "material_class", "spectrum_identity", "organization",
+    c("match_val", "material_class", "spectrum_identity", "Library Name",
       "sample_name")
   )
   simple_library <- env$app_top_matches_table(library_rows, FALSE, 1L)
   expect_identical(names(simple_library), c(
-    "Correlation", "Material Class", "Spectrum Identity", "Organization"
+    "Correlation", "Material Class", "Spectrum Identity", "Library Name"
   ))
 
   # AI mode: matches_to_single() has one prediction row per spectrum in the
