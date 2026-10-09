@@ -1010,6 +1010,10 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('"data-openspecy-upload-count", "1"', smoke,
                         fixed = TRUE)))
+  expect_true(any(grepl('"data-openspecy-upload-count", "2"', smoke,
+                        fixed = TRUE)))
+  expect_false(any(grepl("Array.from(input.files", smoke, fixed = TRUE)))
+  expect_false(any(grepl("input.files?.[0]?.name", smoke, fixed = TRUE)))
   expect_true(any(grepl('locator("#settings_csv")', smoke, fixed = TRUE)))
   expect_true(any(grepl(
     "input[type='file']:not(#openspecy_workerfs_files):not(#settings_csv)",

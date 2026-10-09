@@ -562,9 +562,13 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
       window.Shiny.setInputValue("lib_type", "medoid", { priority: "event" });
     });
     await mountedInput.setInputFiles(largeUploads);
-    await expect.poll(async () => mountedInput.evaluate((input) =>
-      Array.from(input.files || [], (file) => file.name)
-    ), { timeout: 120000 }).toEqual(largeNames);
+    await expect(uploadedFileCount).toHaveText(
+      `${largeNames.length} ${largeNames.length === 1 ? "file" : "files"} uploaded`,
+      { timeout: 120000 }
+    );
+    await expect(appFrame.locator("html")).toHaveAttribute(
+      "data-openspecy-upload-count", String(largeNames.length)
+    );
     await expect(appFrame.locator("html")).toHaveAttribute(
       "data-openspecy-run-ready", "accepted", { timeout: 60000 }
     );
@@ -820,9 +824,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(uploadedFileCount).toHaveText("2 files uploaded", {
     timeout: 60000,
   });
-  await expect.poll(async () => mountedInput.evaluate((input) =>
-    Array.from(input.files || [], (file) => file.name)
-  )).toEqual(["mounted-tiny.hdr", "mounted-tiny.dat"]);
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-upload-count", "2"
+  );
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-materialized", "pending", { timeout: 60000 }
   );
@@ -864,9 +868,9 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(uploadedFileCount).toHaveText("1 file uploaded", {
     timeout: 60000,
   });
-  await expect.poll(async () => mountedInput.evaluate((input) =>
-    input.files?.[0]?.name || ""
-  )).toBe("CA_tiny_map.zip");
+  await expect(appFrame.locator("html")).toHaveAttribute(
+    "data-openspecy-upload-count", "1"
+  );
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-materialized", "pending", { timeout: 60000 }
   );

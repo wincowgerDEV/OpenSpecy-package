@@ -37,7 +37,7 @@
 - **Performance/observability**: benchmark about 6,500 spectra × 400 predictors × 41 leaves with five grouped folds. Target <10 minutes and <80% physical memory per candidate fit, <5 minutes per map, checkpoints after each fitted node/map, and progress with dimensions/elapsed time. Stop at 2× the probe projection, 80% memory, or 10 minutes without progress and isolate the node/map kernel.
 - **Holdout discipline**: choose/freeze candidates using grouped builder development evidence only. Write final confirmation to `Positive_Controls/hierarchical_model_validation`; a failed Stage 2 is reported, not tuned against this cohort.
 - **Bundled app/pipeline diagram**: label friendly reference provenance as Library Name, default Top N to the full selected library, add adjacent Library Matches guidance, and show a durable hosted upload count without renaming internal `organization` metadata. Update the canonical diagram for the changed grouping default; coefficient overlays remain flat-model-only.
-- **Hosted impact**: `R/`, `inst/shiny/`, and the smoke driver are shared hosted inputs, so run fast `-HostedAppStatic`, local browser evidence, and replay the smoke sequencing fix against the exact `cd52e43…` action artifact. The new app markup still requires a later matching artifact before public-deployment confirmation; no dependency/pin/driver change triggers a clean wasm rebuild now.
+- **Hosted impact**: `R/`, `inst/shiny/`, and the smoke driver are shared hosted inputs, so run fast `-HostedAppStatic`, local browser evidence, and replay the smoke fix against the exact `21345ab…` action artifact. Keep visible upload-count and server materialization assertions authoritative instead of the browser's disposable hidden `FileList`; no dependency/pin/driver change triggers a clean wasm rebuild now.
 
 ## Package Surfaces
 
@@ -56,16 +56,16 @@
 - [x] Add focused synthetic tests, including hierarchy errors, one-leaf branches, joint probability/ranking, grouped folds, metric selection, old artifact loading, and in-memory/streamed particle parity.
 - [x] Update roxygen, vignette, NEWS, and generated documentation with reviewed diffs.
 - [x] Apply the app terminology/default/upload-count fixes and bounded Shinylive smoke sequencing patch; pass focused static and local-browser checks.
-- [ ] Add the restartable benchmark; fit/freeze the four current-source candidates from identical inputs and run the three-map time/memory probe.
-- [ ] Pass both complete Stage 1 gates before Stage 2; run the frozen 20-map comparisons once and produce paired accuracy, calibration, confusion, runtime, and recommendation outputs.
-- [ ] Run focused tests, benchmark assertions, documentation, full tests, and fast hosted-source verification; reconcile evidence, processes, status, and scratch cleanup.
+- [x] Add the restartable benchmark; fit/freeze the four current-source candidates from identical inputs and run the three-map time/memory probe.
+- [x] Pass both complete Stage 1 gates before Stage 2; run the frozen 20-map comparisons once and produce paired accuracy, calibration, confusion, runtime, and recommendation outputs.
+- [x] Run focused tests, benchmark assertions, documentation, full tests, and fast hosted-source verification; reconcile evidence, processes, status, and scratch cleanup.
 
 ## Verification
 
 - Focused: compact `devtools::test(filter = "build_lib|match_spec|automate_particle_analysis", reporter = "summary")`; assert probabilities sum to one, stable groups never cross folds, legacy predictions are unchanged, and flat/hierarchical artifacts survive release slimming/reload.
 - Model-development gate: on the builder grouped development split, hierarchy must be within 1 point of flat for overall, broad, macro, and supported-class recall, with no worse log loss/Brier beyond bootstrap uncertainty; retain full per-node metrics even when it fails.
 - External Stage 1/2: use `true_values_2`, the two fixed exclusions, exact plan-044 processing, hashes/configuration, per-map checkpoints, bootstrap paired intervals, and the R7/R8 non-inferiority gates. Recovery count/area/Feret outputs must remain invariant across model candidates.
-- Broad gates: verify configured roxygen, run `devtools::document()` once and inspect generated diffs, then full `devtools::test()` and `.agents/skills/openspecy-run-quality-gates/scripts/quality-gates.ps1 -HostedAppStatic`; add the targeted bundled-app browser journey and exact-artifact hosted replay. R CMD check and a fresh artifact for the new app markup remain deferred until release/staging.
+- Broad gates: verify configured roxygen, run `devtools::document()` once and inspect generated diffs, then full `devtools::test()` and `.agents/skills/openspecy-run-quality-gates/scripts/quality-gates.ps1 -HostedAppStatic`; add the targeted bundled-app browser journey and exact-artifact hosted replay. Reuse the successful R-CMD-check/pkgdown evidence at `21345ab…` because covered package/documentation inputs are unchanged; replay the local smoke edits against that exact wasm artifact.
 - Reusable evidence: plan-044 truth/scorer definitions and legacy saved targets remain reusable; all runtime evidence is invalidated by changes to `build_lib.R`, `match_spec.R`, particle analysis, model inputs, or benchmark configuration.
 
 ## Risks And Open Questions

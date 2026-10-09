@@ -450,18 +450,20 @@ noninferiority_table <- function(summary, by_material, by_size, traces) {
   metric_rows <- function(x, dimensions) {
     reference <- x[library == "os1_model"]
     data.table::rbindlist(lapply(candidates, function(key) {
-      candidate <- x[library == key]
+      candidate_key <- key
+      scope_name <- if (length(dimensions)) dimensions[[1L]] else "overall"
+      candidate <- x[x[["library"]] == candidate_key]
       joined <- merge(
         reference, candidate, by = c(dimensions, "metric_key", "metric"),
         suffixes = c("_os1", "_candidate"), sort = FALSE
       )
-      joined[, `:=`(
-        library = key,
-        scope = if (length(dimensions)) dimensions[[1L]] else "overall",
-        delta_pp = mean_accuracy_candidate - mean_accuracy_os1,
-        threshold_pp = -1,
-        pass = mean_accuracy_candidate - mean_accuracy_os1 >= -1
-      )]
+      delta <- joined[["mean_accuracy_candidate"]] -
+        joined[["mean_accuracy_os1"]]
+      joined[["library"]] <- rep(candidate_key, nrow(joined))
+      joined[["scope"]] <- rep(scope_name, nrow(joined))
+      joined[["delta_pp"]] <- delta
+      joined[["threshold_pp"]] <- rep(-1, nrow(joined))
+      joined[["pass"]] <- delta >= -1
       joined
     }), fill = TRUE)
   }
@@ -691,7 +693,9 @@ compare_results <- function(cli) {
     read_result(cli, key, "metrics_by_size_stratum.csv")
   }), fill = TRUE)
   traces <- data.table::rbindlist(lapply(keys, function(key) {
-    read_result(cli, key, "metrics_particle_trace.csv")
+    trace <- read_result(cli, key, "metrics_particle_trace.csv")
+    trace[, library := key]
+    trace
   }), fill = TRUE)
   if (!"material_type" %in% names(traces)) {
     truth <- legacy$engine$truth_table(cli)[, .(Map, material_type)]
