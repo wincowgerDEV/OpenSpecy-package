@@ -1,4 +1,18 @@
 # UI helpers ----
+app_static_asset_url <- function(path) {
+  candidates <- c(
+    file.path("www", path),
+    system.file("shiny", "www", path, package = "OpenSpecy")
+  )
+  source <- candidates[file.exists(candidates)][1L]
+  version <- if(length(source) && !is.na(source)) {
+    unname(tools::md5sum(source))
+  } else {
+    "bundled"
+  }
+  paste0(path, "?v=", version)
+}
+
 app_control_box <- function(input_id, label, value = FALSE, ...,
                             note = character(), topic = NULL) {
   if(!is.null(topic)) note <- app_guidance_text(topic)
@@ -716,7 +730,7 @@ dashboardPage(
         name = "openspecy-wasm-mode",
         content = if(app_wasm_mode()) "true" else "false"
       ),
-      tags$script(src = "parent-frame.js"),
+      tags$script(src = app_static_asset_url("parent-frame.js")),
       tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
       tags$style(HTML(paste0(
         app_theme_css(),
@@ -1037,6 +1051,15 @@ dashboardPage(
           cursor: not-allowed;
           transform: none;
         }
+        .openspecy-run-label {
+          align-items: center;
+          gap: .5rem;
+        }
+        .openspecy-run-pending-label { display: none; }
+        .btn.openspecy-run-button.openspecy-run-dirty
+          .openspecy-run-ready-label { display: none; }
+        .btn.openspecy-run-button.openspecy-run-dirty
+          .openspecy-run-pending-label { display: inline-flex; }
         #spectra_box { margin-top: 16px; }
         .openspecy-quant-builder-actions {
           display: flex;
@@ -1653,7 +1676,25 @@ dashboardPage(
           },
           shinyjs::disabled(
             actionButton(
-              "run_analysis", "Ready",
+              "run_analysis",
+              tagList(
+                tags$span(
+                  class = paste(
+                    "openspecy-run-label openspecy-run-ready-label"
+                  ),
+                  "Ready"
+                ),
+                tags$span(
+                  class = paste(
+                    "openspecy-run-label openspecy-run-pending-label"
+                  ),
+                  tags$i(
+                    class = "fas fa-play", role = "presentation",
+                    `aria-hidden` = "true"
+                  ),
+                  "Run"
+                )
+              ),
               class = "openspecy-run-button",
               title = paste(
                 "Run the current preprocessing, threshold, cluster,",

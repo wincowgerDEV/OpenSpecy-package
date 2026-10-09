@@ -219,6 +219,10 @@ test_that("local file pickers preserve normalized direct paths", {
   expect_identical(chosen, workspace_file)
   expect_identical(env$app_choose_local_paths(chooser = chooser), workspace_file)
   expect_identical(chooser_calls, 2L)
+  old_options <- options(openspecy.shiny.native_file_chooser = chooser)
+  on.exit(options(old_options), add = TRUE)
+  expect_identical(env$app_choose_local_paths(), workspace_file)
+  expect_identical(chooser_calls, 3L)
   expect_identical(
     env$app_direct_file_info(chosen)$datapath,
     workspace_file
@@ -877,7 +881,8 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
   expect_false(grepl("quant_carbonyl_saub", ui_source, fixed = TRUE))
-  expect_match(ui_source, '"run_analysis", "Ready"', fixed = TRUE)
+  expect_match(ui_source, "openspecy-run-ready-label", fixed = TRUE)
+  expect_match(ui_source, "openspecy-run-pending-label", fixed = TRUE)
   expect_match(ui_source, "shinyjs::disabled(", fixed = TRUE)
   expect_match(server_source,
                'shinyjs::toggleState("run_analysis", condition = !is.null(active_file_info()))',
@@ -1267,15 +1272,17 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
                fixed = TRUE)
   expect_match(server_source, '"openspecy-run-ready", condition = !show_run',
                fixed = TRUE)
-  expect_match(bridge_source, "button.replaceChildren()", fixed = TRUE)
-  expect_match(bridge_source, 'button.textContent = "Ready"', fixed = TRUE)
-  expect_match(bridge_source, 'document.createTextNode(" Run")', fixed = TRUE)
-  expect_match(bridge_source, "function bindRunButtonContent()", fixed = TRUE)
-  expect_match(bridge_source,
-               'button.classList.contains("openspecy-run-dirty")',
+  expect_match(ui_source, 'app_static_asset_url("parent-frame.js")',
                fixed = TRUE)
-  expect_match(bridge_source, "new MutationObserver(syncRunButtonContent)",
+  expect_match(ui_source, "tools::md5sum(source)", fixed = TRUE)
+  expect_match(ui_source,
+               ".openspecy-run-pending-label { display: none; }",
                fixed = TRUE)
+  expect_match(ui_source,
+               ".openspecy-run-pending-label { display: inline-flex; }",
+               fixed = TRUE)
+  expect_false(grepl("function bindRunButtonContent()", bridge_source,
+                     fixed = TRUE))
   expect_false(grepl('addCustomMessageHandler("openspecy-run-content"',
                      bridge_source, fixed = TRUE))
   expect_match(server_source,

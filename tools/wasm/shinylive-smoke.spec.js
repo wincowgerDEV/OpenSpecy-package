@@ -531,8 +531,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("#upload_status")).toHaveCount(0);
   const runButton = appFrame.locator("#run_analysis").first();
   await expect(runButton).toBeDisabled();
-  await expect(runButton).toHaveText("Ready");
-  await expect(runButton.locator("i, svg")).toHaveCount(0);
+  await expect(runButton).toHaveAccessibleName("Ready");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
   const firstMatch = appFrame.locator("#event table tbody tr").first();
   const downloadSelection = appFrame.locator("#download_selection");
   const downloadLink = appFrame.locator("#download_data");
@@ -735,8 +735,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     "data-openspecy-busy-action", "upload", { timeout: 30000 }
   );
   await expect(runButton).toBeEnabled({ timeout: 60000 });
-  await expect(runButton).toHaveText("Run");
-  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveAccessibleName("Run");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(1);
   await expect(runButton).toHaveClass(/openspecy-run-dirty/);
   await runButton.click();
   await expect(appFrame.locator("html")).toHaveClass(
@@ -754,8 +754,8 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("html")).not.toHaveClass(
     /\bopenspecy-busy-visible\b/, { timeout: 30000 }
   );
-  await expect(runButton).toHaveText("Ready");
-  await expect(runButton.locator("i, svg")).toHaveCount(0);
+  await expect(runButton).toHaveAccessibleName("Ready");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
   await expect(runButton).toHaveClass(/openspecy-run-ready/);
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   await expect(uploadedFileCount).toHaveText("1 file uploaded");

@@ -41,6 +41,9 @@ app_choose_local_paths <- function(
     tcltk_available = isTRUE(capabilities("tcltk")) &&
       requireNamespace("tcltk", quietly = TRUE)) {
   if(is.null(chooser)) {
+    chooser <- getOption("openspecy.shiny.native_file_chooser")
+  }
+  if(is.null(chooser)) {
     if(identical(os_type, "windows")) {
       chooser <- utils::choose.files
     } else if(identical(sysname, "Darwin") && isTRUE(tcltk_available)) {

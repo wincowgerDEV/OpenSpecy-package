@@ -555,6 +555,7 @@ test.beforeAll(async () => {
   const expression = [
     `writeLines(as.character(Sys.getpid()), ${JSON.stringify(rPidFile.replace(/\\/g, "/"))})`,
     `devtools::load_all(${JSON.stringify(repo.replace(/\\/g, "/"))}, quiet=TRUE)`,
+    `options(openspecy.shiny.native_file_chooser=function(...) ${JSON.stringify(fixtureArchive.replace(/\\/g, "/"))})`,
     `shiny::runApp(${JSON.stringify(path.join(repo, "inst", "shiny").replace(/\\/g, "/"))}, host='127.0.0.1', port=${port}, launch.browser=FALSE)`,
   ].join("; ");
   app = spawn("C:/Program Files/R/R-4.3.3/bin/Rscript.exe", ["-e", expression], {
@@ -913,22 +914,24 @@ test("local file count and pending Run affordance stay visible", async ({ page }
   test.setTimeout(180000);
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expectLocalPicker(page);
+  await expect(page.locator('script[src^="parent-frame.js?v="]')).toHaveCount(1);
   const count = page.locator("#openspecy_local_file_count");
   const runButton = page.locator("#run_analysis");
   await expect(count).toHaveText("No files uploaded");
   await expect(runButton).toBeDisabled();
-  await expect(runButton).toHaveText("Ready");
-  await expect(runButton.locator("i, svg")).toHaveCount(0);
+  await expect(runButton).toHaveAccessibleName("Ready");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
   await page.locator(".openspecy-upload-column").screenshot({
     path: testInfo.outputPath("local-run-disabled-ready.png"),
   });
 
-  await stageLocalFiles(
-    page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
-  );
+  const nativePicker = page.locator("#local_native_files");
+  await expect(nativePicker).toHaveCount(1);
+  await nativePicker.click();
+  await expect(runButton).toBeEnabled({ timeout: 60000 });
   await expect(count).toHaveText("1 file uploaded");
-  await expect(runButton).toHaveText("Run");
-  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveAccessibleName("Run");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(1);
   await expect(runButton).toHaveClass(/openspecy-run-dirty/);
   expect(await runButton.evaluate((button) =>
     getComputedStyle(button).animationName
@@ -975,8 +978,8 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
   const runButton = page.locator("#run_analysis");
   const localFileCount = page.locator("#openspecy_local_file_count");
   await expect(localFileCount).toHaveText("1 file uploaded");
-  await expect(runButton).toHaveText("Run");
-  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveAccessibleName("Run");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(1);
   await expect(runButton).toHaveClass(/openspecy-run-dirty/);
   expect(await runButton.evaluate((button) =>
     getComputedStyle(button).animationName
@@ -1033,8 +1036,8 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     if (alert) throw new Error(alert.textContent || "Unexpected analysis alert");
     return Object.keys(select?.selectize?.options || {}).includes("Signal/Noise");
   }, null, { timeout: 30000 });
-  await expect(runButton).toHaveText("Ready");
-  await expect(runButton.locator("i, svg")).toHaveCount(0);
+  await expect(runButton).toHaveAccessibleName("Ready");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
   await expect(runButton).toHaveClass(/openspecy-run-ready/);
   await expect(runButton).not.toHaveClass(/openspecy-run-dirty/);
   await page.locator(".openspecy-upload-column").screenshot({
@@ -1048,8 +1051,8 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     JSON.stringify(plot.data?.[0]?.x)
   );
   await selectizeOption(page, "signal_selection", "sig_times_noise");
-  await expect(runButton).toHaveText("Run");
-  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveAccessibleName("Run");
+  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(1);
   await expect(runButton).toHaveClass(/openspecy-run-dirty/);
   await page.locator(".openspecy-upload-column").screenshot({
     path: testInfo.outputPath("local-run-parameter-changed.png"),

@@ -357,42 +357,6 @@
     }
   }
 
-  function setRunButtonContent(ready) {
-    var button = document.getElementById("run_analysis");
-    if (!button) return;
-    button.replaceChildren();
-    if (!ready) {
-      var icon = document.createElement("i");
-      icon.className = "fas fa-play";
-      icon.setAttribute("aria-hidden", "true");
-      button.appendChild(icon);
-      button.appendChild(document.createTextNode(" Run"));
-      button.setAttribute("aria-label", "Run analysis");
-      return;
-    }
-    button.textContent = "Ready";
-    button.setAttribute("aria-label", "Ready");
-  }
-
-  function syncRunButtonContent() {
-    var button = document.getElementById("run_analysis");
-    if (!button) return;
-    var pending = !button.disabled &&
-      button.classList.contains("openspecy-run-dirty");
-    setRunButtonContent(!pending);
-  }
-
-  function bindRunButtonContent() {
-    var button = document.getElementById("run_analysis");
-    if (!button || button.dataset.openspecyRunContentBound === "true") return;
-    button.dataset.openspecyRunContentBound = "true";
-    syncRunButtonContent();
-    new MutationObserver(syncRunButtonContent).observe(button, {
-      attributes: true,
-      attributeFilter: ["class", "disabled"]
-    });
-  }
-
   function bindWorkerfsUpload() {
     if (!isWasmMode()) return;
     var container = document.getElementById("openspecy_workerfs_upload");
@@ -830,7 +794,6 @@
       bindAnalysisSettings();
       bindUploadLimit();
       bindWorkerfsUpload();
-      bindRunButtonContent();
       probeReadyState();
       bindReadyEvent();
     }, { once: true });
@@ -840,7 +803,6 @@
     bindAnalysisSettings();
     bindUploadLimit();
     bindWorkerfsUpload();
-    bindRunButtonContent();
     probeReadyState();
     bindReadyEvent();
   }
