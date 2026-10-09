@@ -2326,22 +2326,17 @@ app_particle_size_plotly <- function(object, pixel_size = 1,
     xaxis$range <- c(data$bin_min[[1L]] - padding,
                      data$bin_max[[1L]] + padding)
   }
-  plotly::plot_ly(
-    data,
-    x = ~bin_mid,
-    y = ~count,
-    width = as.numeric(data$bin_max - data$bin_min),
-    type = "bar",
-    marker = list(
-      color = app_plot_palette$primary,
-      line = list(color = app_plot_palette$panel, width = 1)
-    ),
-    customdata = ~cbind(bin_min, bin_max),
-    hovertemplate = paste0(
-      "Bin: %{customdata[0]:.4g} to %{customdata[1]:.4g} ", unit,
-      "<br>Count: %{y}<extra></extra>"
-    )
-  ) |>
+  plotly::plot_ly(data) |>
+    plotly::add_bars(
+      x = ~bin_mid,
+      y = ~count,
+      width = ~I(bin_max - bin_min),
+      marker = list(
+        color = app_plot_palette$primary,
+        line = list(color = app_plot_palette$panel, width = 1)
+      ),
+      hovertemplate = "Count: %{y}<extra></extra>"
+    ) |>
     plotly::layout(
       xaxis = xaxis,
       yaxis = list(title = "Count", rangemode = "tozero"),
@@ -2368,8 +2363,8 @@ app_material_summary_data <- function(material, confidence = 0.95) {
     percentage_uncertainty = uncertainty,
     percentage_ci_lower = pmax(0, percentage - uncertainty),
     percentage_ci_upper = pmin(100, percentage + uncertainty),
-    total_concentration_rsd = total_count^(-1 / 2),
-    uncertainty_type = "Material percentage CI",
+    concentration_rsd = as.numeric(counts)^(-1 / 2),
+    total_concentration_rsd = NA_real_,
     stringsAsFactors = FALSE
   )
   class_data$count_uncertainty <-
@@ -2378,8 +2373,8 @@ app_material_summary_data <- function(material, confidence = 0.95) {
     material_class = "All Materials", count = total_count, percentage = 100,
     confidence_level = confidence, percentage_uncertainty = NA_real_,
     percentage_ci_lower = NA_real_, percentage_ci_upper = NA_real_,
+    concentration_rsd = NA_real_,
     total_concentration_rsd = total_count^(-1 / 2),
-    uncertainty_type = "Total concentration RSD",
     count_uncertainty = sqrt(total_count), stringsAsFactors = FALSE
   )
   result <- rbind(class_data, all_data)
@@ -2430,16 +2425,21 @@ app_material_summary_plotly <- function(material, palette = NULL) {
       paste0(
         "<br>", format(100 * data$confidence_level, trim = TRUE),
         "% CI: ", format(signif(data$percentage_ci_lower, 4), trim = TRUE),
-        "% to ", format(signif(data$percentage_ci_upper, 4), trim = TRUE), "%",
-        "<br>Half-width: ",
-        format(signif(data$percentage_uncertainty, 4), trim = TRUE),
-        " percentage points"
+        "% to ", format(signif(data$percentage_ci_upper, 4), trim = TRUE), "%"
       ),
       ""
     ),
-    "<br>Total concentration RSD: ",
-    format(signif(data$total_concentration_rsd, 4), trim = TRUE),
-    "<br>Uncertainty shown: ", data$uncertainty_type
+    ifelse(
+      is.finite(data$total_concentration_rsd),
+      paste0(
+        "<br>Total concentration RSD: ",
+        format(signif(data$total_concentration_rsd, 4), trim = TRUE)
+      ),
+      paste0(
+        "<br>Concentration RSD: ",
+        format(signif(data$concentration_rsd, 4), trim = TRUE)
+      )
+    )
   )
   plotly::plot_ly(
     data,

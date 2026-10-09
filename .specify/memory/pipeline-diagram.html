@@ -695,7 +695,7 @@
 <div class="node output tip-left" style="left:2250px;top:1370px" tabindex="0">
   Particle Size Plot
   <div class="depends">depends on: Collapse particles = on</div>
-  <div class="tip"><code>output$particle_plot</code> renders a Plotly histogram from calibrated <code>canonical_final()$metadata$area</code>, which exists only when particles were collapsed into units. Hover reports the same nominal-size bin bounds and counts used by the static ZIP figure; one measured particle receives one visible bar centered on its nominal size instead of a compressed automatic range. The plot is empty for a non-collapsed map or single spectrum.
+  <div class="tip"><code>output$particle_plot</code> renders a Plotly histogram from calibrated <code>canonical_final()$metadata$area</code>, which exists only when particles were collapsed into units. Hover reports only the count for each nominal-size bin; one measured particle receives one visible bar centered on its nominal size instead of a compressed automatic range. The plot is empty for a non-collapsed map or single spectrum.
   <span class="loc">Plan 036 &middot; server.R: particle_plot &middot; global.R: app_particle_size_data()/app_particle_size_plotly()</span></div>
 </div>
 
@@ -744,7 +744,7 @@
 <div class="node output tip-left" style="left:2250px;top:2330px" tabindex="0">
   Material Class Plot
   <div class="depends">depends on: Attach Best Matches (or Collapse grouping)</div>
-  <div class="tip"><code>output$material_plot</code> reads metadata$material_class (collapse) or max_cor_identity() (non-collapse), so Library Identification or AI Model Classification must have run. Plotly count bars show each material's published single-property percentage confidence interval converted to count units; <strong>All Materials</strong> shows total count with <code>sqrt(count)</code> uncertainty from the total-concentration RSD. Count, percentage, interval, and RSD labels appear only on hover, with no text drawn inside bars and no All Materials row added to exported per-material data.
+  <div class="tip"><code>output$material_plot</code> reads metadata$material_class (collapse) or max_cor_identity() (non-collapse), so Library Identification or AI Model Classification must have run. Plotly count bars show each material's published single-property percentage confidence interval converted to count units. Hover reports count, percentage, interval, and the material's concentration RSD (<code>class_count^-1/2</code>); <strong>All Materials</strong> alone reports the total-concentration RSD and shows total count with <code>sqrt(total_count)</code> uncertainty. No text is drawn inside bars, and no All Materials row is added to exported per-material data.
   <span class="loc">Plan 036 &middot; server.R: material_plot &middot; global.R: app_material_summary_data()/app_material_summary_plotly()</span></div>
 </div>
 

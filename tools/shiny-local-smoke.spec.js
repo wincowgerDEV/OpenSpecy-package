@@ -1664,6 +1664,36 @@ test("in-memory particle analysis exposes four strategies and a canonical ZIP", 
     .toBeVisible({ timeout: 120000 });
   await expect(page.locator("#material_plot.js-plotly-plot .main-svg").first())
     .toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
+    timeout: 120000,
+  });
+  const particlePlotGeometry = await page.locator(
+    "#particle_summary_panel"
+  ).evaluate((panel) => {
+    const plot = panel.querySelector("#particle_plot");
+    const plotContainer = plot?.querySelector(".plot-container");
+    const svgContainer = plot?.querySelector(".svg-container");
+    const panelStyle = getComputedStyle(panel);
+    const panelContentWidth = panel.clientWidth -
+      parseFloat(panelStyle.paddingLeft || "0") -
+      parseFloat(panelStyle.paddingRight || "0");
+    return {
+      panelContentWidth,
+      plotWidth: plot?.getBoundingClientRect().width || 0,
+      plotContainerWidth: plotContainer?.getBoundingClientRect().width || 0,
+      svgContainerWidth: svgContainer?.getBoundingClientRect().width || 0,
+    };
+  });
+  expect(particlePlotGeometry.panelContentWidth).toBeGreaterThan(100);
+  expect(particlePlotGeometry.plotWidth /
+    particlePlotGeometry.panelContentWidth).toBeGreaterThanOrEqual(0.9);
+  expect(particlePlotGeometry.plotContainerWidth /
+    particlePlotGeometry.panelContentWidth).toBeGreaterThanOrEqual(0.9);
+  expect(particlePlotGeometry.svgContainerWidth /
+    particlePlotGeometry.panelContentWidth).toBeGreaterThanOrEqual(0.9);
+  await page.locator("#analysis_summary_box").screenshot({
+    path: testInfo.outputPath("particle-histogram-fills-summary-panel.png"),
+  });
   const summaryPlotContract = await page.evaluate(() => ({
     particleHover: document.getElementById("particle_plot")?.data?.[0]
       ?.hovertemplate || "",
@@ -1672,14 +1702,77 @@ test("in-memory particle analysis exposes four strategies and a canonical ZIP", 
     materialErrors: document.getElementById("material_plot")?.data?.[0]
       ?.error_x?.array || [],
   }));
-  expect([summaryPlotContract.particleHover].flat().join("\n")).toContain(
-    "Bin:"
+  const particleHover = [summaryPlotContract.particleHover].flat();
+  expect(particleHover.length).toBeGreaterThan(0);
+  expect(particleHover.every((text) =>
+    text === "Count: %{y}<extra></extra>"
+  )).toBe(true);
+  const allMaterialsHover = summaryPlotContract.materialHover.find((text) =>
+    text.includes("Material: All Materials")
   );
-  expect(summaryPlotContract.materialHover.join("\n")).toContain("All Materials");
-  expect(summaryPlotContract.materialHover.join("\n")).toContain(
-    "Total concentration RSD"
+  const classHover = summaryPlotContract.materialHover.filter((text) =>
+    !text.includes("Material: All Materials")
+  );
+  expect(allMaterialsHover).toContain("Total concentration RSD:");
+  expect(classHover.length).toBeGreaterThan(0);
+  expect(classHover.every((text) => text.includes("Concentration RSD:")))
+    .toBe(true);
+  expect(classHover.every((text) => !text.includes("Total concentration RSD:")))
+    .toBe(true);
+  expect(summaryPlotContract.materialHover.join("\n")).not.toContain(
+    "Half-width:"
+  );
+  expect(summaryPlotContract.materialHover.join("\n")).not.toContain(
+    "Uncertainty shown:"
   );
   expect(summaryPlotContract.materialErrors.length).toBeGreaterThan(0);
+
+  expect(await page.locator("#particle_plot .barlayer .point path").count())
+    .toBeGreaterThan(0);
+  await page.evaluate(() => {
+    const plot = document.getElementById("particle_plot");
+    window.Plotly.Fx.hover(plot, [{ curveNumber: 0, pointNumber: 0 }]);
+  });
+  const particleTooltip = page.locator("#particle_plot .hoverlayer");
+  await expect(particleTooltip).toContainText("Count:");
+  const particleTooltipText = await particleTooltip.textContent();
+  expect(particleTooltipText).not.toContain("%{");
+  expect(particleTooltipText).not.toContain("Bin:");
+  await page.locator("#analysis_summary_box").screenshot({
+    path: testInfo.outputPath("particle-count-hover.png"),
+  });
+
+  const allMaterialsIndex = summaryPlotContract.materialHover.findIndex((text) =>
+    text.includes("Material: All Materials")
+  );
+  const classIndex = summaryPlotContract.materialHover.findIndex((text) =>
+    !text.includes("Material: All Materials")
+  );
+  expect(allMaterialsIndex).toBeGreaterThanOrEqual(0);
+  expect(classIndex).toBeGreaterThanOrEqual(0);
+  expect(await page.locator("#material_plot .barlayer .point path").count())
+    .toBe(summaryPlotContract.materialHover.length);
+  await page.evaluate((pointNumber) => {
+    const plot = document.getElementById("material_plot");
+    window.Plotly.Fx.hover(plot, [{ curveNumber: 0, pointNumber }]);
+  }, allMaterialsIndex);
+  const materialTooltip = page.locator("#material_plot .hoverlayer");
+  await expect(materialTooltip).toContainText("Total concentration RSD:");
+  let materialTooltipText = await materialTooltip.textContent();
+  expect(materialTooltipText).not.toContain("Half-width:");
+  expect(materialTooltipText).not.toContain("Uncertainty shown:");
+  await page.evaluate((pointNumber) => {
+    const plot = document.getElementById("material_plot");
+    window.Plotly.Fx.hover(plot, [{ curveNumber: 0, pointNumber }]);
+  }, classIndex);
+  await expect(materialTooltip).toContainText("Concentration RSD:");
+  materialTooltipText = await materialTooltip.textContent();
+  expect(materialTooltipText).not.toContain("Total concentration RSD:");
+  expect(materialTooltipText).not.toContain("Half-width:");
+  expect(materialTooltipText).not.toContain("Uncertainty shown:");
+  await page.locator("#analysis_summary_box").screenshot({
+    path: testInfo.outputPath("material-class-hover.png"),
+  });
 
   await waitForStableSelectizeGeneration(
     page.locator("#download_selection"), "Thresholded Particles",

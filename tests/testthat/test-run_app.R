@@ -2259,11 +2259,29 @@ test_that("bundled app material summaries report uncertainty in Plotly", {
   expect_identical(tail(material_data$material_class, 1L), "All Materials")
   expect_equal(tail(material_data$count, 1L), 3)
   expect_equal(tail(material_data$count_uncertainty, 1L), sqrt(3))
+  class_rows <- material_data$material_class != "All Materials"
+  expect_equal(
+    material_data$concentration_rsd[class_rows],
+    material_data$count[class_rows]^(-1 / 2)
+  )
+  expect_true(all(is.na(material_data$total_concentration_rsd[class_rows])))
+  expect_true(is.na(tail(material_data$concentration_rsd, 1L)))
+  expect_equal(tail(material_data$total_concentration_rsd, 1L), 3^(-1 / 2))
   material_widget <- env$app_material_summary_plotly(c("PE", "PE", "PET"))
   material_build <- plotly::plotly_build(material_widget)
   expect_s3_class(material_widget, "plotly")
-  expect_true(any(grepl("All Materials", material_build$x$data[[1]]$text,
-                        fixed = TRUE)))
+  material_hover <- material_build$x$data[[1]]$text
+  all_hover <- material_hover[grepl("Material: All Materials", material_hover,
+                                    fixed = TRUE)]
+  class_hover <- material_hover[!grepl("Material: All Materials",
+                                       material_hover, fixed = TRUE)]
+  expect_length(all_hover, 1L)
+  expect_true(all(grepl("Concentration RSD:", class_hover, fixed = TRUE)))
+  expect_false(any(grepl("Total concentration RSD:", class_hover,
+                         fixed = TRUE)))
+  expect_match(all_hover, "Total concentration RSD:", fixed = TRUE)
+  expect_false(any(grepl("Half-width:", material_hover, fixed = TRUE)))
+  expect_false(any(grepl("Uncertainty shown:", material_hover, fixed = TRUE)))
   expect_true(all(material_build$x$data[[1]]$textposition == "none"))
   expect_equal(as.numeric(material_build$x$data[[1]]$error_x$array),
                material_data$count_uncertainty)
@@ -2271,8 +2289,18 @@ test_that("bundled app material summaries report uncertainty in Plotly", {
   size_widget <- env$app_particle_size_plotly(object)
   size_build <- plotly::plotly_build(size_widget)
   expect_s3_class(size_widget, "plotly")
-  expect_match(size_build$x$data[[1]]$hovertemplate, "Bin:", fixed = TRUE)
+  expect_null(size_widget$width)
+  expect_true(all(
+    as.character(size_build$x$data[[1]]$hovertemplate) ==
+      "Count: %{y}<extra></extra>"
+  ))
+  expect_null(size_build$x$data[[1]]$customdata)
   expect_equal(sum(size_build$x$data[[1]]$y), 3)
+  size_data <- env$app_particle_size_data(object)
+  expect_equal(
+    as.numeric(size_build$x$data[[1]]$width),
+    as.numeric(size_data$bin_max - size_data$bin_min)
+  )
 
   one_particle <- as_OpenSpecy(
     seq_len(3), matrix(seq_len(3), nrow = 3),
@@ -2282,11 +2310,15 @@ test_that("bundled app material summaries report uncertainty in Plotly", {
   expect_equal(one_data$bin_mid, 5)
   expect_equal(one_data$count, 1L)
   expect_gt(one_data$bin_max - one_data$bin_min, 0)
-  one_build <- plotly::plotly_build(
-    env$app_particle_size_plotly(one_particle)
-  )
+  one_widget <- env$app_particle_size_plotly(one_particle)
+  expect_null(one_widget$width)
+  one_build <- plotly::plotly_build(one_widget)
   expect_equal(as.numeric(one_build$x$data[[1]]$x), 5)
   expect_equal(as.numeric(one_build$x$data[[1]]$y), 1)
+  expect_equal(
+    as.numeric(one_build$x$data[[1]]$width),
+    as.numeric(one_data$bin_max - one_data$bin_min)
+  )
   expect_true(diff(one_build$x$layout$xaxis$range) > 0)
 })
 

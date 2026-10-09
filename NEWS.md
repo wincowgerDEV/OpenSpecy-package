@@ -78,10 +78,10 @@
   particle summaries now report observed percentages, 95% confidence
   intervals, total particle count, and total concentration RSD (`count^-1/2`).
   The app's material summary is now an interactive Plotly count chart with
-  class uncertainty plus an **All Materials** RSD bar, and its particle-size
-  histogram is interactive with bin bounds and counts on hover, including a
-  readable single-particle bar. Material labels appear on hover rather than
-  inside the bars.
+  class uncertainty and class-specific concentration RSDs plus an **All
+  Materials** total-RSD bar, and its particle-size histogram is interactive
+  with counts on hover, including a readable single-particle bar. Material
+  labels appear on hover rather than inside the bars.
 - The Advanced settings loader now includes reusable **Default** and
   **MIPPR - Thermo Fisher iN10 MX** presets. Default restores every captured
   app control and clears saved quantification definitions; MIPPR configures

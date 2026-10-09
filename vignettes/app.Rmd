@@ -395,14 +395,16 @@ knitr::include_graphics("app/particle_example.jpg")
 ```
 
 Collapsing the particles also makes a Plotly particle-size histogram appear in
-the Summary tab. Hover reports each calibrated nominal-size bin and its count.
+the Summary tab. Hover reports only the count for each calibrated nominal-size
+bin.
 After material identification, the interactive material chart reports each
-class count and observed percentage with a 95% percentage confidence interval.
-Its **All Materials** row reports total count with uncertainty based on the
-total-concentration RSD, `count^(-1/2)`. The class interval is the published
-single-property random-sampling equation; it does not include laboratory,
-identification, finite-population, or concentration uncertainty and collapses
-to zero at observed percentages of exactly 0 or 100.
+class count, observed percentage, 95% percentage confidence interval, and
+class-concentration RSD, `class_count^(-1/2)`. Its **All Materials** row reports
+total count with uncertainty based on the total-concentration RSD,
+`total_count^(-1/2)`. The class interval is the published single-property
+random-sampling equation; it does not include laboratory, identification,
+finite-population, or concentration uncertainty and collapses to zero at
+observed percentages of exactly 0 or 100.
 
 ```{r, fig.align="center", echo=FALSE}
 knitr::include_graphics("app/particle_size.jpg")
