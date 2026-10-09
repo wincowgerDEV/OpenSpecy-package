@@ -1005,8 +1005,11 @@ test_that("User Metadata settings restore atomically and reset omissions", {
     type = "area", numerator_min = 1650, numerator_max = 1850,
     denominator_min = 1420, denominator_max = 1500
   )
+  ranges <- data.frame(
+    id = 1:2, minimum = c(800, 2420), maximum = c(2200, 3200)
+  )
   snapshot <- env$app_user_metadata_snapshot(
-    settings, ratios, "now", "1.0.0", "session"
+    settings, ratios, "now", "1.0.0", "session", ranges = ranges
   )
   csv_row <- data.frame(snapshot, check.names = FALSE)
   csv_row$pixel_unit <- NULL
@@ -1018,6 +1021,8 @@ test_that("User Metadata settings restore atomically and reset omissions", {
   expect_identical(parsed$settings$lib_org, c("polymer", "fiber"))
   expect_identical(parsed$settings$pixel_unit, defaults$pixel_unit)
   expect_equal(parsed$ratios$name, "Carbonyl")
+  expect_equal(parsed$ranges[, c("minimum", "maximum")],
+               ranges[, c("minimum", "maximum")])
   expect_identical(parsed$unknown, "future_setting")
 
   invalid <- csv_row

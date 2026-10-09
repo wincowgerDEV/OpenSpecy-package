@@ -1008,6 +1008,10 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('toHaveText("2 files uploaded")', smoke,
                         fixed = TRUE)))
+  expect_true(any(grepl('runButton).toHaveText("Ready")', smoke,
+                        fixed = TRUE)))
+  expect_true(any(grepl('runButton).toHaveClass(/openspecy-run-ready/', smoke,
+                        fixed = TRUE)))
   expect_true(any(grepl('"data-openspecy-upload-count", "1"', smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('"data-openspecy-upload-count", "2"', smoke,

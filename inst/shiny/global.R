@@ -1171,9 +1171,10 @@ app_snr_processing_settings <- function(settings) {
 }
 
 # Raw/Spatial signal thresholding intentionally omits the ordinary baseline,
-# spectral smoothing, range, and normalization steps, but intensity units are
-# not optional scientific decoration: a selected transmittance/reflectance
-# conversion must happen before S/N is interpreted as absorbance-like data.
+# spectral smoothing, CO2 flattening, and normalization steps, but intensity
+# units are not optional scientific decoration: a selected
+# transmittance/reflectance conversion must happen before S/N is interpreted
+# as absorbance-like data. Range Selection is applied separately below.
 app_intensity_snr_basis <- function(x, settings) {
   if(!inherits(x, "OpenSpecy") || !is.list(settings)) {
     stop("Intensity-adjusted S/N requires OpenSpecy data and settings.",
@@ -1185,6 +1186,104 @@ app_intensity_snr_basis <- function(x, settings) {
   adjusted <- adj_intens(x, type = type, make_rel = FALSE)
   if(!identical(type, "none")) attr(adjusted, "intensity_unit") <- "absorbance"
   adjusted
+}
+
+app_manual_range_bounds <- function(settings) {
+  if(!is.list(settings)) {
+    stop("Range Selection settings must be a list.", call. = FALSE)
+  }
+  if(!isTRUE(settings$range_decision) ||
+     isTRUE(settings$range_automate)) return(NULL)
+  definitions <- settings$range_definitions
+  if(is.null(definitions)) definitions <- app_empty_range_definitions()
+  expected <- names(app_empty_range_definitions())
+  if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
+    stop("Saved Range Selection definitions have an unexpected structure.",
+         call. = FALSE)
+  }
+  if(nrow(definitions)) {
+    minimum <- suppressWarnings(as.numeric(definitions$minimum))
+    maximum <- suppressWarnings(as.numeric(definitions$maximum))
+  } else {
+    minimum <- suppressWarnings(as.numeric(settings$MinRange))
+    maximum <- suppressWarnings(as.numeric(settings$MaxRange))
+  }
+  if(!length(minimum) || length(minimum) != length(maximum) ||
+     anyNA(c(minimum, maximum)) || any(!is.finite(c(minimum, maximum))) ||
+     any(minimum > maximum)) {
+    stop(
+      "Each retained range requires one finite minimum and maximum with minimum <= maximum.",
+      call. = FALSE
+    )
+  }
+  list(min = minimum, max = maximum)
+}
+
+app_effective_range_settings <- function(settings, definitions = NULL) {
+  if(!is.list(settings)) {
+    stop("Range Selection settings must be a list.", call. = FALSE)
+  }
+  if(!is.null(definitions)) settings$range_definitions <- definitions
+  signature <- if(!isTRUE(settings$range_decision)) {
+    list(enabled = FALSE)
+  } else if(isTRUE(settings$range_automate)) {
+    ratio <- suppressWarnings(as.numeric(settings$range_artifact_ratio))
+    if(length(ratio) != 1L || !is.finite(ratio)) ratio <- 2
+    list(enabled = TRUE, automatic = TRUE, artifact_ratio = ratio)
+  } else {
+    bounds <- app_manual_range_bounds(settings)
+    list(
+      enabled = TRUE, automatic = FALSE,
+      minimum = bounds$min, maximum = bounds$max
+    )
+  }
+  settings[c(
+    "range_decision", "range_automate", "range_artifact_ratio",
+    "MinRange", "MaxRange", "range_definitions"
+  )] <- NULL
+  settings$range <- signature
+  settings
+}
+
+# File-backed Raw/Spatial scans select manual range bands before reading a
+# block. Automatic high-tail selection needs the complete batch decision and
+# is therefore handled only after full materialization.
+app_snr_range_bands <- function(axis, settings) {
+  axis <- suppressWarnings(as.numeric(axis))
+  if(!length(axis) || anyNA(axis) || any(!is.finite(axis))) {
+    stop("Signal/noise range selection requires a finite axis.",
+         call. = FALSE)
+  }
+  bounds <- app_manual_range_bounds(settings)
+  if(is.null(bounds)) return(seq_along(axis))
+  selected <- Reduce(`|`, lapply(seq_along(bounds$min), function(i) {
+    axis >= bounds$min[[i]] & axis <= bounds$max[[i]]
+  }))
+  bands <- which(selected)
+  if(!length(bands)) {
+    stop(
+      "The selected Signal/Noise Range Selection does not overlap the uploaded axis.",
+      call. = FALSE
+    )
+  }
+  bands
+}
+
+app_raw_snr_basis <- function(x, settings) {
+  basis <- app_intensity_snr_basis(x, settings)
+  if(!isTRUE(settings$range_decision)) return(basis)
+  if(isTRUE(settings$range_automate)) {
+    artifact_ratio <- settings$range_artifact_ratio
+    if(is.null(artifact_ratio)) artifact_ratio <- 2
+    return(app_apply_range_automation(
+      basis, flatten = FALSE, restrict = TRUE,
+      restrict_args = list(artifact_ratio = artifact_ratio)
+    )$data)
+  }
+  bounds <- app_manual_range_bounds(settings)
+  restrict_range(
+    basis, min = bounds$min, max = bounds$max, make_rel = FALSE
+  )
 }
 
 app_prepare_correlation_group <- function(reference) {
@@ -3037,6 +3136,66 @@ app_empty_measurement_definitions <- function() {
   )
 }
 
+app_empty_range_definitions <- function() {
+  data.frame(
+    id = integer(), minimum = numeric(), maximum = numeric(),
+    stringsAsFactors = FALSE
+  )
+}
+
+app_add_range_definition <- function(definitions, minimum, maximum) {
+  expected <- names(app_empty_range_definitions())
+  if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
+    stop("Saved Range Selection definitions have an unexpected structure.",
+         call. = FALSE)
+  }
+  minimum <- suppressWarnings(as.numeric(minimum))
+  maximum <- suppressWarnings(as.numeric(maximum))
+  if(length(minimum) != 1L || !is.finite(minimum) ||
+     length(maximum) != 1L || !is.finite(maximum) || minimum > maximum) {
+    stop("A retained range requires finite bounds with minimum <= maximum.",
+         call. = FALSE)
+  }
+  duplicate <- definitions$minimum == minimum & definitions$maximum == maximum
+  if(any(duplicate)) {
+    stop("That retained range has already been added.", call. = FALSE)
+  }
+  next_id <- if(nrow(definitions)) max(definitions$id) + 1L else 1L
+  rbind(
+    definitions,
+    data.frame(
+      id = as.integer(next_id), minimum = minimum, maximum = maximum,
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+app_range_definition_label <- function(definition) {
+  paste0(
+    format(definition$minimum[[1L]]), "--",
+    format(definition$maximum[[1L]]), " cm^-1"
+  )
+}
+
+app_saved_range_definitions <- function(definitions) {
+  if(is.null(definitions) || !is.data.frame(definitions) ||
+     !nrow(definitions)) return(NA_character_)
+  required <- names(app_empty_range_definitions())
+  if(!identical(names(definitions), required)) {
+    stop("Saved Range Selection definitions have an unexpected structure.",
+         call. = FALSE)
+  }
+  paste(vapply(seq_len(nrow(definitions)), function(i) {
+    definition <- definitions[i, , drop = FALSE]
+    paste(
+      paste0("id=", definition$id[[1L]]),
+      paste0("minimum=", definition$minimum[[1L]]),
+      paste0("maximum=", definition$maximum[[1L]]),
+      sep = "; "
+    )
+  }, character(1)), collapse = " || ")
+}
+
 # Input IDs are kept as the exported column names so the settings snapshot is
 # readable beside the app source without promising a future import contract.
 app_user_metadata_input_ids <- c(
@@ -3310,7 +3469,8 @@ app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
                                        app_version, session_id,
                                        source = NULL, file_info = NULL,
                                        measurements =
-                                         app_empty_measurement_definitions()) {
+                                         app_empty_measurement_definitions(),
+                                       ranges = app_empty_range_definitions()) {
   if(!is.list(settings)) {
     stop("App settings must be supplied as a named list.", call. = FALSE)
   }
@@ -3363,6 +3523,8 @@ app_user_metadata_snapshot <- function(settings, definitions, recorded_at,
     ),
     settings,
     list(
+      range_saved_count = if(is.data.frame(ranges)) nrow(ranges) else 0L,
+      range_saved_definitions = app_saved_range_definitions(ranges),
       quant_saved_ratio_count = if(is.data.frame(definitions)) {
         nrow(definitions)
       } else 0L,
@@ -3396,7 +3558,7 @@ app_parse_saved_definitions <- function(value, template) {
     values <- vapply(pairs, function(x) paste(x[-1L], collapse = "="),
                      character(1L))
     if(anyDuplicated(keys) || !setequal(keys, required)) {
-      stop("A saved quantification definition has unexpected fields.",
+      stop("A saved definition has unexpected fields.",
            call. = FALSE)
     }
     stats::setNames(as.list(values[match(required, keys)]), required)
@@ -3411,7 +3573,7 @@ app_parse_saved_definitions <- function(value, template) {
       out[[name]] <- as.character(out[[name]])
     }
     if(anyNA(out[[name]])) {
-      stop("A saved quantification definition contains an invalid '", name,
+      stop("A saved definition contains an invalid '", name,
            "' value.", call. = FALSE)
     }
   }
@@ -3431,11 +3593,13 @@ app_standard_settings <- function(preset, defaults) {
          call. = FALSE)
   }
   settings <- defaults[app_user_metadata_input_ids]
+  ranges <- app_empty_range_definitions()
   if(identical(preset, "mippr_in10_mx")) {
     overrides <- list(
       spatial_decision = TRUE,
       collapse_decision = TRUE,
       threshold_decision = TRUE,
+      signal_basis = "raw_smoothed",
       signal_selection = "sig_times_noise",
       MinSNR = 0.01,
       cor_threshold_decision = FALSE,
@@ -3447,12 +3611,17 @@ app_standard_settings <- function(preset, defaults) {
       range_decision = TRUE,
       range_automate = FALSE,
       MinRange = 800,
-      MaxRange = 3200
+      MaxRange = 2200
     )
     settings[names(overrides)] <- overrides
+    ranges <- data.frame(
+      id = 1:2, minimum = c(800, 2420), maximum = c(2200, 3200),
+      stringsAsFactors = FALSE
+    )
   }
   list(
     settings = settings,
+    ranges = ranges,
     ratios = app_empty_ratio_definitions(),
     measurements = app_empty_measurement_definitions(),
     unknown = character(),
@@ -3513,17 +3682,34 @@ app_user_metadata_import <- function(snapshot, defaults) {
     saved_value("quant_saved_measurement_definitions"),
     app_empty_measurement_definitions()
   )
+  ranges <- app_parse_saved_definitions(
+    saved_value("range_saved_definitions"),
+    app_empty_range_definitions()
+  )
+  if(nrow(ranges) && (any(!is.finite(ranges$minimum)) ||
+                     any(!is.finite(ranges$maximum)) ||
+                     any(ranges$minimum > ranges$maximum))) {
+    stop(
+      "Each saved retained range requires finite bounds with minimum <= maximum.",
+      call. = FALSE
+    )
+  }
+  settings$range_definitions <- ranges
+  app_manual_range_bounds(settings)
+  settings$range_definitions <- NULL
   provenance <- c(
     "metadata_schema_version", "recorded_at", "app_version", "session_id",
     "data_uploaded", "data_file_name", "data_file_size_bytes",
     "data_file_type", "data_file_last_modified", "data_digest_md5",
     "data_spectrum_count", "data_wavenumber_count", "data_wavenumber_min",
-    "data_wavenumber_max", "quant_saved_ratio_count",
+    "data_wavenumber_max", "range_saved_count", "range_saved_definitions",
+    "quant_saved_ratio_count",
     "quant_saved_ratio_definitions", "quant_saved_measurement_count",
     "quant_saved_measurement_definitions"
   )
   list(
-    settings = settings, ratios = ratios, measurements = measurements,
+    settings = settings, ranges = ranges,
+    ratios = ratios, measurements = measurements,
     unknown = setdiff(names(snapshot), c(app_user_metadata_input_ids,
                                          provenance))
   )

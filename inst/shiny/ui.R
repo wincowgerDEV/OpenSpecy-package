@@ -109,11 +109,24 @@ preprocessing_controls <- tagList(
       ),
       shinyjs::disabled(
         numericInput("MaxRange", "Manual Maximum Wavenumber", value = 2000)
+      ),
+      div(
+        class = "openspecy-quant-builder-actions",
+        actionButton(
+          "range_add", "Add Restriction",
+          icon = icon("plus"), class = "openspecy-add-range-button"
+        )
+      ),
+      div(
+        class = "openspecy-saved-ranges",
+        tags$h5("Saved Retained Ranges"),
+        uiOutput("range_saved_definitions")
       )
     ),
     note = c(
       "Automatic mode scans the full processed wavenumber axis and crops a shared high tail only when its artifact ratio exceeds the threshold and the batch improves.",
-      "Manual bounds are ignored and locked while automatic mode is on; turn it off to set the range yourself."
+      "Manual bounds are ignored and locked while automatic mode is on; turn it off to set the range yourself. The numeric minimum and maximum define one retained range. Choose Add Restriction to save it, enter another pair, and add again. Once at least one range is saved, only the saved list is active; for example, 800--2200 and 2420--3200 cm^-1 omit 2200--2420 cm^-1.",
+      "When Raw / Spatially Smoothed Signal/Noise is selected, this range is also applied before the signal metric is calculated. Automatic high-tail selection for a file-backed map requires Load Entire File into Memory."
     )
   ),
   app_control_box(
@@ -337,7 +350,7 @@ advanced_controls <- tagList(
     div(id = "snr_preview_container", class = "openspecy-mini-plot",
         uiOutput("snr_plot_ui")),
     note = c(
-      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment, and optional Spatial Smooth, and it never Min-Max normalizes. Fully Processed applies the complete enabled preprocessing recipe, including Min-Max Normalize when that switch is on; file-backed maps do this in bounded chunks.",
+      "Signal/Noise Basis chooses what collapsing uses to decide which pixels are eligible: Raw / Spatially Smoothed uses the uploaded spectra, the selected Intensity Adjustment, optional Spatial Smooth, and active Range Selection, and it never Min-Max normalizes. Fully Processed applies the complete enabled preprocessing recipe, including Min-Max Normalize when that switch is on; file-backed maps do this in bounded chunks.",
       "Minimum and Maximum Value define a strict accepted interval on the selected metric scale: values must be greater than the minimum and less than the maximum. The histogram draws both current thresholds.",
       "Signal Over Noise is a local peak-to-noise ratio, Signal Times Noise emphasizes absolute response, and Total Signal sums intensity. Larger values are not interchangeable between metrics.",
       "Pixels outside either bound are background only when Threshold Signal / Noise is on. Turning it off disables that black map mask but does not disable calculation of the selected metric.",
@@ -470,7 +483,7 @@ advanced_controls <- tagList(
     uiOutput("settings_import_status"),
     footer = footnote(
       "Restore app controls",
-      "Choose Default to reset every recognized control and saved quantification definition, or choose MIPPR - Thermo Fisher iN10 MX for the standard FTIR-map workflow. You may instead upload the one-row User Metadata CSV downloaded from this app. Presets and CSV files leave the current spectra loaded and require Run before results update."
+      "Choose Default to reset every recognized control, saved retained range, and saved quantification definition, or choose MIPPR - Thermo Fisher iN10 MX for the standard FTIR-map workflow. You may instead upload the one-row User Metadata CSV downloaded from this app. Presets and CSV files leave the current spectra loaded and require Run before results update."
     )
   )
 )
@@ -986,17 +999,43 @@ dashboardPage(
         .btn.openspecy-run-button {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: .5rem;
+          width: 100%;
+          min-height: 46px;
           margin-top: 10px;
+          padding: .65rem 1rem;
           color: var(--openspecy-text) !important;
           background: var(--openspecy-canvas) !important;
-          border-color: var(--openspecy-border) !important;
+          border: 2px solid var(--openspecy-border) !important;
+          border-radius: .45rem;
+          font-size: 1.03rem;
           font-weight: 700;
+          cursor: pointer;
+          transition: background-color .15s ease, border-color .15s ease,
+                      box-shadow .15s ease, transform .15s ease;
         }
-        .btn.openspecy-run-button.openspecy-run-dirty {
+        .btn.openspecy-run-button.openspecy-run-dirty:not(:disabled):not(.disabled) {
           color: var(--openspecy-canvas) !important;
           background: var(--openspecy-success) !important;
           border-color: var(--openspecy-success) !important;
+          animation: openspecy-run-invite 1.8s ease-in-out infinite;
+        }
+        .btn.openspecy-run-button:not(:disabled):not(.disabled):hover,
+        .btn.openspecy-run-button:not(:disabled):not(.disabled):focus,
+        .btn.openspecy-run-button.openspecy-run-dirty:not(:disabled):not(.disabled):hover,
+        .btn.openspecy-run-button.openspecy-run-dirty:not(:disabled):not(.disabled):focus {
+          color: var(--openspecy-text) !important;
+          background: var(--openspecy-panel) !important;
+          border-color: var(--openspecy-accent) !important;
+          box-shadow: 0 0 0 .16rem rgba(56, 189, 248, .2);
+          transform: translateY(-1px);
+          animation: none;
+        }
+        .btn.openspecy-run-button:disabled,
+        .btn.openspecy-run-button.disabled {
+          cursor: not-allowed;
+          transform: none;
         }
         #spectra_box { margin-top: 16px; }
         .openspecy-quant-builder-actions {
@@ -1432,6 +1471,16 @@ dashboardPage(
           transition: width .35s ease;
         }
         @keyframes openspecy-spin { to { transform: rotate(360deg); } }
+        @keyframes openspecy-run-invite {
+          0%, 100% {
+            box-shadow: 0 0 0 .06rem rgba(255, 255, 255, .22),
+                        0 0 8px rgba(255, 255, 255, .16);
+          }
+          50% {
+            box-shadow: 0 0 0 .16rem rgba(255, 255, 255, .38),
+                        0 0 14px rgba(255, 255, 255, .26);
+          }
+        }
         .openspecy-local-picker {
           display: grid;
           gap: 6px;
@@ -1462,7 +1511,7 @@ dashboardPage(
           cursor: not-allowed;
           opacity: .65;
         }
-        .openspecy-workerfs-file-count {
+        .openspecy-file-count {
           min-height: 1.25rem;
           margin: 0;
           color: var(--openspecy-muted);
@@ -1480,6 +1529,7 @@ dashboardPage(
         }
         @media (prefers-reduced-motion: reduce) {
           .openspecy-busy-spinner { animation: none; }
+          .btn.openspecy-run-button { animation: none !important; }
           #openspecy_busy_progress_fill { transition: none; }
         }
         @media (max-width: 991px) {
@@ -1560,7 +1610,7 @@ dashboardPage(
               ),
               tags$span(
                 id = "openspecy_workerfs_file_count",
-                class = "openspecy-workerfs-file-count",
+                class = "openspecy-file-count",
                 role = "status", `aria-live` = "polite",
                 "No files uploaded"
               )
@@ -1592,13 +1642,18 @@ dashboardPage(
                     )
                   )
                 }
+              ),
+              tags$span(
+                id = "openspecy_local_file_count",
+                class = "shiny-text-output openspecy-file-count",
+                role = "status", `aria-live` = "polite",
+                "No files uploaded"
               )
             )
           },
           shinyjs::disabled(
             actionButton(
-              "run_analysis", "Run",
-              icon = icon("play"),
+              "run_analysis", "Ready",
               class = "openspecy-run-button",
               title = paste(
                 "Run the current preprocessing, threshold, cluster,",

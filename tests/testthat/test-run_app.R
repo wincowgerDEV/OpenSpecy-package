@@ -293,6 +293,8 @@ test_that("local and hosted modes render exactly one upload control", {
                                     fixed = TRUE))[[1L]],
     1L
   )
+  expect_match(local_html, 'id="openspecy_local_file_count"', fixed = TRUE)
+  expect_match(local_html, "No files uploaded", fixed = TRUE)
   expect_false(grepl('id="upload_status"', local_html, fixed = TRUE))
   expect_false(grepl("openspecy_workerfs_files", local_html, fixed = TRUE))
   expect_false(grepl('id="local_files"', hosted_html, fixed = TRUE))
@@ -705,7 +707,8 @@ test_that("bundled app runs corrections and identification unconditionally", {
     "Manual bounds are ignored and locked while automatic mode is on",
     fixed = TRUE
   )
-  expect_match(server_source, "observeEvent(input$range_automate, {",
+  expect_match(server_source,
+               "observeEvent(list(input$range_automate, range_definitions()), {",
                fixed = TRUE)
   expect_match(server_source,
                "manual_range <- !isTRUE(input$range_automate)",
@@ -874,7 +877,7 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
   expect_false(grepl("quant_carbonyl_saub", ui_source, fixed = TRUE))
-  expect_match(ui_source, '"run_analysis", "Run"', fixed = TRUE)
+  expect_match(ui_source, '"run_analysis", "Ready"', fixed = TRUE)
   expect_match(ui_source, "shinyjs::disabled(", fixed = TRUE)
   expect_match(server_source,
                'shinyjs::toggleState("run_analysis", condition = !is.null(active_file_info()))',
@@ -1129,6 +1132,9 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
                          collapse = "\n")
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
                      collapse = "\n")
+  bridge_source <- paste(readLines(
+    file.path(app_path, "www", "parent-frame.js"), warn = FALSE
+  ), collapse = "\n")
   read_start <- regexpr("read_uploaded_files <- function", server_source,
                         fixed = TRUE)[[1L]]
   stage_start <- regexpr("stage_selected_files <- function", server_source,
@@ -1248,17 +1254,45 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
     "observeEvent(input$run_analysis, {\n    analysis_dirty(FALSE)\n    analysis_needs_reset(FALSE)",
     fixed = TRUE
   )
-  expect_match(
-    server_source,
-    'shinyjs::toggleClass(\n      "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())',
-    fixed = TRUE
-  )
+  expect_match(server_source,
+               "show_run <- files_ready && isTRUE(analysis_dirty())",
+               fixed = TRUE)
+  expect_match(server_source,
+               'output$openspecy_local_file_count <- renderText({',
+               fixed = TRUE)
+  expect_match(server_source,
+               'if(!count) return("No files uploaded")', fixed = TRUE)
+  expect_match(server_source,
+               '"openspecy-run-dirty", condition = show_run',
+               fixed = TRUE)
+  expect_match(server_source, '"openspecy-run-ready", condition = !show_run',
+               fixed = TRUE)
+  expect_match(bridge_source, "button.replaceChildren()", fixed = TRUE)
+  expect_match(bridge_source, 'button.textContent = "Ready"', fixed = TRUE)
+  expect_match(bridge_source, 'document.createTextNode(" Run")', fixed = TRUE)
+  expect_match(bridge_source, "function bindRunButtonContent()", fixed = TRUE)
+  expect_match(bridge_source,
+               'button.classList.contains("openspecy-run-dirty")',
+               fixed = TRUE)
+  expect_match(bridge_source, "new MutationObserver(syncRunButtonContent)",
+               fixed = TRUE)
+  expect_false(grepl('addCustomMessageHandler("openspecy-run-content"',
+                     bridge_source, fixed = TRUE))
+  expect_match(server_source,
+               "observeEvent(input$openspecy_run_settled, {", fixed = TRUE)
+  expect_match(bridge_source,
+               '"openspecy_run_settled", Date.now()', fixed = TRUE)
 
   # The button carries a dedicated class the CSS themes for both states, and
   # is not permanently bootstrap-green.
   expect_match(ui_source, 'class = "openspecy-run-button"', fixed = TRUE)
   expect_false(grepl('"btn-success openspecy-run-button"', ui_source, fixed = TRUE))
-  expect_match(ui_source, ".btn.openspecy-run-button.openspecy-run-dirty {",
+  expect_match(ui_source,
+               ".btn.openspecy-run-button.openspecy-run-dirty:not(:disabled)",
+               fixed = TRUE)
+  expect_match(ui_source, "animation: openspecy-run-invite", fixed = TRUE)
+  expect_match(ui_source, "@keyframes openspecy-run-invite", fixed = TRUE)
+  expect_match(ui_source, "background: var(--openspecy-panel) !important;",
                fixed = TRUE)
 })
 
@@ -1277,7 +1311,7 @@ test_that("bundled app streams fully processed file-backed map summaries", {
     server_source,
     "process = if(fully_processed)", fixed = TRUE
   )
-  expect_match(server_source, "app_intensity_snr_basis(spatial", fixed = TRUE)
+  expect_match(server_source, "app_raw_snr_basis(spatial", fixed = TRUE)
   expect_match(
     server_source,
     "settings <- current_processing_settings()",
@@ -1293,6 +1327,8 @@ test_that("bundled app streams fully processed file-backed map summaries", {
     "function(block) app_intensity_snr_basis(block, settings)",
     fixed = TRUE
   )
+  expect_match(server_source, "app_snr_range_bands(", fixed = TRUE)
+  expect_match(server_source, "app_effective_range_settings(", fixed = TRUE)
   expect_match(
     global_source,
     "settings$make_rel_decision <- FALSE", fixed = TRUE
@@ -1308,6 +1344,99 @@ test_that("bundled app streams fully processed file-backed map summaries", {
   expect_match(global_source, "OpenSpecy:::.filespec_smoothed_values(",
                fixed = TRUE)
   expect_false(grepl("turn off Spatial Smooth", global_source, fixed = TRUE))
+})
+
+test_that("Raw/Spatial signal/noise honors active Range Selection", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  setwd(app_path)
+  on.exit(setwd(old_wd), add = TRUE)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+  ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
+                     collapse = "\n")
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+  expect_match(ui_source, 'numericInput("MinRange"', fixed = TRUE)
+  expect_match(ui_source, 'numericInput("MaxRange"', fixed = TRUE)
+  expect_match(ui_source, '"range_add", "Add Restriction"', fixed = TRUE)
+  expect_match(server_source, "range_definitions <- reactiveVal(",
+               fixed = TRUE)
+
+  axis <- c(500, 1000, 1500, 2000, 2500)
+  object <- as_OpenSpecy(
+    x = axis,
+    spectra = data.frame(
+      first = c(100, 1, 2, 3, 100),
+      second = c(50, 2, 4, 8, 80)
+    ),
+    session_id = FALSE
+  )
+  settings <- list(
+    intensity_decision = FALSE, intensity_corr = "none",
+    range_decision = FALSE, range_automate = FALSE,
+    range_artifact_ratio = 2, MinRange = 1000, MaxRange = 2000,
+    range_definitions = data.frame(
+      id = 1:2, minimum = c(1000, 2500), maximum = c(2000, 2500)
+    )
+  )
+  expect_identical(
+    env$app_raw_snr_basis(object, settings)$wavenumber,
+    object$wavenumber
+  )
+
+  settings$range_decision <- TRUE
+  expected <- restrict_range(
+    object, min = c(1000, 2500), max = c(2000, 2500), make_rel = FALSE
+  )
+  actual <- env$app_raw_snr_basis(object, settings)
+  expect_identical(actual$wavenumber, expected$wavenumber)
+  expect_equal(actual$spectra, expected$spectra)
+  expect_identical(
+    env$app_snr_range_bands(axis, settings), c(2L, 3L, 4L, 5L)
+  )
+  expect_equal(
+    sig_noise(actual, metric = "sig_times_noise", abs = FALSE),
+    sig_noise(expected, metric = "sig_times_noise", abs = FALSE)
+  )
+  expect_false(isTRUE(all.equal(
+    sig_noise(actual, metric = "sig_times_noise", abs = FALSE),
+    sig_noise(object, metric = "sig_times_noise", abs = FALSE)
+  )))
+
+  settings$range_automate <- TRUE
+  expect_identical(env$app_snr_range_bands(axis, settings), seq_along(axis))
+
+  settings$range_automate <- FALSE
+  settings$range_definitions <- env$app_empty_range_definitions()
+  expect_identical(
+    env$app_snr_range_bands(axis, settings), c(2L, 3L, 4L)
+  )
+
+  definitions <- env$app_add_range_definition(
+    env$app_empty_range_definitions(), 800, 2200
+  )
+  definitions <- env$app_add_range_definition(definitions, 2420, 3200)
+  expect_equal(definitions$minimum, c(800, 2420))
+  expect_equal(definitions$maximum, c(2200, 3200))
+  expect_error(
+    env$app_add_range_definition(definitions, 800, 2200),
+    "already been added"
+  )
+  settings$range_definitions <- definitions
+  first_signature <- env$app_effective_range_settings(settings)
+  settings$MinRange <- 1200
+  settings$MaxRange <- 1800
+  expect_identical(
+    env$app_effective_range_settings(settings), first_signature
+  )
 })
 
 test_that("bundled app exposes the gated Cluster Buster strategy", {
@@ -3208,7 +3337,8 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
   )
   expect_identical(
     names(snapshot),
-    c(provenance, expected_input_ids, "quant_saved_ratio_count",
+    c(provenance, expected_input_ids, "range_saved_count",
+      "range_saved_definitions", "quant_saved_ratio_count",
       "quant_saved_ratio_definitions", "quant_saved_measurement_count",
       "quant_saved_measurement_definitions")
   )
@@ -3255,13 +3385,16 @@ test_that("bundled app standard settings reset defaults and apply MIPPR", {
   )
   default <- env$app_standard_settings("default", defaults)
   expect_identical(default$settings, defaults)
+  expect_equal(nrow(default$ranges), 0L)
   expect_equal(nrow(default$ratios), 0L)
   expect_equal(nrow(default$measurements), 0L)
 
-  mippr <- env$app_standard_settings("mippr_in10_mx", defaults)$settings
+  preset <- env$app_standard_settings("mippr_in10_mx", defaults)
+  mippr <- preset$settings
   expect_identical(mippr$spatial_decision, TRUE)
   expect_identical(mippr$collapse_decision, TRUE)
   expect_identical(mippr$threshold_decision, TRUE)
+  expect_identical(mippr$signal_basis, "raw_smoothed")
   expect_identical(mippr$signal_selection, "sig_times_noise")
   expect_identical(mippr$MinSNR, 0.01)
   expect_identical(mippr$cor_threshold_decision, FALSE)
@@ -3272,7 +3405,9 @@ test_that("bundled app standard settings reset defaults and apply MIPPR", {
   expect_identical(mippr$co2_automate, FALSE)
   expect_identical(mippr$range_decision, TRUE)
   expect_identical(mippr$range_automate, FALSE)
-  expect_identical(c(mippr$MinRange, mippr$MaxRange), c(800, 3200))
+  expect_identical(c(mippr$MinRange, mippr$MaxRange), c(800, 2200))
+  expect_equal(preset$ranges$minimum, c(800, 2420))
+  expect_equal(preset$ranges$maximum, c(2200, 3200))
   expect_identical(mippr$spike_method, "default-marker")
 })
 

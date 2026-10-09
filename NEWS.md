@@ -87,6 +87,16 @@
   app control and clears saved quantification definitions; MIPPR configures
   the agreed spatial, particle, signal-times-noise, FTIR, memory, flattening,
   range, correlation, and Top-N settings, with changes applied on the next Run.
+  Raw / Spatially Smoothed signal/noise now honors the active Range Selection,
+  whose numeric Add Restriction builder supports multiple retained regions.
+  The MIPPR preset retains 800--2200 and 2420--3200 cm^-1, omitting
+  2200--2420 cm^-1.
+- The local spectrum picker now retains the same uploaded-file count shown by
+  the hosted picker. Pending files or settings make the larger Run button green
+  with a subtle pulse; its standard hover styling remains consistent with other
+  buttons. With no upload it is disabled and reads Ready without an icon;
+  pending work shows one play icon plus Run, and a completed click returns to
+  Ready until inputs change.
 - H5 stage coordinates and supported ENVI origin/pixel-size metadata now drive
   physical X/Y axes in the bundled app while preserving integer pixel topology.
   A consistent square source pixel length and its known unit also populate the

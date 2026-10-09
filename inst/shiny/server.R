@@ -39,6 +39,7 @@ function(input, output, session) {
   data_click <- reactiveValues(plot = NULL, pixel = NULL, table = NULL)
   meta_cache <- reactiveVal(NULL)
   correction_diagnostics <- reactiveVal(data.frame())
+  range_definitions <- reactiveVal(app_empty_range_definitions())
   ratio_definitions <- reactiveVal(app_empty_ratio_definitions())
   measurement_definitions <- reactiveVal(app_empty_measurement_definitions())
   settings_defaults <- reactiveVal(NULL)
@@ -115,7 +116,10 @@ function(input, output, session) {
     analysis_ids <- setdiff(
       app_user_metadata_input_ids, app_live_display_input_ids
     )
-    lapply(analysis_ids, function(id) input[[id]])
+    settings <- stats::setNames(
+      lapply(analysis_ids, function(id) input[[id]]), analysis_ids
+    )
+    app_effective_range_settings(settings, range_definitions())
   })
   observeEvent(settings_signature(), {
     analysis_dirty(TRUE)
@@ -136,10 +140,19 @@ function(input, output, session) {
     analysis_needs_reset(FALSE)
   }, priority = RUN_GATE_PRIORITY_RESET)
   observe({
+    files_ready <- !is.null(active_file_info())
+    show_run <- files_ready && isTRUE(analysis_dirty())
     shinyjs::toggleClass(
-      "run_analysis", "openspecy-run-dirty", condition = isTRUE(analysis_dirty())
+      "run_analysis", "openspecy-run-dirty", condition = show_run
+    )
+    shinyjs::toggleClass(
+      "run_analysis", "openspecy-run-ready", condition = !show_run
     )
   })
+  observeEvent(input$openspecy_run_settled, {
+    state <- canonical_state_gate$read()
+    if(!is.null(state$object)) analysis_dirty(FALSE)
+  }, ignoreInit = TRUE, priority = -20L)
 
   # The tab-wide action is intentionally one-way. "All on" combines mutually
   # unsuitable scientific choices, so the safe convenience is always Reset
@@ -212,10 +225,13 @@ function(input, output, session) {
     )
   })
 
-  observeEvent(input$range_automate, {
+  observeEvent(list(input$range_automate, range_definitions()), {
     manual_range <- !isTRUE(input$range_automate)
     shinyjs::toggleState("MinRange", condition = manual_range)
     shinyjs::toggleState("MaxRange", condition = manual_range)
+    shinyjs::toggleState("range_add", condition = manual_range)
+    shinyjs::toggleState("range_remove", condition = manual_range)
+    shinyjs::toggleState("range_clear", condition = manual_range)
     shinyjs::toggleClass(
       "manual_range_bounds", "openspecy-inputs-disabled",
       condition = !manual_range
@@ -369,8 +385,12 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
               } else NULL
             )
           } else NULL
+          raw_range_requested <-
+            !identical(input$signal_basis, "fully_processed") &&
+            isTRUE(input$range_decision)
           reader_background_policy <- if(
-            identical(input$signal_basis, "fully_processed")
+            identical(input$signal_basis, "fully_processed") ||
+              raw_range_requested
           ) NULL else background_policy
           # RDS maps are already serialized OpenSpecy objects. Reading a lone
           # RDS directly avoids dispatch and, critically for gigabyte maps,
@@ -680,6 +700,7 @@ apply_restored_settings <- function(parsed, message) {
   for(id in app_user_metadata_input_ids) {
     update_imported_setting(id, parsed$settings[[id]])
   }
+  range_definitions(parsed$ranges)
   ratio_definitions(parsed$ratios)
   measurement_definitions(parsed$measurements)
   analysis_dirty(TRUE)
@@ -746,6 +767,15 @@ observeEvent(input$run_analysis, {
     tags$span(message)
   })
   outputOptions(output, "upload_status", suspendWhenHidden = FALSE)
+  output$openspecy_local_file_count <- renderText({
+    files <- active_file_info()
+    count <- if(is.null(files)) 0L else nrow(files)
+    if(!count) return("No files uploaded")
+    paste(count, if(count == 1L) "file uploaded" else "files uploaded")
+  })
+  outputOptions(
+    output, "openspecy_local_file_count", suspendWhenHidden = FALSE
+  )
   
   # Load the selected library independently of the processed data. Keeping this
   # expensive read in its own reactive prevents every preprocessing change from
@@ -868,11 +898,77 @@ observeEvent(input$run_analysis, {
     "range_automate", "range_artifact_ratio", "MinRange", "MaxRange"
   )
   current_processing_settings <- function() {
-    stats::setNames(
+    settings <- stats::setNames(
       lapply(ordinary_processing_input_ids, function(id) input[[id]]),
       ordinary_processing_input_ids
     )
+    settings$range_definitions <- range_definitions()
+    settings
   }
+
+  observeEvent(input$range_add, {
+    result <- tryCatch(
+      app_add_range_definition(
+        range_definitions(), isolate(input$MinRange), isolate(input$MaxRange)
+      ),
+      error = identity
+    )
+    if(inherits(result, "error")) {
+      show_alert(
+        title = "Range not added", text = conditionMessage(result),
+        type = "error"
+      )
+      return()
+    }
+    range_definitions(result)
+    analysis_dirty(TRUE)
+  })
+
+  output$range_saved_definitions <- renderUI({
+    definitions <- range_definitions()
+    if(!nrow(definitions)) {
+      return(tags$p(
+        class = "text-muted openspecy-range-empty",
+        paste(
+          "No retained ranges saved. The numeric minimum and maximum above",
+          "define the active single range."
+        )
+      ))
+    }
+    labels <- vapply(seq_len(nrow(definitions)), function(i) {
+      app_range_definition_label(definitions[i, , drop = FALSE])
+    }, character(1))
+    tagList(
+      tags$ul(lapply(labels, tags$li)),
+      selectInput(
+        "range_remove_id", "Saved retained ranges",
+        choices = stats::setNames(as.character(definitions$id), labels),
+        selected = as.character(utils::tail(definitions$id, 1L))
+      ),
+      actionButton(
+        "range_remove", "Remove Selected",
+        icon = icon("trash"), class = "btn-outline-danger"
+      ),
+      actionButton(
+        "range_clear", "Clear All",
+        icon = icon("eraser"), class = "btn-outline-warning"
+      )
+    )
+  })
+  outputOptions(output, "range_saved_definitions", suspendWhenHidden = FALSE)
+
+  observeEvent(input$range_remove, {
+    id <- suppressWarnings(as.integer(isolate(input$range_remove_id)))
+    if(is.na(id)) return()
+    definitions <- range_definitions()
+    range_definitions(definitions[definitions$id != id, , drop = FALSE])
+    analysis_dirty(TRUE)
+  })
+
+  observeEvent(input$range_clear, {
+    range_definitions(app_empty_range_definitions())
+    analysis_dirty(TRUE)
+  })
 
   # Compatibility advice is deliberately captured and shown only on Run. It
   # is nonblocking because advanced users may upload spectra that were already
@@ -1160,10 +1256,18 @@ observeEvent(input$run_analysis, {
         diagnostics[[length(diagnostics) + 1L]] <-
           result$diagnostics[result$diagnostics$enabled, , drop = FALSE]
       } else {
+        range_settings <- list(
+          range_decision = TRUE, range_automate = FALSE,
+          MinRange = value("MinRange"), MaxRange = value("MaxRange"),
+          range_definitions = if(is.null(settings)) {
+            range_definitions()
+          } else settings$range_definitions
+        )
+        bounds <- app_manual_range_bounds(range_settings)
         processed <- restrict_range(
           processed,
-          min = value("MinRange"),
-          max = value("MaxRange"),
+          min = bounds$min,
+          max = bounds$max,
           make_rel = FALSE
         )
       }
@@ -1483,8 +1587,9 @@ observeEvent(input$run_analysis, {
   })
 
   # S/N Basis defaults to only the uploaded spectra plus the optional spatial
-  # smooth (fast; independent of baseline, derivative, range, normalization,
-  # particle collapse, or identification settings). Signal/Noise Basis =
+  # smooth (fast; independent of baseline, derivative, normalization,
+  # particle collapse, or identification settings, while honoring active
+  # Range Selection). Signal/Noise Basis =
   # "Fully Processed" instead runs the complete enabled preprocessing recipe,
   # including Min-Max normalization when selected, at real cost on a large map
   # -- deliberately not the default. Raw/Spatial never applies Min-Max. Either
@@ -1498,7 +1603,7 @@ observeEvent(input$run_analysis, {
       ordinary_process(spatial, settings = settings, view_only = TRUE)
     } else {
       if(is_Specs(spatial)) spatial <- decompress_spec(spatial, expand = FALSE)
-      app_intensity_snr_basis(spatial, settings)
+      app_raw_snr_basis(spatial, settings)
     }
   })
 
@@ -1511,20 +1616,28 @@ observeEvent(input$run_analysis, {
         issues <- app_file_stream_processing_issues(
           settings, spatial_smooth = isTRUE(input$spatial_decision)
         )
+      } else if(isTRUE(settings$range_decision) &&
+                isTRUE(settings$range_automate)) {
+        issues <- "turn off automatic range restriction"
       } else {
         issues <- character()
       }
       if(length(issues)) {
         stop(paste(
-          "Fully Processed file-backed signal/noise requires chunk-stable",
+          "Selected file-backed signal/noise requires chunk-stable",
           "processing;", paste(issues, collapse = ", "),
           "or enable Load Entire File into Memory."
         ), call. = FALSE)
       }
       index <- OpenSpecy:::.filespec_index(source)
+      snr_bands <- if(fully_processed) {
+        seq_along(OpenSpecy:::.filespec_axis(source))
+      } else {
+        app_snr_range_bands(OpenSpecy:::.filespec_axis(source), settings)
+      }
       values <- OpenSpecy:::.filespec_particle_snr(
         source, index = index,
-        bands = seq_along(OpenSpecy:::.filespec_axis(source)),
+        bands = snr_bands,
         metric = effective_signal_selection(), abs = FALSE,
         spectral_smooth = isTRUE(input$spatial_decision),
         sigma1 = rep(as.numeric(input$sigma), 3L),
@@ -1579,13 +1692,16 @@ observeEvent(input$run_analysis, {
   snr_preview <- reactiveVal(NULL)
   snr_preview_signature <- reactiveVal(NULL)
   snr_relevant_signature <- reactive({
+    processing <- app_effective_range_settings(
+      current_processing_settings()
+    )
     list(
       signal_basis = input$signal_basis, spatial_decision = input$spatial_decision,
       sigma = input$sigma, signal_selection = input$signal_selection,
       processing = if(identical(input$signal_basis, "fully_processed")) {
-        current_processing_settings()
+        processing
       } else {
-        current_processing_settings()[c("intensity_decision", "intensity_corr")]
+        processing[c("intensity_decision", "intensity_corr", "range")]
       }
     )
   })
@@ -4716,6 +4832,7 @@ output$progress_bars <- renderUI({
     )
     app_user_metadata_snapshot(
       settings = settings,
+      ranges = range_definitions(),
       definitions = ratio_definitions(),
       measurements = measurement_definitions(),
       recorded_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %z"),

@@ -726,7 +726,13 @@ test("settings tabs show active state and quantification clears before upload", 
   await expect(page.locator("#range_decision")).toBeChecked();
   await expect(page.locator("#range_automate")).not.toBeChecked();
   await expect(page.locator("#MinRange")).toHaveValue("800");
-  await expect(page.locator("#MaxRange")).toHaveValue("3200");
+  await expect(page.locator("#MaxRange")).toHaveValue("2200");
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "800--2200 cm^-1"
+  );
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "2420--3200 cm^-1"
+  );
 
   await page.locator("#settings_preset").evaluate((select) => {
     select.selectize.setValue("default");
@@ -747,6 +753,46 @@ test("settings tabs show active state and quantification clears before upload", 
   await expect(page.locator("#range_automate")).toBeChecked();
   await expect(page.locator("#MinRange")).toHaveValue("300");
   await expect(page.locator("#MaxRange")).toHaveValue("2000");
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "No retained ranges saved"
+  );
+
+  await preprocessingTab.click();
+  const rangeDecision = page.locator("#range_decision");
+  await rangeDecision.evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  const rangeSwitch = page.locator("#range_automate");
+  const rangeCard = rangeSwitch.locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  if (await rangeCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+    await toggleCard(rangeCard);
+  }
+  await rangeSwitch.uncheck({ force: true });
+  await page.locator("#MinRange").fill("800");
+  await page.locator("#MaxRange").fill("2200");
+  await page.locator("#range_add").click();
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "800--2200 cm^-1"
+  );
+  await page.locator("#MinRange").fill("2420");
+  await page.locator("#MaxRange").fill("3200");
+  await page.locator("#range_add").click();
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "2420--3200 cm^-1"
+  );
+  await page.locator("#range_remove").click();
+  await expect(page.locator("#range_saved_definitions")).not.toContainText(
+    "2420--3200 cm^-1"
+  );
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "800--2200 cm^-1"
+  );
+  await page.locator("#range_clear").click();
+  await expect(page.locator("#range_saved_definitions")).toContainText(
+    "No retained ranges saved"
+  );
   await expect(page.locator("#run_analysis")).toBeDisabled();
   await settingsCard.screenshot({
     path: testInfo.outputPath("local-app-settings-tab-active-state.png"),
@@ -863,7 +909,54 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   );
 });
 
-test("Recalculate Preview materializes staged spectra before Run", async ({ page }) => {
+test("local file count and pending Run affordance stay visible", async ({ page }, testInfo) => {
+  test.setTimeout(180000);
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  const count = page.locator("#openspecy_local_file_count");
+  const runButton = page.locator("#run_analysis");
+  await expect(count).toHaveText("No files uploaded");
+  await expect(runButton).toBeDisabled();
+  await expect(runButton).toHaveText("Ready");
+  await expect(runButton.locator("i, svg")).toHaveCount(0);
+  await page.locator(".openspecy-upload-column").screenshot({
+    path: testInfo.outputPath("local-run-disabled-ready.png"),
+  });
+
+  await stageLocalFiles(
+    page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
+  );
+  await expect(count).toHaveText("1 file uploaded");
+  await expect(runButton).toHaveText("Run");
+  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveClass(/openspecy-run-dirty/);
+  expect(await runButton.evaluate((button) =>
+    getComputedStyle(button).animationName
+  )).toContain("openspecy-run-invite");
+  await page.locator(".openspecy-upload-column").screenshot({
+    path: testInfo.outputPath("local-run-pending.png"),
+  });
+
+  const picker = page.locator("#local_native_files, #local_files").first();
+  await picker.hover();
+  await page.waitForTimeout(250);
+  const pickerHover = await picker.evaluate((button) => ({
+    backgroundColor: getComputedStyle(button).backgroundColor,
+    borderColor: getComputedStyle(button).borderColor,
+  }));
+  await runButton.hover();
+  await expect.poll(async () => runButton.evaluate((button) => ({
+    backgroundColor: getComputedStyle(button).backgroundColor,
+    borderColor: getComputedStyle(button).borderColor,
+  }))).toEqual(pickerHover);
+
+  const header = findFixtureFile(filespecFixtureDir, ".hdr");
+  const binary = findFixtureFile(filespecFixtureDir, ".dat");
+  await stageLocalFiles(page, [header, binary]);
+  await expect(count).toHaveText("2 files uploaded");
+});
+
+test("Recalculate Preview materializes staged spectra before Run", async ({ page }, testInfo) => {
   test.setTimeout(300000);
   const severeErrors = [];
   page.on("console", (message) => {
@@ -879,6 +972,15 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
   await stageLocalFiles(
     page, path.join(repo, "inst", "extdata", "CA_tiny_map.zip")
   );
+  const runButton = page.locator("#run_analysis");
+  const localFileCount = page.locator("#openspecy_local_file_count");
+  await expect(localFileCount).toHaveText("1 file uploaded");
+  await expect(runButton).toHaveText("Run");
+  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveClass(/openspecy-run-dirty/);
+  expect(await runButton.evaluate((button) =>
+    getComputedStyle(button).animationName
+  )).toContain("openspecy-run-invite");
   await expect(page.locator("#placeholder1")).toHaveCount(0);
   await expect(page.locator("#MyPlotC")).toContainText(
     "A new dataset was uploaded. Click Run to analyze it."
@@ -916,7 +1018,7 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
   await expect(page.locator("#identification_active")).not.toBeChecked();
   await expect(page.locator("#collapse_decision")).not.toBeChecked();
   await page.waitForTimeout(500);
-  await page.locator("#run_analysis").click();
+  await runButton.click();
   await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
     timeout: 10000,
   });
@@ -931,6 +1033,13 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     if (alert) throw new Error(alert.textContent || "Unexpected analysis alert");
     return Object.keys(select?.selectize?.options || {}).includes("Signal/Noise");
   }, null, { timeout: 30000 });
+  await expect(runButton).toHaveText("Ready");
+  await expect(runButton.locator("i, svg")).toHaveCount(0);
+  await expect(runButton).toHaveClass(/openspecy-run-ready/);
+  await expect(runButton).not.toHaveClass(/openspecy-run-dirty/);
+  await page.locator(".openspecy-upload-column").screenshot({
+    path: testInfo.outputPath("local-run-ready.png"),
+  });
   await selectizeOption(page, "map_color", "Signal/Noise");
   const initialSignal = await page.locator("#heatmapA").evaluate((plot) =>
     JSON.stringify(plot.data?.[0]?.z)
@@ -939,6 +1048,12 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     JSON.stringify(plot.data?.[0]?.x)
   );
   await selectizeOption(page, "signal_selection", "sig_times_noise");
+  await expect(runButton).toHaveText("Run");
+  await expect(runButton.locator("i, svg")).toHaveCount(1);
+  await expect(runButton).toHaveClass(/openspecy-run-dirty/);
+  await page.locator(".openspecy-upload-column").screenshot({
+    path: testInfo.outputPath("local-run-parameter-changed.png"),
+  });
   await preview.click();
   await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
     timeout: 240000,
