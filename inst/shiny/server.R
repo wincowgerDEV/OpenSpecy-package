@@ -94,11 +94,20 @@ function(input, output, session) {
               class = "openspecy_run_gate")
   }
 
-  # Bright green ("dirty") whenever there is a new upload or a settings
-  # change the current results don't reflect yet; the app's normal accent
-  # color once Run has been clicked for the current upload and settings.
+  # Bright green ("dirty") only while uploaded data or effective settings are
+  # waiting to be analyzed. Run hides the control immediately; a revision
+  # counter restores it only for a failure or a newer invalidation.
   analysis_dirty <- reactiveVal(FALSE)
+  analysis_running <- reactiveVal(FALSE)
+  analysis_invalidation_revision <- reactiveVal(0L)
+  analysis_run_revision <- reactiveVal(NA_integer_)
+  library_organizations <- reactiveVal(character())
   analysis_needs_reset <- reactiveVal(FALSE)
+  invalidate_analysis <- function() {
+    revision <- isolate(analysis_invalidation_revision())
+    analysis_invalidation_revision(revision + 1L)
+    analysis_dirty(TRUE)
+  }
   session$onFlushed(function() {
     defaults <- shiny::isolate(
       stats::setNames(
@@ -114,16 +123,36 @@ function(input, output, session) {
   }, once = TRUE)
   settings_signature <- reactive({
     analysis_ids <- setdiff(
-      app_user_metadata_input_ids, app_live_display_input_ids
+      app_user_metadata_input_ids,
+      c(app_live_display_input_ids, app_quantification_builder_input_ids)
     )
     settings <- stats::setNames(
       lapply(analysis_ids, function(id) input[[id]]), analysis_ids
     )
-    app_effective_range_settings(settings, range_definitions())
+    settings <- app_effective_range_settings(settings, range_definitions())
+    filter_enabled <- !identical(settings$lib_type, "model") &&
+      isTRUE(settings$filter_lib)
+    if(!filter_enabled) {
+      settings$lib_org <- NULL
+    } else {
+      selected <- sort(unique(as.character(settings$lib_org)))
+      available <- sort(unique(as.character(library_organizations())))
+      settings$lib_org <- if(!length(selected) ||
+        (length(available) && identical(selected, available))) {
+        NULL
+      } else selected
+    }
+    settings
   })
-  observeEvent(settings_signature(), {
-    analysis_dirty(TRUE)
-  }, ignoreInit = TRUE)
+  last_settings_signature <- reactiveVal(NULL)
+  observe({
+    current <- settings_signature()
+    previous <- isolate(last_settings_signature())
+    last_settings_signature(current)
+    if(!is.null(previous) && !identical(current, previous)) {
+      invalidate_analysis()
+    }
+  }, priority = RUN_GATE_PRIORITY_RESET + 1L)
   # Sends the first busy-overlay signal immediately on click, before any
   # other Run-triggered observer (including the reset below and every
   # run_gated_reactive()) runs -- otherwise the overlay has nothing to react
@@ -136,22 +165,31 @@ function(input, output, session) {
   }, priority = RUN_GATE_PRIORITY_ANNOUNCE)
 
   observeEvent(input$run_analysis, {
+    analysis_running(TRUE)
+    analysis_run_revision(isolate(analysis_invalidation_revision()))
     analysis_dirty(FALSE)
     analysis_needs_reset(FALSE)
   }, priority = RUN_GATE_PRIORITY_RESET)
   observe({
     files_ready <- !is.null(active_file_info())
-    show_run <- files_ready && isTRUE(analysis_dirty())
+    dirty <- files_ready && isTRUE(analysis_dirty())
+    running <- files_ready && isTRUE(analysis_running())
     shinyjs::toggleClass(
-      "run_analysis", "openspecy-run-dirty", condition = show_run
+      "run_analysis", "openspecy-run-dirty", condition = dirty
     )
     shinyjs::toggleClass(
-      "run_analysis", "openspecy-run-ready", condition = !show_run
+      "run_analysis", "openspecy-run-running", condition = running
     )
   })
   observeEvent(input$openspecy_run_settled, {
     state <- canonical_state_gate$read()
-    if(!is.null(state$object)) analysis_dirty(FALSE)
+    completed <- is.list(state) && is.null(state$error)
+    pending <- !identical(
+      isolate(analysis_invalidation_revision()),
+      isolate(analysis_run_revision())
+    )
+    analysis_running(FALSE)
+    analysis_dirty(!completed || pending)
   }, ignoreInit = TRUE, priority = -20L)
 
   # The tab-wide action is intentionally one-way. "All on" combines mutually
@@ -194,7 +232,7 @@ function(input, output, session) {
   observeEvent(input$quantification_remove_all, {
     ratio_definitions(app_empty_ratio_definitions())
     measurement_definitions(app_empty_measurement_definitions())
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   }, ignoreInit = TRUE)
 
   observe({
@@ -552,7 +590,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
         # clear them before publishing preprocessed$data. Publishing first let
         # the heatmap observer briefly reveal the prior/empty plot during the
         # same reactive flush, which produced the first-upload blink.
-        analysis_dirty(TRUE)
+        invalidate_analysis()
         analysis_needs_reset(TRUE)
         canonical_state_gate$clear()
         analysis_library(NULL)
@@ -602,7 +640,7 @@ stage_selected_files <- function(file_info, mounted = FALSE) {
     nrow(file_info), " file", if(nrow(file_info) == 1L) "" else "s",
     " selected. Click Run to read and analyze."
   ))
-  analysis_dirty(TRUE)
+  invalidate_analysis()
   analysis_needs_reset(TRUE)
   canonical_state_gate$clear()
   analysis_library(NULL)
@@ -703,7 +741,7 @@ apply_restored_settings <- function(parsed, message) {
   range_definitions(parsed$ranges)
   ratio_definitions(parsed$ratios)
   measurement_definitions(parsed$measurements)
-  analysis_dirty(TRUE)
+  invalidate_analysis()
   analysis_needs_reset(TRUE)
   canonical_state_gate$clear()
   quantified_data_gate$clear()
@@ -828,8 +866,12 @@ observeEvent(input$run_analysis, {
   })
 
   observeEvent(libraryR(), {
-      if(identical(input$lib_type, "model")) return()
+      if(identical(input$lib_type, "model")) {
+        library_organizations(character())
+        return()
+      }
       orgs <- sort(unique(libraryR()$metadata$organization))
+      library_organizations(orgs)
       updatePickerInput(session, "lib_org", choices = orgs,
                         selected = orgs)
   })
@@ -921,7 +963,7 @@ observeEvent(input$run_analysis, {
       return()
     }
     range_definitions(result)
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   })
 
   output$range_saved_definitions <- renderUI({
@@ -962,12 +1004,12 @@ observeEvent(input$run_analysis, {
     if(is.na(id)) return()
     definitions <- range_definitions()
     range_definitions(definitions[definitions$id != id, , drop = FALSE])
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   })
 
   observeEvent(input$range_clear, {
     range_definitions(app_empty_range_definitions())
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   })
 
   # Compatibility advice is deliberately captured and shown only on Run. It
@@ -1402,7 +1444,7 @@ observeEvent(input$run_analysis, {
       return()
     }
     ratio_definitions(result)
-    analysis_dirty(TRUE)
+    invalidate_analysis()
     updateTextInput(session, "quant_ratio_name", value = "")
   })
 
@@ -1436,7 +1478,7 @@ observeEvent(input$run_analysis, {
     if(is.na(id)) return()
     definitions <- ratio_definitions()
     ratio_definitions(definitions[definitions$id != id, , drop = FALSE])
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   })
 
   observeEvent(list(quantification_axis(), input$quant_measurement_type), {
@@ -1496,7 +1538,7 @@ observeEvent(input$run_analysis, {
       return()
     }
     measurement_definitions(result)
-    analysis_dirty(TRUE)
+    invalidate_analysis()
     updateTextInput(session, "quant_measurement_name", value = "")
   })
 
@@ -1543,12 +1585,12 @@ observeEvent(input$run_analysis, {
     measurement_definitions(
       definitions[definitions$id != id, , drop = FALSE]
     )
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   })
 
   observeEvent(input$quant_measurement_clear, {
     measurement_definitions(app_empty_measurement_definitions())
-    analysis_dirty(TRUE)
+    invalidate_analysis()
   })
 
   active_ratio_definitions <- reactive({

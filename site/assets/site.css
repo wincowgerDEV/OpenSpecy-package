@@ -928,6 +928,24 @@ html.openspecy-app-fullscreen-open body {
   font-size: 0.96rem;
 }
 
+.timeline-badge-link {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 1rem;
+  border-radius: 0.45rem;
+}
+
+.timeline-badge-link:focus-visible {
+  outline: 3px solid var(--os-accent-light);
+  outline-offset: 0.25rem;
+}
+
+.timeline-badge-link img {
+  display: block;
+  width: min(23.75rem, 100%);
+  height: auto;
+}
+
 .value-card p {
   margin-bottom: 0;
   color: var(--os-muted);

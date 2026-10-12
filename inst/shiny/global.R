@@ -3246,6 +3246,19 @@ app_live_display_input_ids <- c(
   "peak_count", "visual_overlay", "overlay_transparency"
 )
 
+# These fields are only drafts for the quantification builders. Changing or
+# auto-populating them cannot affect results until Add Ratio or Add Measurement
+# publishes a saved definition, whose observers invalidate the analysis.
+app_quantification_builder_input_ids <- c(
+  "quant_ratio_name", "quant_ratio_type",
+  "quant_numerator_area_min", "quant_numerator_area_max",
+  "quant_denominator_area_min", "quant_denominator_area_max",
+  "quant_numerator_peak", "quant_denominator_peak",
+  "quant_measurement_name", "quant_measurement_type",
+  "quant_measurement_area_min", "quant_measurement_area_max",
+  "quant_measurement_wavenumber"
+)
+
 app_logical_setting_ids <- c(
   "spike_decision", "saturation_decision", "make_rel_decision",
   "smooth_decision", "derivative_abs", "conform_decision",

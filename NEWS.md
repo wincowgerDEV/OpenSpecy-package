@@ -1,5 +1,7 @@
 # OpenSpecy 2.0.3
 
+- The landing-page timeline now includes Win Cowger's 2026 TOPSCINET Top 2%
+  Scientist badge and links to the corresponding scientist profile.
 - `train_spec_model()` and `build_model_lib()` now support hierarchical
   logistic models that predict a broad material group before a conditional
   final class and deploy normalized joint path probabilities through the
@@ -92,11 +94,11 @@
   The MIPPR preset retains 800--2200 and 2420--3200 cm^-1, omitting
   2200--2420 cm^-1.
 - The local spectrum picker now retains the same uploaded-file count shown by
-  the hosted picker. Pending files or settings make the larger Run button green
-  with a subtle pulse; its standard hover styling remains consistent with other
-  buttons. With no upload it is disabled and reads Ready without an icon;
-  pending work shows one play icon plus Run, and a completed click returns to
-  Ready until inputs change.
+  the hosted picker. The Run control is hidden with no upload and after a
+  completed, current analysis, and disappears immediately when an analysis
+  starts. Pending uploads or run-affecting setting changes reveal one green,
+  subtly pulsing play icon plus Run, with standard button hover styling;
+  failed analyses leave Run available for retry.
 - H5 stage coordinates and supported ENVI origin/pixel-size metadata now drive
   physical X/Y axes in the bundled app while preserving integer pixel topology.
   A consistent square source pixel length and its known unit also populate the

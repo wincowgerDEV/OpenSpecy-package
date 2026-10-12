@@ -362,6 +362,7 @@ async function stageLocalFiles(page, files) {
   await page.evaluate((selection) => {
     window.Shiny.setInputValue("local_files", selection, { priority: "event" });
   }, payload);
+  await expect(page.locator("#run_analysis")).toBeVisible({ timeout: 60000 });
   await expect(page.locator("#run_analysis")).toBeEnabled({ timeout: 60000 });
 }
 
@@ -794,7 +795,7 @@ test("settings tabs show active state and quantification clears before upload", 
   await expect(page.locator("#range_saved_definitions")).toContainText(
     "No retained ranges saved"
   );
-  await expect(page.locator("#run_analysis")).toBeDisabled();
+  await expect(page.locator("#run_analysis")).toBeHidden();
   await settingsCard.screenshot({
     path: testInfo.outputPath("local-app-settings-tab-active-state.png"),
   });
@@ -910,7 +911,7 @@ test("settings tabs expand the card and sustained actions start the overlay clie
   );
 });
 
-test("local file count and pending Run affordance stay visible", async ({ page }, testInfo) => {
+test("Run appears only for pending analysis work", async ({ page }, testInfo) => {
   test.setTimeout(180000);
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expectLocalPicker(page);
@@ -918,16 +919,15 @@ test("local file count and pending Run affordance stay visible", async ({ page }
   const count = page.locator("#openspecy_local_file_count");
   const runButton = page.locator("#run_analysis");
   await expect(count).toHaveText("No files uploaded");
-  await expect(runButton).toBeDisabled();
-  await expect(runButton).toHaveAccessibleName("Ready");
-  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
+  await expect(runButton).toBeHidden();
   await page.locator(".openspecy-upload-column").screenshot({
-    path: testInfo.outputPath("local-run-disabled-ready.png"),
+    path: testInfo.outputPath("local-run-hidden-empty.png"),
   });
 
   const nativePicker = page.locator("#local_native_files");
   await expect(nativePicker).toHaveCount(1);
   await nativePicker.click();
+  await expect(runButton).toBeVisible({ timeout: 60000 });
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await expect(count).toHaveText("1 file uploaded");
   await expect(runButton).toHaveAccessibleName("Run");
@@ -1025,6 +1025,11 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
   await expect(page.locator("#openspecy_busy_overlay")).toBeVisible({
     timeout: 10000,
   });
+  await expect(runButton).toBeHidden({ timeout: 10000 });
+  await expect(runButton).toHaveClass(/openspecy-run-running/);
+  await page.locator(".openspecy-upload-column").screenshot({
+    path: testInfo.outputPath("local-run-hidden-during-processing.png"),
+  });
   await expect(page.locator("#openspecy_busy_overlay")).toBeHidden({
     timeout: 120000,
   });
@@ -1036,12 +1041,9 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     if (alert) throw new Error(alert.textContent || "Unexpected analysis alert");
     return Object.keys(select?.selectize?.options || {}).includes("Signal/Noise");
   }, null, { timeout: 30000 });
-  await expect(runButton).toHaveAccessibleName("Ready");
-  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
-  await expect(runButton).toHaveClass(/openspecy-run-ready/);
-  await expect(runButton).not.toHaveClass(/openspecy-run-dirty/);
+  await expect(runButton).toBeHidden({ timeout: 60000 });
   await page.locator(".openspecy-upload-column").screenshot({
-    path: testInfo.outputPath("local-run-ready.png"),
+    path: testInfo.outputPath("local-run-hidden-after-completion.png"),
   });
   await selectizeOption(page, "map_color", "Signal/Noise");
   const initialSignal = await page.locator("#heatmapA").evaluate((plot) =>
@@ -1051,6 +1053,8 @@ test("Recalculate Preview materializes staged spectra before Run", async ({ page
     JSON.stringify(plot.data?.[0]?.x)
   );
   await selectizeOption(page, "signal_selection", "sig_times_noise");
+  await expect(runButton).toBeVisible({ timeout: 60000 });
+  await expect(runButton).toBeEnabled();
   await expect(runButton).toHaveAccessibleName("Run");
   await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(1);
   await expect(runButton).toHaveClass(/openspecy-run-dirty/);
@@ -3000,7 +3004,12 @@ test("library identification reports completed block percentages", async ({ page
   await expect.poll(async () => (await selectionMetadata.innerText()).trim(), {
     timeout: 60000,
   }).not.toBe(initialMetadata);
-  await expect(page.locator("#run_analysis")).toBeEnabled();
+  await expect(page.locator("#run_analysis")).toBeHidden();
+  await page.locator(".openspecy-upload-column").screenshot({
+    path: testInfo.outputPath(
+      "local-identification-run-hidden-after-completion.png"
+    ),
+  });
 
   const states = await page.evaluate(() => window.__openspecyIdentificationBlocks);
   expect(states.map((state) => state.message)).toEqual(expect.arrayContaining([

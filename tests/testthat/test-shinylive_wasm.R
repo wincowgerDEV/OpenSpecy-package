@@ -1008,13 +1008,11 @@ test_that("hosted deployment exports the exact current bundled app", {
                         fixed = TRUE)))
   expect_true(any(grepl('toHaveText("2 files uploaded")', smoke,
                         fixed = TRUE)))
-  expect_true(any(grepl('runButton).toHaveAccessibleName("Ready")', smoke,
-                         fixed = TRUE)))
+  expect_true(any(grepl('runButton).toBeHidden', smoke, fixed = TRUE)))
   expect_true(any(grepl('runButton).toHaveAccessibleName("Run")', smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('i:visible, svg:visible', smoke, fixed = TRUE)))
-  expect_true(any(grepl('runButton).toHaveClass(/openspecy-run-ready/', smoke,
-                        fixed = TRUE)))
+  expect_true(any(grepl('runButton).toBeVisible', smoke, fixed = TRUE)))
   expect_true(any(grepl('"data-openspecy-upload-count", "1"', smoke,
                         fixed = TRUE)))
   expect_true(any(grepl('"data-openspecy-upload-count", "2"', smoke,
@@ -1296,6 +1294,23 @@ test_that("static landing and Shiny app provide the embed handshake", {
   )
   expect_true(all(timeline_positions > 0L))
   expect_true(all(diff(timeline_positions) > 0L))
+  expect_true(grepl(
+    'href="https://topscinet.com/scientist_profile/Cowger,%20Win%20C./2019/?stype=single_year" target="_blank" rel="noopener noreferrer"',
+    homepage_text, fixed = TRUE
+  ))
+  expect_true(grepl(
+    'src="https://topscinet.com/badge/U22213.png?style=horizontal-blue&amp;type=single&amp;name=1"',
+    homepage_text, fixed = TRUE
+  ))
+  expect_true(grepl(
+    'alt="Top 2% Scientist badge, TOPSCINET, 2026"',
+    homepage_text, fixed = TRUE
+  ))
+  expect_true(grepl(
+    'width="380" height="80" loading="lazy" decoding="async"',
+    homepage_text, fixed = TRUE
+  ))
+  expect_true(any(grepl("timeline-badge-link", css, fixed = TRUE)))
   expect_true(all(vapply(
     c("Gray Lab", "NSF I-Corps", "Analytical Chemistry",
       "Moore Institute for Plastic Pollution Research", "Possibility Lab",

@@ -1029,6 +1029,10 @@ dashboardPage(
           transition: background-color .15s ease, border-color .15s ease,
                       box-shadow .15s ease, transform .15s ease;
         }
+        #run_analysis.openspecy-run-button { display: none; }
+        #run_analysis.openspecy-run-button.openspecy-run-dirty:not(.openspecy-run-running) {
+          display: inline-flex;
+        }
         .btn.openspecy-run-button.openspecy-run-dirty:not(:disabled):not(.disabled) {
           color: var(--openspecy-canvas) !important;
           background: var(--openspecy-success) !important;
@@ -1052,14 +1056,10 @@ dashboardPage(
           transform: none;
         }
         .openspecy-run-label {
+          display: inline-flex;
           align-items: center;
           gap: .5rem;
         }
-        .openspecy-run-pending-label { display: none; }
-        .btn.openspecy-run-button.openspecy-run-dirty
-          .openspecy-run-ready-label { display: none; }
-        .btn.openspecy-run-button.openspecy-run-dirty
-          .openspecy-run-pending-label { display: inline-flex; }
         #spectra_box { margin-top: 16px; }
         .openspecy-quant-builder-actions {
           display: flex;
@@ -1679,15 +1679,7 @@ dashboardPage(
               "run_analysis",
               tagList(
                 tags$span(
-                  class = paste(
-                    "openspecy-run-label openspecy-run-ready-label"
-                  ),
-                  "Ready"
-                ),
-                tags$span(
-                  class = paste(
-                    "openspecy-run-label openspecy-run-pending-label"
-                  ),
+                  class = "openspecy-run-label",
                   tags$i(
                     class = "fas fa-play", role = "presentation",
                     `aria-hidden` = "true"

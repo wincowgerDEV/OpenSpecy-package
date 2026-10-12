@@ -530,9 +530,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   )).toHaveCount(0);
   await expect(appFrame.locator("#upload_status")).toHaveCount(0);
   const runButton = appFrame.locator("#run_analysis").first();
-  await expect(runButton).toBeDisabled();
-  await expect(runButton).toHaveAccessibleName("Ready");
-  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
+  await expect(runButton).toBeHidden();
   const firstMatch = appFrame.locator("#event table tbody tr").first();
   const downloadSelection = appFrame.locator("#download_selection");
   const downloadLink = appFrame.locator("#download_data");
@@ -575,6 +573,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     await expect(appFrame.locator("html")).toHaveAttribute(
       "data-openspecy-run-ready", "accepted", { timeout: 60000 }
     );
+    await expect(runButton).toBeVisible({ timeout: 60000 });
     await expect(runButton).toBeEnabled({ timeout: 60000 });
     await runButton.click();
     const deadline = Date.now() + 1800000;
@@ -734,11 +733,13 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-busy-action", "upload", { timeout: 30000 }
   );
+  await expect(runButton).toBeVisible({ timeout: 60000 });
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await expect(runButton).toHaveAccessibleName("Run");
   await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(1);
   await expect(runButton).toHaveClass(/openspecy-run-dirty/);
   await runButton.click();
+  await expect(runButton).toBeHidden({ timeout: 30000 });
   await expect(appFrame.locator("html")).toHaveClass(
     /\bopenspecy-busy-visible\b/, { timeout: 30000 }
   );
@@ -754,9 +755,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("html")).not.toHaveClass(
     /\bopenspecy-busy-visible\b/, { timeout: 30000 }
   );
-  await expect(runButton).toHaveAccessibleName("Ready");
-  await expect(runButton.locator("i:visible, svg:visible")).toHaveCount(0);
-  await expect(runButton).toHaveClass(/openspecy-run-ready/);
+  await expect(runButton).toBeHidden({ timeout: 60000 });
   await expect(embed).toHaveClass(/\bis-fullscreen\b/);
   await expect(uploadedFileCount).toHaveText("1 file uploaded");
 
@@ -777,6 +776,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     await expect(appFrame.locator("html")).not.toHaveClass(
       /\bopenspecy-busy-visible\b/
     );
+    await expect(runButton).toBeHidden();
 
     // The Download card intentionally starts collapsed. Identification makes
     // Top Matches the contextual default, and the native header download
@@ -839,6 +839,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await expect(appFrame.locator("html")).toHaveAttribute(
     "data-openspecy-materialized", "pending", { timeout: 60000 }
   );
+  await expect(runButton).toBeVisible({ timeout: 60000 });
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
   await expect(appFrame.locator("html")).toHaveAttribute(
@@ -901,6 +902,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await setShinyCheckbox(
     appFrame.locator("#top_n_per_organization"), false
   );
+  await expect(runButton).toBeVisible({ timeout: 60000 });
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
   await expect(appFrame.locator("html")).toHaveAttribute(
@@ -1004,6 +1006,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await setShinyCheckbox(appFrame.locator("#threshold_decision"), false);
   await setShinyCheckbox(appFrame.locator("#load_entire_map"), false);
   await setShinyCheckbox(appFrame.locator("#collapse_decision"), true);
+  await expect(runButton).toBeVisible({ timeout: 60000 });
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
@@ -1028,6 +1031,7 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
   await setShinyCheckbox(appFrame.locator("#threshold_decision"), true);
   // Settings only take effect once Run is clicked; the download list must
   // not react to the threshold change above on its own.
+  await expect(runButton).toBeVisible({ timeout: 60000 });
   await expect(runButton).toBeEnabled({ timeout: 60000 });
   await runButton.click();
   await expect(appFrame.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {

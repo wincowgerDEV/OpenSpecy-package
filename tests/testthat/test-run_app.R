@@ -881,8 +881,13 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_false(grepl("app_quantification_indices", global_source,
                      fixed = TRUE))
   expect_false(grepl("quant_carbonyl_saub", ui_source, fixed = TRUE))
-  expect_match(ui_source, "openspecy-run-ready-label", fixed = TRUE)
-  expect_match(ui_source, "openspecy-run-pending-label", fixed = TRUE)
+  expect_match(ui_source, 'class = "openspecy-run-label"', fixed = TRUE)
+  expect_match(ui_source, 'class = "fas fa-play"', fixed = TRUE)
+  expect_false(grepl("openspecy-run-ready-label", ui_source, fixed = TRUE))
+  expect_false(grepl("openspecy-run-pending-label", ui_source, fixed = TRUE))
+  expect_match(ui_source,
+               "#run_analysis.openspecy-run-button { display: none; }",
+               fixed = TRUE)
   expect_match(ui_source, "shinyjs::disabled(", fixed = TRUE)
   expect_match(server_source,
                'shinyjs::toggleState("run_analysis", condition = !is.null(active_file_info()))',
@@ -1133,6 +1138,8 @@ test_that("bundled app keeps disabled child controls out of analysis dependencie
 
 test_that("a new upload resets Run-gated results and marks the Run button dirty", {
   app_path <- run_app(test_mode = TRUE)
+  global_source <- paste(readLines(file.path(app_path, "global.R"), warn = FALSE),
+                         collapse = "\n")
   server_source <- paste(readLines(file.path(app_path, "server.R"), warn = FALSE),
                          collapse = "\n")
   ui_source <- paste(readLines(file.path(app_path, "ui.R"), warn = FALSE),
@@ -1243,24 +1250,49 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   expect_match(server_source, "set_upload_status(NULL)", fixed = TRUE)
   expect_match(
     server_source,
-    "analysis_dirty(TRUE)\n        analysis_needs_reset(TRUE)\n        canonical_state_gate$clear()",
+    "invalidate_analysis()\n        analysis_needs_reset(TRUE)\n        canonical_state_gate$clear()",
     fixed = TRUE
   )
 
-  # Settings changes (any input tracked for the metadata snapshot) also mark
-  # the button dirty; only a Run click clears both flags.
+  # Settings changes (any effective input tracked for the analysis snapshot)
+  # reveal Run. A click records the active run and clears only the work that
+  # click captured; changes made during the run remain pending afterward.
   expect_match(
     server_source,
-    "observeEvent(settings_signature(), {\n    analysis_dirty(TRUE)",
+    "analysis_invalidation_revision <- reactiveVal(0L)",
     fixed = TRUE
   )
   expect_match(
     server_source,
-    "observeEvent(input$run_analysis, {\n    analysis_dirty(FALSE)\n    analysis_needs_reset(FALSE)",
+    "analysis_run_revision <- reactiveVal(NA_integer_)",
     fixed = TRUE
   )
+  expect_match(
+    server_source,
+    "last_settings_signature <- reactiveVal(NULL)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "if(!is.null(previous) && !identical(current, previous)) {\n      invalidate_analysis()",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "c(app_live_display_input_ids, app_quantification_builder_input_ids)",
+    fixed = TRUE
+  )
+  expect_match(global_source,
+               "app_quantification_builder_input_ids <- c(", fixed = TRUE)
+  expect_match(
+    server_source,
+    "observeEvent(input$run_analysis, {\n    analysis_running(TRUE)\n    analysis_run_revision(isolate(analysis_invalidation_revision()))\n    analysis_dirty(FALSE)\n    analysis_needs_reset(FALSE)",
+    fixed = TRUE
+  )
+  expect_match(server_source, "analysis_running <- reactiveVal(FALSE)",
+               fixed = TRUE)
   expect_match(server_source,
-               "show_run <- files_ready && isTRUE(analysis_dirty())",
+               "running <- files_ready && isTRUE(analysis_running())",
                fixed = TRUE)
   expect_match(server_source,
                'output$openspecy_local_file_count <- renderText({',
@@ -1268,27 +1300,46 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   expect_match(server_source,
                'if(!count) return("No files uploaded")', fixed = TRUE)
   expect_match(server_source,
-               '"openspecy-run-dirty", condition = show_run',
+               '"openspecy-run-dirty", condition = dirty',
                fixed = TRUE)
-  expect_match(server_source, '"openspecy-run-ready", condition = !show_run',
+  expect_match(server_source,
+               '"openspecy-run-running", condition = running',
                fixed = TRUE)
+  expect_match(server_source, "settings$lib_org <- NULL", fixed = TRUE)
+  expect_match(server_source, "library_organizations(orgs)", fixed = TRUE)
   expect_match(ui_source, 'app_static_asset_url("parent-frame.js")',
                fixed = TRUE)
   expect_match(ui_source, "tools::md5sum(source)", fixed = TRUE)
-  expect_match(ui_source,
-               ".openspecy-run-pending-label { display: none; }",
-               fixed = TRUE)
-  expect_match(ui_source,
-               ".openspecy-run-pending-label { display: inline-flex; }",
-               fixed = TRUE)
+  expect_false(grepl("openspecy-run-ready-label", ui_source, fixed = TRUE))
+  expect_false(grepl("openspecy-run-pending-label", ui_source, fixed = TRUE))
   expect_false(grepl("function bindRunButtonContent()", bridge_source,
                      fixed = TRUE))
   expect_false(grepl('addCustomMessageHandler("openspecy-run-content"',
                      bridge_source, fixed = TRUE))
   expect_match(server_source,
                "observeEvent(input$openspecy_run_settled, {", fixed = TRUE)
+  expect_match(server_source,
+               "completed <- is.list(state) && is.null(state$error)",
+               fixed = TRUE)
+  expect_match(server_source, "pending <- !identical(", fixed = TRUE)
+  expect_match(server_source, "analysis_running(FALSE)", fixed = TRUE)
+  expect_match(server_source, "analysis_dirty(!completed || pending)",
+               fixed = TRUE)
   expect_match(bridge_source,
                '"openspecy_run_settled", Date.now()', fixed = TRUE)
+  expect_match(bridge_source,
+               'if (state.action === "run") {', fixed = TRUE)
+  expect_match(bridge_source,
+               'el.classList.remove("openspecy-run-dirty")', fixed = TRUE)
+  expect_match(
+    bridge_source,
+    'el.classList.add("openspecy-run-running")',
+    fixed = TRUE
+  )
+  expect_false(grepl(
+    'el.classList.add("openspecy-run-running", "openspecy-run-ready")',
+    bridge_source, fixed = TRUE
+  ))
 
   # The button carries a dedicated class the CSS themes for both states, and
   # is not permanently bootstrap-green.
@@ -1296,6 +1347,9 @@ test_that("a new upload resets Run-gated results and marks the Run button dirty"
   expect_false(grepl('"btn-success openspecy-run-button"', ui_source, fixed = TRUE))
   expect_match(ui_source,
                ".btn.openspecy-run-button.openspecy-run-dirty:not(:disabled)",
+               fixed = TRUE)
+  expect_match(ui_source,
+               "#run_analysis.openspecy-run-button.openspecy-run-dirty:not(.openspecy-run-running)",
                fixed = TRUE)
   expect_match(ui_source, "animation: openspecy-run-invite", fixed = TRUE)
   expect_match(ui_source, "@keyframes openspecy-run-invite", fixed = TRUE)

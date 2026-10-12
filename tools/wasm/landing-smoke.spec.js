@@ -55,13 +55,16 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
   })).toBeTruthy();
   const heroVideo = page.locator(".hero-video-card");
   await expect(heroVideo).toHaveCSS("transform", "none");
-  await expect(heroVideo).toHaveAttribute(
-    "data-video-src",
+  const heroVideoFrame = heroVideo.locator("iframe");
+  await expect(heroVideoFrame).toBeVisible();
+  await expect(heroVideoFrame).toHaveAttribute(
+    "src",
     /youtube-nocookie\.com\/embed\/8zrlQeTCwkQ\?autoplay=1&mute=1&playsinline=1&rel=0/
   );
-  await expect(heroVideo.locator(".video-load")).toBeVisible();
-  await expect(heroVideo.locator("iframe")).toHaveCount(0);
-  await expect(page.locator("[data-video-embed]").nth(1)).toHaveAttribute(
+  await expect(heroVideoFrame).toHaveAttribute("loading", "eager");
+  await expect(heroVideo.locator(".video-load")).toHaveCount(0);
+  await expect(page.locator("[data-video-embed]")).toHaveCount(1);
+  await expect(page.locator("[data-video-embed]").first()).toHaveAttribute(
     "data-video-src",
     /youtube-nocookie\.com/
   );
@@ -81,6 +84,30 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
   );
   await expect(emailProject).toHaveAttribute("target", "_blank");
   await expect(emailProject).toHaveAttribute("rel", /noopener/);
+
+  const timeline2026 = page.locator(".project-timeline li", {
+    has: page.locator('time[datetime="2026"]')
+  });
+  const scientistBadge = timeline2026.locator(".timeline-badge-link");
+  const scientistBadgeImage = scientistBadge.locator("img");
+  await expect(timeline2026).toHaveCount(1);
+  await timeline2026.scrollIntoViewIfNeeded();
+  await expect(scientistBadge).toBeVisible();
+  await expect(scientistBadge).toHaveAttribute(
+    "href",
+    "https://topscinet.com/scientist_profile/Cowger,%20Win%20C./2019/?stype=single_year"
+  );
+  await expect(scientistBadge).toHaveAttribute("target", "_blank");
+  await expect(scientistBadge).toHaveAttribute("rel", /noopener/);
+  await expect(scientistBadgeImage).toHaveAttribute(
+    "alt", "Top 2% Scientist badge, TOPSCINET, 2026"
+  );
+  await expect(scientistBadgeImage).toHaveAttribute("width", "380");
+  await expect(scientistBadgeImage).toHaveAttribute("height", "80");
+  await expect(scientistBadgeImage).toHaveAttribute(
+    "src",
+    "https://topscinet.com/badge/U22213.png?style=horizontal-blue&type=single&name=1"
+  );
 
   await page.screenshot({
     path: path.join(screenshotDir, "landing-desktop.png"),
@@ -122,6 +149,11 @@ test("static landing shell is crawlable, responsive, and base-path safe", async 
   const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
   const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
   expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 1);
+  await timeline2026.scrollIntoViewIfNeeded();
+  await expect(scientistBadge).toBeVisible();
+  const badgeBox = await scientistBadgeImage.boundingBox();
+  expect(badgeBox).not.toBeNull();
+  expect(badgeBox.width).toBeLessThanOrEqual(viewportWidth);
   await page.screenshot({
     path: path.join(screenshotDir, "landing-mobile.png"),
     fullPage: true

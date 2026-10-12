@@ -97,6 +97,13 @@
       return false;
     }
     markBusy(el);
+    // R cannot flush class updates while a synchronous analysis is running.
+    // Reflect the accepted Run click immediately; the server remains the
+    // authority for the settled hidden/pending state.
+    if (state.action === "run") {
+      el.classList.remove("openspecy-run-dirty");
+      el.classList.add("openspecy-run-running");
+    }
     analysisPhaseActive = true;
     shinyIsBusy = true;
     busyActionStartedAt = Date.now();
