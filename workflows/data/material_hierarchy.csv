@@ -19,8 +19,8 @@ phenol formaldehyde,polyphenol-formaldehyde,plastic
 peek - poly(ether ether ketone),polyetherketones,plastic
 pek - poly(ether ketone),polyetherketones,plastic
 pekk - poly(ether ketone ketone),polyetherketones,plastic
-poly(ethyleneketone),polyetherketones,plastic
-poly(propyleneketone),polyetherketones,plastic
+poly(ethyleneketone),polyketones,plastic
+poly(propyleneketone),polyketones,plastic
 poly(tetrafluoroethylene),polytetrafluoroethylene,plastic
 poly(acrylamide),polyacrylamides,plastic
 poly(n-isopropyl acrylamide),polyacrylamides,plastic
@@ -227,7 +227,8 @@ poly(propylene sulfide),polythioethers,plastic
 "poly[(ethylene glycol)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes,plastic
 "poly[(polytetrahydrofuran 1000)-alt-(4,4'-diphenylmethane diisocyanate)]",polyurethanes,plastic
 "poly[(tetraethylene glycol)-alt-(1,6-hexamethylene diisocyanate)]",polyurethanes,plastic
-poly(4-vinyl phenol),polyvinylalcohols,plastic
+poly(4-vinyl phenol),polystyrenes,plastic
+poly(4-vinylpyridine),polyvinylpyridines,plastic
 poly(vinyl alcohol),polyvinylalcohols,plastic
 poly(vinyl butyral),polyvinylalcohols,plastic
 poly(vinyl formal),polyvinylalcohols,plastic
@@ -252,7 +253,7 @@ poly(methyl isopropenyl ketone),polyvinylketones,plastic
 poly(vinyl ethyl ketone),polyvinylketones,plastic
 poly(vinyl methyl ketone),polyvinylketones,plastic
 poly(vinyl phenyl ketone),polyvinylketones,plastic
-poly(vinyl pyrrolidone),polyvinylketones,plastic
+poly(vinyl pyrrolidone),polyvinylpyrrolidones,plastic
 poly(vinyl butyl sulfide),polyvinylsulfides,plastic
 poly(vinyl ethyl sulfide),polyvinylsulfides,plastic
 poly(vinyl methyl sulfide),polyvinylsulfides,plastic

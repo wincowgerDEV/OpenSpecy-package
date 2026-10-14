@@ -2,18 +2,50 @@
 
 - The landing-page timeline now includes Win Cowger's 2026 TOPSCINET Top 2%
   Scientist badge and links to the corresponding scientist profile.
-- `train_spec_model()` and `build_model_lib()` now support hierarchical
-  logistic models that predict a broad material group before a conditional
-  final class and deploy normalized joint path probabilities through the
-  existing `match_spec()` and particle-analysis interfaces. Official library
-  builds retain flat models and add separately named hierarchical artifacts;
-  legacy model aliases remain flat.
-- Logistic lambda selection now defaults to a multi-metric guardrail: retain
-  candidates within an absolute 0.01 of maximum overall accuracy, then within
-  0.01 of the best eligible macro accuracy, minimize multiclass log loss, and
-  prefer the largest lambda on ties. Macro-only and overall-only policies are
-  retained for reproducible comparisons, with grouped out-of-fold node and
-  hierarchy diagnostics stored in build evidence.
+- `train_spec_model()` and `build_model_lib()` now accept ordered hierarchy
+  columns and produce schema-versioned, strictly gated logistic models. The
+  official type-to-polymer-group-to-class model takes the top-1 route at every
+  gate, evaluates only the selected child, and reports terminal conditional
+  leaf probabilities without pooling confidence across levels. Ranked matches
+  stay within that terminal node and include route/probability audit columns;
+  routed gate names retain their exact metadata values while the historical
+  spectrum-type prefix remains limited to terminal class labels.
+  New official builds fit only this gated candidate; saved flat and pooled
+  hierarchical artifacts retain their historical prediction behavior.
+- Source-eligible gated nodes now use a node-local multi-metric guardrail:
+  retain candidates within an absolute 0.01 of maximum overall accuracy, then
+  apply the same window successively to minimum class recall, worst-source
+  accuracy among organizations with at least 25 node observations (falling
+  back to library name only when organization is absent), and
+  macro accuracy before minimizing log loss and Brier score and
+  preferring the largest lambda. Source-held-out folds require documented
+  node/child spectrum and source-diversity thresholds; undersupported nodes
+  fall back to identity-grouped folds and the historical overall/macro/loss
+  guardrail. Macro-only and overall-only policies remain reproducible.
+- Official medoid reduction now uses the same canonical source definition as
+  model folds: organization first, with library name as fallback. This keeps
+  distinct source libraries represented when organization is missing and
+  prevents source-held model evidence from being lost before training.
+- Official taxonomy now maps ambiguous exact `pva` to `other plastic`, routes
+  poly(4-vinyl phenol) with polystyrenes, adds polyvinylpyrrolidone,
+  polyvinylpyridine, and polyketone leaves, and includes a complete
+  material-class-to-type-and-group crosswalk. Named monomers and small organic
+  molecules map directly to organic
+  matter, while named generic paint, varnish, rubber, latex, resin, and
+  unresolved composites are retained for constrained nearest-class correlation
+  reassignment. Original identity/form plus the matched ID, class, type, pool,
+  and score are audited. Every generic row now has an explicit reassigned,
+  no-eligible-candidate, no-finite-candidate, pre-pruning removal, or
+  unprocessed-artifact disposition instead of treating every no-op as a failed
+  finite match.
+- Reference pruning now normalizes each immutable numeric/type view once and
+  reuses a fingerprinted dense double correlation matrix for conflict closure,
+  relabel/removal queries, generic reassignment, and medoid validation when the
+  memory preflight permits it. Once a full-range view has served every
+  arbitrary-score consumer, it is losslessly compacted to its exact directed
+  greater-than-threshold edges before a changed range is allocated; lower-
+  threshold reuse is rejected. Bounded correlation remains the lower-memory
+  fallback without changing the strict greater-than-0.9 decision rule.
 - The bundled app now crops temporary query and reference copies to each
   applicable FTIR, Raman, or NIR reference partition's shared range before
   normalization, mean filling, and correlation. This restores library-match
@@ -376,10 +408,12 @@
   self-matches removed. Exact class labels, denominators, and provenance remain
   explicit.
 - Official `build_lib()` artifacts are now partitioned by FTIR, Raman, and NIR
-  with full ranges of 400--4000, 200--4000, and 4000--12000 respectively;
-  FTIR/Raman medoids and models use 800--3200, while the NIR identification
-  interval is derived from finite coverage. Per-type all-blank metadata columns
-  are dropped, and the bundled app now offers NIR identification.
+  with full ranges of 400--4000, 200--4000, and 4000--12000 respectively. FTIR
+  medoids and models use 800--2200 plus 2420--3200, matching particle-analysis
+  inputs without the atmospheric CO2 interval; Raman uses 800--3200, while the
+  NIR identification interval is derived from finite coverage. Per-type
+  all-blank metadata columns are dropped, and the bundled app now offers NIR
+  identification.
 - The bundled app now defaults Spectrum Type to `All`, using complete
   FTIR/Raman/NIR full or medoid references and every overlapping typed model.
   Recalculate Preview can materialize staged files before Run, displayed

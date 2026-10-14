@@ -44,25 +44,42 @@ options(
   future.globals.maxSize = 8 * 1024^3
 )
 data.table::setDTthreads(build_workers)
-previous_future_plan <- future::plan()
-doFuture::registerDoFuture()
-future::plan(future::multisession, workers = min(5L, build_workers))
 
 if (!dir_exists(processed_dir)) {
   stop("Processed source directory does not exist: ", processed_dir,
        call. = FALSE)
 }
 
-metadatafiles <- dir_ls(
-  path = processed_dir,
-  recurse = TRUE,
-  type = "file",
-  glob = "*.rds",
-  fail = FALSE
+processed_files_env <- Sys.getenv(
+  "OPENSPECY_REFERENCE_PROCESSED_FILES", unset = ""
 )
-metadatafiles <- sort(metadatafiles[
-  path_file(path_dir(metadatafiles)) == "Processed"
-])
+if (nzchar(processed_files_env)) {
+  metadatafiles <- trimws(strsplit(
+    processed_files_env, .Platform$path.sep, fixed = TRUE
+  )[[1L]])
+  metadatafiles <- sort(unique(metadatafiles[nzchar(metadatafiles)]))
+  invalid_processed <- !file_exists(metadatafiles) |
+    tolower(path_ext(metadatafiles)) != "rds" |
+    path_file(path_dir(metadatafiles)) != "Processed"
+  if (!length(metadatafiles) || any(invalid_processed)) {
+    stop(
+      "OPENSPECY_REFERENCE_PROCESSED_FILES must contain existing RDS files ",
+      "whose parent directory is Processed.", call. = FALSE
+    )
+  }
+  message("  Processed source discovery: explicit validated file list")
+} else {
+  metadatafiles <- dir_ls(
+    path = processed_dir,
+    recurse = TRUE,
+    type = "file",
+    glob = "*.rds",
+    fail = FALSE
+  )
+  metadatafiles <- sort(metadatafiles[
+    path_file(path_dir(metadatafiles)) == "Processed"
+  ])
+}
 
 source_file <- file.path(data_dir, "library_raw.rds")
 if (!file_exists(source_file)) {
@@ -81,19 +98,13 @@ message("  Output root: ", output_dir)
 message("  Checkpoint reuse: disabled (clean full rebuild)")
 message("  High-throughput workers: ", build_workers)
 
-reference_library_build <- tryCatch(
-  build_lib(
-    x = files,
-    output_dir = output_dir,
-    previous_library_dir = "system",
-    reuse = FALSE,
-    remove_other = TRUE,
-    progress = TRUE
-  ),
-  finally = {
-    future::plan(previous_future_plan)
-    foreach::registerDoSEQ()
-  }
+reference_library_build <- build_lib(
+  x = files,
+  output_dir = output_dir,
+  previous_library_dir = "system",
+  reuse = FALSE,
+  remove_other = TRUE,
+  progress = TRUE
 )
 
 release_dir <- attr(reference_library_build, "output_dir")

@@ -1,0 +1,62 @@
+material_class,material_type,material_group
+mineral,not plastic,non-polymer
+organic matter,not plastic,non-polymer
+other,other,generic
+other material,not plastic,generic
+other plastic,plastic,generic
+poly(ethylene-propylene-diene) rubber,plastic,diene-elastomer
+poly(styrene-butadiene) rubber,plastic,diene-elastomer
+polyacrylamides,plastic,specialty
+polyacrylates,plastic,acrylic
+polyacrylonitrile-butadiene,plastic,diene-elastomer
+polyacrylonitrile-butadiene-styrene,plastic,styrenic
+polyacrylonitriles,plastic,acrylic
+polyamides,plastic,nitrogen-carbonyl
+polyanhydrides,plastic,specialty
+polybenzimidazole,plastic,specialty
+polycarbonates,plastic,ester-carbonate
+polycellulose derivatives,plastic,cellulose
+polycyanoacrylates,plastic,acrylic
+polydienes,plastic,diene-elastomer
+polydiglycidyl ethers,plastic,ether-epoxy
+polyesters,plastic,ester-carbonate
+polyetherketones,plastic,ether-epoxy
+polyethers,plastic,ether-epoxy
+polyethersulfones,plastic,ether-epoxy
+polyethylene,plastic,olefinic
+polyethylene-propylene,plastic,olefinic
+polyethylene-vinyl acetate,plastic,vinyl alcohol-acetate-acetal
+polyhalodienes,plastic,specialty
+polyhaloolefins,plastic,halogenated
+polyhalostyrenes,plastic,specialty
+polyhydroxy(meth)acrylates,plastic,acrylic
+polyhydroxyalkanoates,plastic,ester-carbonate
+polyimides,plastic,nitrogen-carbonyl
+polyisobutylene-isoprene,plastic,diene-elastomer
+polyitaconates,plastic,specialty
+polyketones,plastic,specialty
+polymelamine-formaldehyde,plastic,specialty
+polymethacrylamides,plastic,specialty
+polymethacrylates,plastic,acrylic
+polyolefins,plastic,olefinic
+polyphenol-formaldehyde,plastic,specialty
+polyphenylene sulfide,plastic,specialty
+polyphenylenes,plastic,specialty
+polyphenylethers,plastic,specialty
+polypropylene,plastic,olefinic
+polysiloxanes,plastic,siloxane
+polystyrene-acrylonitrile,plastic,styrenic
+polystyrene-isoprene,plastic,diene-elastomer
+polystyrene-maleic,plastic,styrenic
+polystyrenes,plastic,styrenic
+polytetrafluoroethylene,plastic,halogenated
+polythioethers,plastic,specialty
+polyurea-formaldehyde,plastic,specialty
+polyurethanes,plastic,nitrogen-carbonyl
+polyvinylalcohols,plastic,vinyl alcohol-acetate-acetal
+polyvinylesters,plastic,vinyl alcohol-acetate-acetal
+polyvinylethers,plastic,specialty
+polyvinylketones,plastic,specialty
+polyvinylpyridines,plastic,specialty
+polyvinylpyrrolidones,plastic,specialty
+polyvinylsulfides,plastic,specialty

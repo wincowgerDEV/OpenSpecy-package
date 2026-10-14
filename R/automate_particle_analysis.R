@@ -1446,6 +1446,42 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   do.call(process_spec, c(list(x), args))
 }
 
+.particle_route_audit_column_names <- function(hierarchy_cols) {
+  hierarchy_cols <- as.character(hierarchy_cols)
+  hierarchy_cols <- hierarchy_cols[
+    !is.na(hierarchy_cols) & nzchar(trimws(hierarchy_cols))
+  ]
+  if (!length(hierarchy_cols)) return(character())
+  c(
+    paste0("routed_", hierarchy_cols),
+    paste0(hierarchy_cols, "_probability"),
+    "terminal_node"
+  )
+}
+
+.particle_route_audit_columns <- function(x, hierarchy_cols = NULL) {
+  available <- names(x)
+  expected <- if (is.null(hierarchy_cols)) {
+    levels <- sub("^routed_", "", available[grepl("^routed_", available)])
+    levels <- levels[paste0(levels, "_probability") %in% available]
+    c(
+      paste0("routed_", levels), paste0(levels, "_probability"),
+      if (length(levels) && "terminal_node" %in% available) "terminal_node"
+    )
+  } else {
+    levels <- as.character(hierarchy_cols)
+    levels <- levels[
+      paste0("routed_", levels) %in% available &
+        paste0(levels, "_probability") %in% available
+    ]
+    c(
+      paste0("routed_", levels), paste0(levels, "_probability"),
+      if (length(levels) && "terminal_node" %in% available) "terminal_node"
+    )
+  }
+  intersect(expected, available)
+}
+
 .append_particle_matches <- function(proc_map, library, material_col,
                                      library_id_col) {
   if (is_OpenSpecy(library)) {
@@ -1463,9 +1499,25 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     }
     proc_map$metadata <- data.table::as.data.table(proc_map$metadata)
   } else {
-    matches <- match_spec(proc_map, library)
-    proc_map$metadata$max_cor_val <- matches$value
-    proc_map$metadata[[material_col]] <- matches$name
+    matches <- data.table::as.data.table(
+      match_spec(proc_map, library, top_n = 1L)
+    )
+    if ("rank" %in% names(matches)) matches <- matches[rank == 1L]
+    matches <- matches[!duplicated(x)]
+    row_order <- match(seq_len(ncol(proc_map$spectra)),
+                       suppressWarnings(as.integer(matches$x)))
+    if (anyNA(row_order)) {
+      stop("model matches do not align with particle spectra",
+           call. = FALSE)
+    }
+    proc_map$metadata$max_cor_val <- matches$value[row_order]
+    proc_map$metadata[[material_col]] <- matches$name[row_order]
+    audit_cols <- .particle_route_audit_columns(
+      matches, hierarchy_cols = library$hierarchy_cols
+    )
+    for (name in audit_cols) {
+      proc_map$metadata[[name]] <- matches[[name]][row_order]
+    }
   }
   proc_map
 }
@@ -1532,7 +1584,9 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   if (!"feature_id" %in% names(map$metadata) ||
       !"feature_id" %in% names(proc_map$metadata))
     return(map)
-  add_cols <- intersect(c("feature_id", material_col, "max_cor_val"),
+  route_cols <- .particle_route_audit_columns(proc_map$metadata)
+  add_cols <- intersect(c("feature_id", material_col, "max_cor_val",
+                          route_cols),
                         names(proc_map$metadata))
   add <- data.table::as.data.table(proc_map$metadata)[, add_cols, with = FALSE]
   md <- data.table::as.data.table(map$metadata)
@@ -1560,7 +1614,9 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   md$.row_id <- seq_len(nrow(md))
   if (all(c("col_id") %in% names(md)) &&
       "col_id" %in% names(proc_map$metadata)) {
-    add_cols <- intersect(c("col_id", "max_cor_val", material_col),
+    route_cols <- .particle_route_audit_columns(proc_map$metadata)
+    add_cols <- intersect(c("col_id", "max_cor_val", material_col,
+                            route_cols),
                           names(proc_map$metadata))
     add <- data.table::as.data.table(proc_map$metadata)[, add_cols,
                                                          with = FALSE]
@@ -1569,7 +1625,9 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     md <- merge(md, unique(add), by = "col_id", all.x = TRUE, sort = FALSE)
   } else if (all(c("x", "y") %in% names(md)) &&
              all(c("x", "y") %in% names(proc_map$metadata))) {
-    add_cols <- intersect(c("x", "y", "max_cor_val", material_col),
+    route_cols <- .particle_route_audit_columns(proc_map$metadata)
+    add_cols <- intersect(c("x", "y", "max_cor_val", material_col,
+                            route_cols),
                           names(proc_map$metadata))
     add <- data.table::as.data.table(proc_map$metadata)[, add_cols,
                                                          with = FALSE]
@@ -1620,6 +1678,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     dt$g <- dt$mean_g
     dt$b <- dt$mean_b
   }
+  route_cols <- .particle_route_audit_columns(dt)
   cols <- intersect(c("particle_id", "sample_id", "max_cor_val",
                       "bad_spectra", material_col,
                       "area_um2", "perimeter_um", "max_length_um",
@@ -1627,7 +1686,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
                       "circularity",
                       "centroid_x", "centroid_y", "first_x", "first_y",
                       "acc_analy_conf", "max_cor_name", "mean_cor",
-                      "mean_snr", "r", "g", "b"), names(dt))
+                      "mean_snr", "r", "g", "b", route_cols), names(dt))
   dt[, cols, with = FALSE]
 }
 

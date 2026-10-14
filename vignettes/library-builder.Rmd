@@ -211,14 +211,26 @@ both endpoints. A second pass then uses the number of independent opposing
 libraries, removing the higher-evidence endpoint or both on a tie. Generic and
 unclassified labels are excluded. The audit records phase, view, component,
 identities/classes/libraries, active degree or independent evidence, decision
-round, threshold, and reason. Within the same
-spectral-technique pool, `other` may then be
+round, threshold, and reason. Each immutable numeric/type view is normalized
+once. When its preflight fits the configured memory budget, pruning allocates
+one dense double correlation matrix keyed by stable IDs, axis, processing
+state, range, and spectral content. Conflict closure, active-set changes,
+generic reassignment, and medoid validation index that same view; label or
+active-set changes do not recompute it. After all consumers that need arbitrary
+scores finish, a full-range view is losslessly compacted to the exact directed
+edges strictly above its fixed threshold before a changed numeric view gets a
+new key and matrix. Reuse at a lower threshold is rejected, and bounded blocks
+remain the lower-memory fallback. Within the
+same spectral-technique pool, `other` may then be
 reassigned to the nearest established class, `other plastic` only to a
 candidate whose `material_type` is `plastic`, and `other material` only to
-`organic matter` or `mineral`. The matched `material_type` is copied with the
-class. It then evaluates material classes from largest to smallest using
-bounded correlation blocks. FTIR and NIR share a candidate pool; Raman is
-separate; 2200--2420 cm^-1^ is excluded by default. After generic reassignment,
+`organic matter` or `mineral`. Original identity and source form are retained in
+the audit trail (the final `material_form` may still receive its ordinary
+standardized enrichment), while matched ID, class, type, score, and candidate
+pool are audited. A generic
+spectrum with no finite eligible candidate remains in its generic class with a
+no-match audit. FTIR and NIR share a candidate pool; Raman is separate;
+2200--2420 cm^-1^ is excluded by default. After generic reassignment,
 each `spectrum_type` and material-class group must contain at least `min_n`
 spectra across the complete input database; `min_n` is not applied separately
 to each source library. Smaller resolved groups are reassigned as a whole when an eligible
@@ -238,16 +250,22 @@ they are dropped only when no eligible correlated destination exists. The
 pruning assessment records the destination, mean class correlation, action,
 and reason. In the official
 workflow, an otherwise unresolved identity is temporarily labeled `other`.
-The default `remove_other = TRUE` removes blank identities and the unresolved
-literal `other` class before quality control. Reviewed broad `other plastic`
-and `other material` categories stay in the reference libraries and remain
-eligible for constrained reassignment during derivative/no-baseline pruning.
+The default `remove_other = TRUE` removes rows without a stable identity or any
+generic review label, but named generic paint, varnish, rubber, latex, resin,
+and unresolved composite
+spectra remain eligible for constrained reassignment during
+derivative/no-baseline pruning. Reviewed broad `other plastic` and
+`other material` categories follow the same retained pathway. Curated named
+monomers and small organic molecules map directly to `organic matter` /
+`not plastic` before this stage and are never correlation-assigned to a plastic
+leaf.
 The builder keeps reviewed identifiers, source metadata, prior labels, reasons,
 actions, and typed before/after counts in `assessments$cleanup$summary`. The
 separate `assessments$cleanup$dropped_spectrum_identities` table contains only
 the sorted distinct source identities removed anywhere in cleanup. Set
-`remove_other = FALSE` to retain generic rows for the
-constrained semisupervised `prune_lib()` reassignment described above.
+`remove_other = FALSE` when even non-generic rows without a stable identity
+should be retained for the constrained `prune_lib()` reassignment described
+above.
 
 ```{r mini-library-prune}
 pruned <- prune_lib(
@@ -282,10 +300,14 @@ script retains the source and output path finders and passes those paths to one
 including checkpoint reuse and old/new assessments, is maintained in
 [`.specify/memory/build-lib-diagram.html`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/.specify/memory/build-lib-diagram.html).
 Canonically named exact-class, regex-class, library-type, material-hierarchy,
-known-bad-ID, material-form-regex, and common-use tables live under
-`workflows/data/`. Raw-data corrections are completed externally before this
-workflow runs. The source-library paths and output directory are explicit
-inputs. When `workflow_data` is not supplied, `build_lib()` looks for the
+material-group-crosswalk, known-bad-ID, material-form-regex, and common-use
+tables live under `workflows/data/`. The complete
+`material_group_reference.csv` maps every material-class leaf to exactly one
+`material_type` and `material_group`; mismatched types, duplicate leaves, or
+incomplete class coverage stop the build. Raw-data corrections are completed
+externally before this workflow runs. The source-library paths and output
+directory are explicit inputs. When `workflow_data` is not supplied,
+`build_lib()` looks for the
 helper tables under `data/` beside the calling script, then under `data/` or
 `workflows/data/` in the current working directory. Calling `build_lib()` with
 no `x` now stops with an actionable error instead of guessing external paths.
@@ -305,7 +327,14 @@ class begins with `poly` for discoverability (`other plastic` is the explicit
 catch-all exception); polyethylene and polypropylene remain separate, and
 `polyhydroxy(meth)acrylates` retains its chemically meaningful optional group
 notation. Poly(styrene-butadiene) rubber and
-poly(ethylene-propylene-diene) rubber have distinct classes. Paint binder labels
+poly(ethylene-propylene-diene) rubber have distinct classes. The polymer-group
+crosswalk uses chemistry-specific routes rather than one broad vinyl group; its
+narrow vinyl alcohol/acetate/acetal route covers PVOH/PVB/PVF, polyvinyl
+esters, and EVA while leaving their material-class leaves distinct. Ambiguous
+exact `pva` stays in `other plastic`; poly(4-vinyl phenol) routes with
+polystyrenes, and polyvinylpyrrolidone, polyvinylpyridine, and polyketone retain
+their own leaves. Halogenated diene and styrene leaves remain in the specialty
+route until halogen-vs-backbone precedence is reviewed. Paint binder labels
 such as acrylic, alkyd, urethane, nitrocellulose, and vinyl combinations remain
 in `spectrum_identity`, `paint` remains in `material_form`, and the hierarchy
 maps each reviewed binder to its relevant chemical polymer family. Remaining
@@ -358,47 +387,71 @@ build provenance. Its review copy and CSV mirrors are checkpointed under
 The returned object has four top-level elements: `libraries`, `medoids`,
 `models`, and `assessments`. Libraries are recipe-first and then keyed by
 `ftir`, `raman`, or `nir`: full Raman uses 200--4000, FTIR uses 400--4000,
-and NIR uses 4000--12000 cm^-1^. FTIR/Raman medoids and models use 800--3200;
-the NIR identification interval is derived from the longest region with at
-least 90% finite coverage (falling back to available coverage) and recorded on
-the object. All-blank metadata columns are dropped independently by type.
+and NIR uses 4000--12000 cm^-1^. FTIR medoids and models use 800--2200 plus
+2420--3200, so their predictor axis matches the standard particle workflow and
+does not learn from the atmospheric CO2 interval. Raman uses 800--3200. The NIR
+identification interval is derived from the longest region with at least 90%
+finite coverage (falling back to available coverage) and recorded on the
+object. All-blank metadata columns are dropped independently by type.
 The enrichment columns are retained even when every value for one type is
 missing; other all-blank metadata columns are dropped independently by type.
 Each spectrum must observe at least 10% of its type-specific identification
 axis to enter medoid selection or model fitting. PAM operates on a temporary
 relative matrix where each spectrum's missing values are filled by that
-spectrum's finite mean. Selected medoid IDs are then pulled from the original
-range-restricted object, so published medoids retain their original `NA`
-positions. Groups with more than 3,000 spectra use five deterministic
+spectrum's finite mean. Official reduction groups by material class and the
+same canonical source used for model folds (`organization`, falling back to
+`library_name`), so missing organization metadata does not collapse distinct
+libraries and erase source diversity. Selected medoid IDs are then pulled from
+the original range-restricted object, so published medoids retain their
+original `NA` positions. Groups with more than 3,000 spectra use five deterministic
 1,000-spectrum PAM samples; each candidate set is scored against the complete
 group with the same correlation distance, avoiding a full oversized
-dissimilarity matrix. `models` is algorithm-first (`logistic_regression`,
-`hierarchical_logistic_regression`, or `random_forest`), then recipe and type.
-Flat and hierarchical logistic regression retain derivative/nobaseline medoid
-training and fill restored gaps with the finite mean at each wavenumber across
-training medoids. The hierarchical model first predicts `material_type`, then
-predicts `material_class` within that branch; deployed leaf probabilities are
-the normalized products of those two path probabilities. Random forests use the complete
-eligible raw, derivative, and nobaseline type libraries, relative normalization,
-wavenumber-mean filling, inverse-frequency balanced case sampling, 500
-probability trees, permutation importance, and all available ranger threads.
-Balanced sampling improves minority representation in each bootstrap without
-also applying a class-vote correction. Because this resampling can make
-out-of-bag accuracy optimistic, treat OOB results as fit diagnostics. The
-release assessment separately applies each deployed model to its complete
-corresponding source dataset.
-`train_spec_model()` exposes both engines; `build_model_lib()` remains a
-compatible wrapper. Supplying `hierarchy_col` requests the hierarchical
-logistic topology; `NULL` retains the flat model, and hierarchical random
-forests are not supported. Each model stores its filler, support audit,
-training diagnostics, and one tidy `tests` table. Logistic nodes use one
-stable-group fold assignment. The default `selection_rule = "guardrailed"`
-keeps lambdas within an absolute 0.01 of maximum overall accuracy, then within
-0.01 of the best eligible macro accuracy, minimizes multiclass log loss, and
-prefers the largest lambda on ties. Thus 0.01 means one percentage point on the
-0--1 accuracy scale, not a relative one-percent decrease. The `"macro"` and
-`"overall"` policies remain available for controlled comparisons. Alpha,
-no-intercept, grouped multinomial, and weighting settings are unchanged.
+dissimilarity matrix. `models` is algorithm-first, then recipe and type. A new
+official build fits only `gated_hierarchical_logistic_regression` from the
+derivative/nobaseline medoids and fills restored gaps with the finite mean at
+each wavenumber across training medoids. Saved flat logistic, pooled
+`hierarchical_logistic_regression`, and random-forest artifacts remain loadable
+and predict with their historical semantics, so prior comparisons do not
+require refitting every model.
+
+`train_spec_model()` and the compatible `build_model_lib()` wrapper accept an
+ordered hierarchy vector. The official
+`c("material_type", "material_group")` topology takes the top-1 material type,
+scores only its material-group model, takes that top-1 group, and scores only
+its terminal material-class model. Gate names remain the exact metadata values
+(`plastic`, not `ftir_plastic`, for example); the historical spectrum-type
+prefix applies only to terminal class labels. A one-child node is deterministic. Gate
+probabilities are stored for audit but are never multiplied, averaged, or
+renormalized with the leaf result. `match_spec(top_n = ...)` ranks only leaves
+in the routed terminal node, and `value` is the conditional probability
+`P(material_class | selected path)`. `hierarchy_col = NULL` retains flat
+training; hierarchical random forests are not supported. Explicit random-forest
+training remains available and keeps its historical balanced-sampling and OOB
+diagnostics.
+
+Each gated model stores its schema, filler, topology, node models, support
+audit, routed diagnostics, and one tidy `tests` table. A node is source-eligible
+only when it has at least 100 spectra and five organizations and each child
+has at least 25 spectra and three organizations. Connected source components
+then determine whether at least three leakage-safe held-out folds are feasible.
+At those nodes, the
+default `selection_rule = "guardrailed"` uses source-held-out folds and is
+node-local and lexicographic: keep lambdas within an absolute 0.01 of maximum
+overall accuracy, then within 0.01 of the best eligible minimum class recall,
+worst-source accuracy (among organizations with at least 25 node observations;
+library name is only a fallback), and macro accuracy; then minimize multiclass log loss
+and Brier score and prefer the largest lambda on ties. An undersupported node
+falls back to identity-grouped folds and the historical overall/macro/loss
+guardrail. Thus 0.01 means one percentage point on the 0--1 accuracy scale, not
+a relative one-percent decrease. The `"macro"` and `"overall"` policies remain
+available for controlled comparisons. Alpha, no-intercept, grouped
+multinomial, and weighting settings are unchanged.
+
+The saved diagnostics distinguish routed accuracy from probability scoring.
+They report every gate and the routed leaf by source, including support flags
+and whether the evidence is source-held-out, identity-grouped, or hybrid.
+Log loss and Brier score are weighted summaries of the selected node-local
+conditional models; they are never presented as composed path probabilities.
 
 Full assessment uses every candidate and downloaded legacy artifact. Candidate
 and legacy artifacts independently use a seeded approximately ten-percent

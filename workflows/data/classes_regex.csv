@@ -1,6 +1,6 @@
 pattern,material
 ^(?:cotton|wool|silk|wood|fur|animal fibre|algae)$,organic matter
-^acrylic(?:[[:space:]]*\(|$),poly(acrylonitrile)
+^mffrc[0-9]+_acrylic(?:[[:space:]]*\(|_),poly(acrylonitrile)
 ^aramid(?:[[:space:](]|$),polyamides
 ^cellulose[[:space:]]+diacetate(?:[[:space:](]|$),cellulose acetate
 ^lyocell(?:[[:space:](]|$),rayon
@@ -18,8 +18,8 @@ pattern,material
 ^plc[0-9]+_.*_hdpe(?:[.][0-9]+)?$,poly(ethylene)
 ^plc[0-9]+_.*_keratin(?:[.][0-9]+)?$,organic matter
 ^plc[0-9]+_.*_ldpe(?:[.][0-9]+)?$,poly(ethylene)
-^plc[0-9]+_.*_natural rubber(?:[.][0-9]+)?$,other plastic
-^plc[0-9]+_.*_nitrile(?:[.][0-9]+)?$,polyacrylonitriles
+^plc[0-9]+_.*_natural rubber(?:[.][0-9]+)?$,"1,4-polyisoprene (cis and trans)(latex)"
+^plc[0-9]+_.*_nitrile(?:[.][0-9]+)?$,acrylonitrile-butadiene
 ^plc[0-9]+_.*_nylon(?:[.][0-9]+)?$,polyamides
 ^plc[0-9]+_.*_paint(?:[.][0-9]+)?$,other plastic
 (?:^|[[:space:]_(-])(?:sbr|styrene[[:space:]_-]*butadiene(?:[[:space:]_-]*(?:rubber|copolymer))?|styrol[[:space:]_-]*butadien[[:space:]_-]*rubber)(?:[[:space:]_)-]|$),styrene-butadiene

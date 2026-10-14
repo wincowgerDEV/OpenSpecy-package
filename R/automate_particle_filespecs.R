@@ -533,6 +533,14 @@ automate_particle_analysis.FileSpecs <- function(
     object_id = character(), max_cor_val = numeric()
   )
   empty[[material_col]] <- character()
+  if (!is_OpenSpecy(library)) {
+    for (name in .particle_route_audit_column_names(
+      library$hierarchy_cols
+    )) {
+      empty[[name]] <- if (grepl("_probability$", name)) numeric() else
+        character()
+    }
+  }
   if (!length(positions)) return(empty)
 
   chunk_size <- .filespec_bounded_chunk_size(
@@ -566,6 +574,7 @@ automate_particle_analysis.FileSpecs <- function(
     query <- .filespec_values_to_OpenSpecy(x, values)
     query <- .process_for_particle_match(query, library, process_args)
 
+    audit_cols <- character()
     if (is_OpenSpecy(library)) {
       if (is.null(prepared)) {
         reference <- library
@@ -590,13 +599,20 @@ automate_particle_analysis.FileSpecs <- function(
         stop("the model library returned an unsupported match table",
              call. = FALSE)
       }
+      if ("rank" %in% names(prediction)) {
+        prediction <- prediction[rank == 1L]
+      }
       prediction <- prediction[order(x, -value)][!duplicated(x)]
+      audit_cols <- .particle_route_audit_columns(
+        prediction, hierarchy_cols = library$hierarchy_cols
+      )
       object_index <- suppressWarnings(as.integer(prediction$x))
       matches <- data.table::data.table(
         object_id = colnames(query$spectra)[object_index],
         library_id = as.character(prediction$name),
         match_val = as.numeric(prediction$value)
       )
+      for (name in audit_cols) matches[[name]] <- prediction[[name]]
       material <- matches$library_id
     }
     aligned <- match(colnames(query$spectra), matches$object_id)
@@ -609,6 +625,9 @@ automate_particle_analysis.FileSpecs <- function(
       max_cor_val = as.numeric(matches$match_val[aligned])
     )
     block[[material_col]] <- material[aligned]
+    for (name in audit_cols) {
+      block[[name]] <- matches[[name]][aligned]
+    }
     result[[i]] <- block
     rm(values, query, matches, block)
     if (i %% 5L == 0L || i == length(chunks)) invisible(gc(verbose = FALSE))

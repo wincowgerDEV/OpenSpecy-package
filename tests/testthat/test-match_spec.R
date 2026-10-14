@@ -133,6 +133,225 @@ test_that("ai_classify() handles array predictions with spectrum IDs", {
   expect_equal(ranked$value, c(0.7, 0.2, 0.8, 0.1))
 })
 
+test_that("saved pooled hierarchy keeps legacy joint leaf predictions", {
+  os <- as_OpenSpecy(
+    x = 1:3,
+    spectra = matrix(
+      seq_len(9), nrow = 3L, ncol = 3L,
+      dimnames = list(NULL, paste0("sample_", 1:3))
+    )
+  )
+  pooled_node <- function(probability, names, lambda) {
+    list(
+      model = structure(
+        list(pred = probability), class = c("fake_ai_model", "glmnet")
+      ),
+      deterministic = FALSE, lambda_selected = lambda,
+      dimension_conversion = data.table::data.table(
+        factor_num = seq_along(names), name = names
+      )
+    )
+  }
+  legacy <- list(
+    model = structure(
+      list(pred = matrix(c(
+        0.2, 0.8,
+        0.7, 0.3,
+        0.4, 0.6
+      ), nrow = 3L, byrow = TRUE)),
+      class = c("fake_ai_model", "glmnet")
+    ),
+    model_type = "hierarchical_logistic_regression",
+    broad_deterministic = FALSE,
+    lambda_selected = 0.11,
+    broad_dimension_conversion = data.table::data.table(
+      factor_num = 1:2, name = c("not plastic", "plastic")
+    ),
+    branch_models = list(
+      `not plastic` = pooled_node(
+        matrix(c(
+          0.25, 0.75,
+          0.9, 0.1,
+          0.5, 0.5
+        ), nrow = 3L, byrow = TRUE),
+        c("mineral", "organic matter"), 0.21
+      ),
+      plastic = pooled_node(
+        matrix(c(
+          0.6, 0.4,
+          0.2, 0.8,
+          0.9, 0.1
+        ), nrow = 3L, byrow = TRUE),
+        c("polyethylene", "polyvinyl alcohol"), 0.31
+      )
+    ),
+    dimension_conversion = data.table::data.table(
+      factor_num = 1:4,
+      name = c(
+        "mineral", "organic matter", "polyethylene", "polyvinyl alcohol"
+      )
+    )
+  )
+
+  before_save <- match_spec(os, legacy, top_n = 4L)
+  artifact <- tempfile("legacy-pooled-", fileext = ".rds")
+  on.exit(unlink(artifact), add = TRUE)
+  saveRDS(legacy, artifact)
+  restored <- readRDS(artifact)
+  after_save <- match_spec(os, restored, top_n = 4L)
+
+  # These are the pooled broad x conditional probabilities returned before
+  # gated hierarchy support was added. Keep them frozen independently of the
+  # current implementation so a dispatch or probability-semantics change fails.
+  expected <- data.table::data.table(
+    x = rep(1:3, each = 4L),
+    rank = rep(1:4, times = 3L),
+    name = c(
+      "polyethylene", "polyvinyl alcohol", "organic matter", "mineral",
+      "mineral", "polyvinyl alcohol", "organic matter", "polyethylene",
+      "polyethylene", "mineral", "organic matter", "polyvinyl alcohol"
+    ),
+    value = c(
+      0.48, 0.32, 0.15, 0.05,
+      0.63, 0.24, 0.07, 0.06,
+      0.54, 0.20, 0.20, 0.06
+    )
+  )
+  expect_equal(
+    after_save[, .(x, rank, name, value)], expected,
+    tolerance = 1e-15
+  )
+  expect_equal(after_save, before_save, tolerance = 0)
+  expect_identical(unique(after_save$z), "hierarchical_joint")
+  expect_false(any(grepl("^routed_", names(after_save))))
+})
+
+test_that("gated models route top-1 and rank only terminal leaves", {
+  os <- as_OpenSpecy(
+    x = 1:3,
+    spectra = matrix(
+      seq_len(12), nrow = 3L, ncol = 4L,
+      dimnames = list(NULL, paste0("sample_", letters[1:4]))
+    )
+  )
+  node <- function(probability, names, lambda = 0.1) {
+    list(
+      model = structure(
+        list(pred = probability), class = c("fake_ai_model", "glmnet")
+      ),
+      deterministic = FALSE, lambda_selected = lambda,
+      dimension_conversion = data.table::data.table(
+        factor_num = seq_along(names), name = names
+      )
+    )
+  }
+  deterministic <- function(name) {
+    list(
+      model = NULL, deterministic = TRUE, lambda_selected = NA_real_,
+      dimension_conversion = data.table::data.table(
+        factor_num = 1L, name = name
+      )
+    )
+  }
+  topology <- data.table::data.table(
+    node_id = c("root", "type_nonplastic", "type_plastic",
+                "terminal_nonpolymer", "terminal_olefin", "terminal_vinyl"),
+    parent_id = c(NA, "root", "root", "type_nonplastic", "type_plastic",
+                  "type_plastic"),
+    incoming_label = c(NA, "not plastic", "plastic", "non-polymer",
+                       "olefinic", "vinyl alcohol"),
+    depth = c(0L, 1L, 1L, 2L, 2L, 2L),
+    target_col = c("material_type", "material_group", "material_group",
+                   "material_class", "material_class", "material_class"),
+    terminal = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE)
+  )
+  edges <- topology[!is.na(parent_id), .(
+    node_id = parent_id, label = incoming_label, child_node_id = node_id
+  )]
+  lib <- list(
+    model_type = "gated_hierarchical_logistic_regression",
+    model_schema = "OpenSpecy_gated_hierarchy_v1",
+    hierarchy_cols = c("material_type", "material_group"),
+    root_node_id = "root", gated_topology = topology, gated_edges = edges,
+    gated_nodes = list(
+      root = node(matrix(c(
+        0.1, 0.9, 0.2, 0.8, 0.3, 0.7, 0.9, 0.1
+      ), nrow = 4L, byrow = TRUE), c("not plastic", "plastic")),
+      type_nonplastic = deterministic("non-polymer"),
+      type_plastic = node(matrix(c(
+        0.2, 0.8, 0.3, 0.7, 0.9, 0.1
+      ), nrow = 3L, byrow = TRUE), c("olefinic", "vinyl alcohol")),
+      terminal_nonpolymer = node(
+        matrix(c(0.55, 0.45), nrow = 1L),
+        c("organic matter", "mineral"), lambda = 0.2
+      ),
+      terminal_olefin = deterministic("polyethylene"),
+      terminal_vinyl = node(matrix(c(
+        0.7, 0.3, 0.4, 0.6
+      ), nrow = 2L, byrow = TRUE), c("polyvinyl alcohol", "polyvinyl butyral"),
+      lambda = 0.3)
+    ),
+    dimension_conversion = data.table::data.table(
+      factor_num = 1:5,
+      name = c("mineral", "organic matter", "polyethylene",
+               "polyvinyl alcohol", "polyvinyl butyral")
+    )
+  )
+
+  ranked <- ai_classify(os, lib, top_n = 2L)
+
+  expect_equal(ranked[, .N, by = x]$N, c(2L, 2L, 1L, 2L))
+  expect_identical(
+    ranked[x == 1L, name], c("polyvinyl alcohol", "polyvinyl butyral")
+  )
+  expect_identical(
+    ranked[x == 3L, name], "polyethylene"
+  )
+  expect_identical(
+    ranked[x == 4L, name], c("organic matter", "mineral")
+  )
+  expect_equal(ranked[x == 1L & rank == 1L, value], 0.7)
+  expect_equal(ranked[x == 1L, material_type_probability], c(0.9, 0.9))
+  expect_equal(ranked[x == 1L, material_group_probability], c(0.8, 0.8))
+  expect_identical(ranked[x == 1L, routed_material_type],
+                   rep("plastic", 2L))
+  expect_identical(ranked[x == 1L, routed_material_group],
+                   rep("vinyl alcohol", 2L))
+  expect_identical(ranked[x == 1L, terminal_node],
+                   rep("terminal_vinyl", 2L))
+  expect_false(any(ranked[x == 1L, name] %in%
+                     c("polyethylene", "organic matter", "mineral")))
+
+  custom_class <- lib
+  custom_class$gated_topology[
+    terminal == TRUE, target_col := "polymer_identity"
+  ]
+  expect_equal(
+    ai_classify(os, custom_class, top_n = 2L), ranked,
+    tolerance = 0
+  )
+
+  incompatible <- lib
+  incompatible$model_schema <- "OpenSpecy_gated_hierarchy_v2"
+  expect_error(ai_classify(os, incompatible), "Unsupported.*schema")
+
+  invalid_unselected <- lib
+  invalid_unselected$gated_nodes$terminal_nonpolymer$model <- NULL
+  plastic_only <- filter_spec(os, 1:3)
+  expect_error(
+    ai_classify(plastic_only, invalid_unselected),
+    "no deployable glmnet model at 'terminal_nonpolymer'"
+  )
+
+  nonfinite <- lib
+  nonfinite$gated_nodes$root$model$pred[1L, 1L] <- NA_real_
+  expect_error(ai_classify(os, nonfinite), "non-finite probabilities")
+
+  nonpositive <- lib
+  nonpositive$gated_nodes$root$model$pred[1L, ] <- 0
+  expect_error(ai_classify(os, nonpositive), "non-positive probabilities")
+})
+
 test_that("fill_spec() preserves filler values where queries are missing", {
   query <- as_OpenSpecy(
     2:4,

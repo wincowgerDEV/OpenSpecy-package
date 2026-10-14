@@ -3,9 +3,12 @@
 #'
 #' @description
 #' \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
-#' based on similarity. Trained flat models return class probabilities;
-#' hierarchical logistic models return normalized joint leaf probabilities
-#' formed from the broad-class and conditional leaf paths.
+#' based on similarity. Trained flat models return class probabilities. Saved
+#' pooled hierarchical logistic models retain their normalized joint leaf
+#' probabilities. Schema-versioned gated models instead choose the top class at
+#' each ordered gate, score only that selected child, and return terminal-node
+#' conditional leaf probabilities without multiplying or averaging confidence
+#' across levels.
 #' \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 #' knowns and one with unknowns.
 #' \code{ident_spec()} retrieves the top match values from a correlation matrix
@@ -25,14 +28,19 @@
 #' will use base R's \code{cor()}
 #' @param library an \code{OpenSpecy} or trained model object representing the
 #' reference library of spectra or model to use in identification.
-#' Hierarchical model artifacts must retain their root, branch, hierarchy,
-#' class-conversion, predictor-axis, and training-filler runtime state.
+#' Legacy hierarchical artifacts must retain their root, branch, hierarchy,
+#' class-conversion, predictor-axis, and training-filler runtime state. Gated
+#' artifacts must retain their schema, ordered hierarchy columns, topology,
+#' edges, node models, leaf conversion, predictor axis, and filler.
 #' @param na.rm logical; indicating whether missing values should be removed
 #' when calculating correlations. Default is \code{TRUE}.
 #' @param top_n integer; specifying the number of top matches to return.
 #' For spectral libraries, \code{NULL} returns all matches. Model libraries
 #' preserve their historical single winning class when \code{NULL}; a positive
-#' value returns that many ranked class probabilities per spectrum.
+#' value returns that many ranked class probabilities per spectrum. For a gated
+#' model, ranking is restricted to leaves in the routed terminal node, and
+#' \code{value} is \eqn{P(leaf | selected path)}, not an end-to-end path
+#' probability.
 #' @param top_n_by optional single library metadata column name. When supplied
 #' for a spectral library, \code{top_n} matches are retained independently for
 #' each non-missing group (for example, \code{"organization"}). It is not
@@ -60,19 +68,22 @@
 #' @param \ldots additional arguments passed \code{\link[stats]{cor}()}.
 #'
 #' @return
-#' \code{match_spec()} and \code{ident_spec()} will return
-#' a \code{\link[data.table]{data.table-class}()} containing correlations
-#' between spectra and the library.
-#' The table has three columns: \code{object_id}, \code{library_id}, and
-#' \code{match_val}.
-#' Each row represents a unique pairwise correlation between a spectrum in the
-#' object and a spectrum in the library.
-#' If \code{top_n} is specified, only the top \code{top_n} matches for each
-#' object spectrum will be returned.
+#' With a spectral reference library, \code{match_spec()} and
+#' \code{ident_spec()} return a
+#' \code{\link[data.table]{data.table-class}()} containing correlations between
+#' spectra and the library. The table has \code{object_id}, \code{library_id},
+#' and \code{match_val}; each row is one pairwise match retained by
+#' \code{top_n}. With a trained model, \code{match_spec()} returns model row
+#' index \code{x}, class index \code{y}, selected tuning value \code{z}, score
+#' \code{value}, \code{rank}, and class \code{name}.
 #' If \code{add_library_metadata} is \code{is.character}, the library metadata
 #' will be added to the output.
 #' If \code{add_object_metadata} is \code{is.character}, the object metadata
 #' will be added to the output.
+#' Gated model rows also contain \code{terminal_node}, one
+#' \code{routed_<hierarchy column>} field per gate, and its corresponding
+#' \code{<hierarchy column>_probability}. These gate probabilities are audit
+#' fields and are not combined with the returned conditional leaf \code{value}.
 #' \code{filter_spec()} returns an \code{OpenSpecy} object.
 #' \code{fill_spec()} returns an \code{OpenSpecy} object.
 #' \code{cor_spec()} returns a correlation matrix.
@@ -787,6 +798,346 @@ ai_classify.default <- function(x, ...) {
   )
 }
 
+.ai_validate_gated_runtime <- function(library) {
+  required <- c(
+    "model_schema", "hierarchy_cols", "root_node_id", "gated_nodes",
+    "gated_topology", "gated_edges", "dimension_conversion"
+  )
+  missing <- required[!vapply(required, function(name) {
+    !is.null(library[[name]])
+  }, logical(1L))]
+  if (length(missing)) {
+    stop(
+      "Gated hierarchical model is missing runtime state: ",
+      paste(missing, collapse = ", "), call. = FALSE
+    )
+  }
+  if (!identical(library$model_schema, "OpenSpecy_gated_hierarchy_v1")) {
+    stop(
+      "Unsupported gated hierarchical model schema: ",
+      as.character(library$model_schema), call. = FALSE
+    )
+  }
+  hierarchy_cols <- as.character(library$hierarchy_cols)
+  if (!length(hierarchy_cols) || anyNA(hierarchy_cols) ||
+      any(!nzchar(trimws(hierarchy_cols))) || anyDuplicated(hierarchy_cols)) {
+    stop("Gated hierarchy columns are invalid", call. = FALSE)
+  }
+  topology <- data.table::copy(data.table::as.data.table(
+    library$gated_topology
+  ))
+  edges <- data.table::copy(data.table::as.data.table(library$gated_edges))
+  leaf_conversion <- data.table::copy(data.table::as.data.table(
+    library$dimension_conversion
+  ))
+  topology_required <- c(
+    "node_id", "parent_id", "incoming_label", "depth", "target_col",
+    "terminal"
+  )
+  edge_required <- c("node_id", "label", "child_node_id")
+  conversion_required <- c("factor_num", "name")
+  if (!all(topology_required %in% names(topology)) ||
+      !all(edge_required %in% names(edges)) ||
+      !all(conversion_required %in% names(leaf_conversion))) {
+    stop("Gated hierarchy runtime tables are malformed", call. = FALSE)
+  }
+  topology[, `:=`(
+    node_id = as.character(node_id), parent_id = as.character(parent_id),
+    incoming_label = as.character(incoming_label),
+    target_col = as.character(target_col)
+  )]
+  edges[, `:=`(
+    node_id = as.character(node_id), label = as.character(label),
+    child_node_id = as.character(child_node_id)
+  )]
+  leaf_conversion[, name := as.character(name)]
+  if (!nrow(topology) || anyNA(topology$node_id) ||
+      any(!nzchar(topology$node_id)) || anyDuplicated(topology$node_id) ||
+      anyNA(topology$depth) || any(!is.finite(topology$depth)) ||
+      any(topology$depth < 0 | topology$depth != floor(topology$depth)) ||
+      !is.logical(topology$terminal) || anyNA(topology$terminal)) {
+    stop("Gated hierarchy topology has invalid or duplicate nodes",
+         call. = FALSE)
+  }
+  root_id <- as.character(library$root_node_id)
+  root_rows <- which(is.na(topology$parent_id))
+  if (length(root_id) != 1L || is.na(root_id) || !nzchar(root_id) ||
+      length(root_rows) != 1L || topology$node_id[root_rows] != root_id ||
+      topology$depth[root_rows] != 0L ||
+      !is.na(topology$incoming_label[root_rows])) {
+    stop("Gated hierarchy has no unique root node", call. = FALSE)
+  }
+  nodes <- library$gated_nodes
+  if (!is.list(nodes) || is.null(names(nodes)) || anyDuplicated(names(nodes)) ||
+      !setequal(topology$node_id, names(nodes))) {
+    stop("Gated hierarchy runtime nodes do not match its topology",
+         call. = FALSE)
+  }
+  if (!nrow(leaf_conversion) || anyNA(leaf_conversion$name) ||
+      any(!nzchar(leaf_conversion$name)) ||
+      !is.numeric(leaf_conversion$factor_num) ||
+      anyNA(leaf_conversion$factor_num) ||
+      any(!is.finite(leaf_conversion$factor_num)) ||
+      any(leaf_conversion$factor_num < 1 |
+            leaf_conversion$factor_num != floor(leaf_conversion$factor_num)) ||
+      anyDuplicated(leaf_conversion$name) ||
+      anyDuplicated(leaf_conversion$factor_num)) {
+    stop("Gated hierarchy leaf conversion is not unique", call. = FALSE)
+  }
+
+  child_rows <- setdiff(seq_len(nrow(topology)), root_rows)
+  if (anyNA(topology$parent_id[child_rows]) ||
+      any(!nzchar(topology$parent_id[child_rows])) ||
+      anyNA(topology$incoming_label[child_rows]) ||
+      any(!nzchar(topology$incoming_label[child_rows]))) {
+    stop("Gated hierarchy child nodes require a parent and incoming label",
+         call. = FALSE)
+  }
+  parent_position <- match(topology$parent_id[child_rows], topology$node_id)
+  if (anyNA(parent_position) ||
+      any(topology$terminal[parent_position]) ||
+      any(topology$depth[child_rows] != topology$depth[parent_position] + 1L)) {
+    stop("Gated hierarchy parent/depth relationships are invalid",
+         call. = FALSE)
+  }
+  terminal_depth <- length(hierarchy_cols)
+  terminal_target <- unique(topology$target_col[topology$terminal])
+  terminal_target <- terminal_target[
+    !is.na(terminal_target) & nzchar(trimws(terminal_target))
+  ]
+  if (length(terminal_target) != 1L) {
+    stop("Gated hierarchy terminal nodes must share one target column",
+         call. = FALSE)
+  }
+  expected_target <- ifelse(
+    topology$terminal, terminal_target,
+    hierarchy_cols[pmin(topology$depth + 1L, terminal_depth)]
+  )
+  if (any(topology$terminal & topology$depth != terminal_depth) ||
+      any(!topology$terminal & topology$depth >= terminal_depth) ||
+      any(topology$target_col != expected_target)) {
+    stop("Gated hierarchy depths and target columns are inconsistent",
+         call. = FALSE)
+  }
+
+  expected_edges <- topology[child_rows, .(
+    node_id = parent_id, label = incoming_label, child_node_id = node_id
+  )]
+  actual_edges <- edges[, .(node_id, label, child_node_id)]
+  if (anyNA(actual_edges$node_id) || anyNA(actual_edges$label) ||
+      anyNA(actual_edges$child_node_id) ||
+      any(!nzchar(actual_edges$node_id)) || any(!nzchar(actual_edges$label)) ||
+      any(!nzchar(actual_edges$child_node_id))) {
+    stop("Gated hierarchy edges contain missing values", call. = FALSE)
+  }
+  data.table::setorderv(expected_edges, names(expected_edges))
+  data.table::setorderv(actual_edges, names(actual_edges))
+  if (!identical(expected_edges, actual_edges)) {
+    stop("Gated hierarchy edges do not match its parent topology",
+         call. = FALSE)
+  }
+  reached <- root_id
+  repeat {
+    next_nodes <- unique(actual_edges$child_node_id[
+      actual_edges$node_id %in% reached
+    ])
+    expanded <- union(reached, next_nodes)
+    if (length(expanded) == length(reached)) break
+    reached <- expanded
+  }
+  if (!setequal(reached, topology$node_id)) {
+    stop("Gated hierarchy contains unreachable nodes", call. = FALSE)
+  }
+
+  terminal_leaves <- character()
+  for (node_id in topology$node_id) {
+    node <- nodes[[node_id]]
+    conversion <- data.table::as.data.table(node$dimension_conversion)
+    if (!all(conversion_required %in% names(conversion)) || !nrow(conversion)) {
+      stop("Gated hierarchy node conversion is malformed at '", node_id,
+           "'", call. = FALSE)
+    }
+    conversion_names <- as.character(conversion$name)
+    if (anyNA(conversion_names) || any(!nzchar(conversion_names)) ||
+        !is.numeric(conversion$factor_num) || anyNA(conversion$factor_num) ||
+        any(!is.finite(conversion$factor_num)) ||
+        any(conversion$factor_num < 1 |
+              conversion$factor_num != floor(conversion$factor_num)) ||
+        anyDuplicated(conversion_names) ||
+        anyDuplicated(conversion$factor_num)) {
+      stop("Gated hierarchy node conversion is malformed at '", node_id,
+           "'", call. = FALSE)
+    }
+    if (isTRUE(node$deterministic)) {
+      if (nrow(conversion) != 1L) {
+        stop("A deterministic gated node must have exactly one class at '",
+             node_id, "'", call. = FALSE)
+      }
+    } else if (is.null(node$model) || !inherits(node$model, "glmnet") ||
+               length(node$lambda_selected) != 1L ||
+               !is.finite(node$lambda_selected)) {
+      stop("Gated hierarchy node has no deployable glmnet model at '",
+           node_id, "'", call. = FALSE)
+    }
+    terminal <- topology$terminal[topology$node_id == node_id]
+    outgoing <- actual_edges$label[actual_edges$node_id == node_id]
+    if (isTRUE(terminal)) {
+      if (length(outgoing)) {
+        stop("Gated hierarchy terminal nodes cannot have child edges",
+             call. = FALSE)
+      }
+      terminal_leaves <- c(terminal_leaves, conversion_names)
+    } else if (!setequal(outgoing, conversion_names) ||
+               anyDuplicated(outgoing)) {
+      stop("Gated hierarchy edge labels do not match node classes at '",
+           node_id, "'", call. = FALSE)
+    }
+  }
+  if (anyDuplicated(terminal_leaves) ||
+      !setequal(terminal_leaves, leaf_conversion$name)) {
+    stop("Every gated terminal leaf must occur exactly once globally",
+         call. = FALSE)
+  }
+  list(
+    hierarchy_cols = hierarchy_cols, topology = topology, edges = edges,
+    leaf_conversion = leaf_conversion, nodes = nodes, root_id = root_id
+  )
+}
+
+.ai_validate_gated_probabilities <- function(probabilities, node_id) {
+  if (any(!is.finite(probabilities))) {
+    stop("Gated node '", node_id, "' returned non-finite probabilities",
+         call. = FALSE)
+  }
+  if (any(probabilities < 0 | probabilities > 1) ||
+      any(rowSums(probabilities) <= 0)) {
+    stop("Gated node '", node_id,
+         "' returned invalid or non-positive probabilities",
+         call. = FALSE)
+  }
+  invisible(probabilities)
+}
+
+.ai_gated_prediction_table <- function(newx, library, top_n = 1L) {
+  if (length(top_n) != 1L || !is.numeric(top_n) || is.na(top_n) ||
+      !is.finite(top_n) || top_n < 1 || top_n != floor(top_n)) {
+    stop("'top_n' must be a positive integer", call. = FALSE)
+  }
+  top_n <- as.integer(top_n)
+  runtime <- .ai_validate_gated_runtime(library)
+  hierarchy_cols <- runtime$hierarchy_cols
+  topology <- runtime$topology
+  edges <- runtime$edges
+  leaf_conversion <- runtime$leaf_conversion
+  nodes <- runtime$nodes
+  root_id <- runtime$root_id
+
+  n <- nrow(newx)
+  active <- stats::setNames(vector("list", nrow(topology)), topology$node_id)
+  active[[root_id]] <- seq_len(n)
+  routed_names <- matrix(
+    NA_character_, nrow = n, ncol = length(hierarchy_cols),
+    dimnames = list(rownames(newx), hierarchy_cols)
+  )
+  routed_probabilities <- matrix(
+    NA_real_, nrow = n, ncol = length(hierarchy_cols),
+    dimnames = list(rownames(newx), hierarchy_cols)
+  )
+  reached_terminal <- rep.int(FALSE, n)
+  terminal_results <- list()
+  ordered_nodes <- topology[order(depth, node_id), node_id]
+
+  for (node_id in ordered_nodes) {
+    current_node_id <- node_id
+    rows <- active[[current_node_id]]
+    if (!length(rows)) next
+    node_row <- topology[topology$node_id == current_node_id]
+    node <- nodes[[current_node_id]]
+    probabilities <- .ai_logistic_probability_matrix(
+      node, newx[rows, , drop = FALSE], length(rows)
+    )
+    .ai_validate_gated_probabilities(probabilities, current_node_id)
+    conversion <- data.table::as.data.table(node$dimension_conversion)
+
+    if (isTRUE(node_row$terminal[[1L]])) {
+      keep_n <- min(top_n, ncol(probabilities))
+      ordered <- t(vapply(seq_len(length(rows)), function(row) {
+        head(order(probabilities[row, ], decreasing = TRUE, method = "radix"),
+             keep_n)
+      }, integer(keep_n)))
+      row_position <- rep(seq_along(rows), each = keep_n)
+      class_column <- as.vector(t(ordered))
+      values <- probabilities[cbind(row_position, class_column)]
+      leaf_names <- as.character(conversion$name[class_column])
+      leaf_factor <- leaf_conversion$factor_num[
+        match(leaf_names, leaf_conversion$name)
+      ]
+      lambda <- if (is.null(node$lambda_selected) ||
+                    !length(node$lambda_selected)) {
+        NA_real_
+      } else {
+        node$lambda_selected[[1L]]
+      }
+      block <- data.table::data.table(
+        x = rep(rows, each = keep_n),
+        y = suppressWarnings(as.integer(leaf_factor)),
+        z = rep(lambda, length(row_position)),
+        value = as.numeric(values),
+        rank = rep(seq_len(keep_n), times = length(rows)),
+        terminal_node = rep(current_node_id, length(row_position))
+      )
+      for (level in seq_along(hierarchy_cols)) {
+        block[[paste0("routed_", hierarchy_cols[[level]])]] <-
+          rep(routed_names[rows, level], each = keep_n)
+        block[[paste0(hierarchy_cols[[level]], "_probability")]] <-
+          rep(routed_probabilities[rows, level], each = keep_n)
+      }
+      terminal_results[[length(terminal_results) + 1L]] <- block
+      reached_terminal[rows] <- TRUE
+      next
+    }
+
+    gate <- as.integer(node_row$depth[[1L]]) + 1L
+    if (gate > length(hierarchy_cols) ||
+        !identical(as.character(node_row$target_col[[1L]]),
+                   hierarchy_cols[[gate]])) {
+      stop("Gated hierarchy topology has an invalid gate at '",
+           current_node_id,
+           "'", call. = FALSE)
+    }
+    selected <- max.col(probabilities, ties.method = "first")
+    selected_name <- rep.int(NA_character_, length(rows))
+    selected_probability <- rep.int(NA_real_, length(rows))
+    valid <- !is.na(selected)
+    selected_name[valid] <- as.character(conversion$name[selected[valid]])
+    selected_probability[valid] <- probabilities[cbind(
+      which(valid), selected[valid]
+    )]
+    routed_names[rows, gate] <- selected_name
+    routed_probabilities[rows, gate] <- selected_probability
+
+    node_edges <- edges[edges$node_id == current_node_id]
+    for (label in unique(selected_name[valid])) {
+      child <- node_edges$child_node_id[node_edges$label == label]
+      if (length(child) != 1L || !child %in% topology$node_id) {
+        stop("Gated hierarchy has no unique child for '", label,
+             "' at ", current_node_id, call. = FALSE)
+      }
+      selected_rows <- rows[!is.na(selected_name) & selected_name == label]
+      active[[child]] <- c(active[[child]], selected_rows)
+    }
+  }
+
+  if (any(!reached_terminal)) {
+    stop("Gated hierarchy did not route every spectrum to a terminal node",
+         call. = FALSE)
+  }
+  result <- data.table::rbindlist(terminal_results, use.names = TRUE,
+                                  fill = TRUE)
+  data.table::setorder(result, x, rank)
+  result
+}
+
 #' @rdname match_spec
 #'
 #' @export
@@ -811,7 +1162,11 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, top_n = 1L, ...) {
   } else {
     "logistic_regression"
   }
-  if (identical(model_type, "hierarchical_logistic_regression")) {
+  gated <- identical(model_type, "gated_hierarchical_logistic_regression")
+  if (gated) {
+    if (is.null(top_n)) top_n <- 1L
+    filt <- .ai_gated_prediction_table(proc, library, top_n = top_n)
+  } else if (identical(model_type, "hierarchical_logistic_regression")) {
     pred <- .ai_hierarchical_probabilities(proc, library)
   } else if (identical(model_type, "random_forest")) {
     if (!requireNamespace("ranger", quietly = TRUE)) {
@@ -832,8 +1187,10 @@ ai_classify.OpenSpecy <- function(x, library, fill = NULL, top_n = 1L, ...) {
                     selected_lambda,
                     type = "response")
   }
-  if (is.null(top_n)) top_n <- 1L
-  filt <- .ai_prediction_table(pred, n = nrow(proc), top_n = top_n)
+  if (!gated) {
+    if (is.null(top_n)) top_n <- 1L
+    filt <- .ai_prediction_table(pred, n = nrow(proc), top_n = top_n)
+  }
   
   res <- merge(filt, library$dimension_conversion, all.x = T,
                by.x = "y", by.y = "factor_num")

@@ -108,8 +108,10 @@ os_similarity(x, ...)
 
 \item{library}{an \code{OpenSpecy} or trained model object representing the
 reference library of spectra or model to use in identification.
-Hierarchical model artifacts must retain their root, branch, hierarchy,
-class-conversion, predictor-axis, and training-filler runtime state.}
+Legacy hierarchical artifacts must retain their root, branch, hierarchy,
+class-conversion, predictor-axis, and training-filler runtime state. Gated
+artifacts must retain their schema, ordered hierarchy columns, topology,
+edges, node models, leaf conversion, predictor axis, and filler.}
 
 \item{na.rm}{logical; indicating whether missing values should be removed
 when calculating correlations. Default is \code{TRUE}.}
@@ -125,7 +127,10 @@ will use base R's \code{cor()}}
 \item{top_n}{integer; specifying the number of top matches to return.
 For spectral libraries, \code{NULL} returns all matches. Model libraries
 preserve their historical single winning class when \code{NULL}; a positive
-value returns that many ranked class probabilities per spectrum.}
+value returns that many ranked class probabilities per spectrum. For a gated
+model, ranking is restricted to leaves in the routed terminal node, and
+\code{value} is \eqn{P(leaf | selected path)}, not an end-to-end path
+probability.}
 
 \item{order}{an \code{OpenSpecy} used for sorting, ideally the unprocessed
 one; \code{NULL} skips sorting.}
@@ -166,19 +171,22 @@ can be returned by \code{cor_spec()}}
 \item{\ldots}{additional arguments passed \code{\link[stats]{cor}()}.}
 }
 \value{
-\code{match_spec()} and \code{ident_spec()} will return
-a \code{\link[data.table]{data.table-class}()} containing correlations
-between spectra and the library.
-The table has three columns: \code{object_id}, \code{library_id}, and
-\code{match_val}.
-Each row represents a unique pairwise correlation between a spectrum in the
-object and a spectrum in the library.
-If \code{top_n} is specified, only the top \code{top_n} matches for each
-object spectrum will be returned.
+With a spectral reference library, \code{match_spec()} and
+\code{ident_spec()} return a
+\code{\link[data.table]{data.table-class}()} containing correlations between
+spectra and the library. The table has \code{object_id}, \code{library_id},
+and \code{match_val}; each row is one pairwise match retained by
+\code{top_n}. With a trained model, \code{match_spec()} returns model row
+index \code{x}, class index \code{y}, selected tuning value \code{z}, score
+\code{value}, \code{rank}, and class \code{name}.
 If \code{add_library_metadata} is \code{is.character}, the library metadata
 will be added to the output.
 If \code{add_object_metadata} is \code{is.character}, the object metadata
 will be added to the output.
+Gated model rows also contain \code{terminal_node}, one
+\code{routed_<hierarchy column>} field per gate, and its corresponding
+\code{<hierarchy column>_probability}. These gate probabilities are audit
+fields and are not combined with the returned conditional leaf \code{value}.
 \code{filter_spec()} returns an \code{OpenSpecy} object.
 \code{fill_spec()} returns an \code{OpenSpecy} object.
 \code{cor_spec()} returns a correlation matrix.
@@ -200,9 +208,12 @@ current test cases.
 }
 \description{
 \code{match_spec()} joins two \code{OpenSpecy} objects and their metadata
-based on similarity. Trained flat models return class probabilities;
-hierarchical logistic models return normalized joint leaf probabilities
-formed from the broad-class and conditional leaf paths.
+based on similarity. Trained flat models return class probabilities. Saved
+pooled hierarchical logistic models retain their normalized joint leaf
+probabilities. Schema-versioned gated models instead choose the top class at
+each ordered gate, score only that selected child, and return terminal-node
+conditional leaf probabilities without multiplying or averaging confidence
+across levels.
 \code{cor_spec()} correlates two \code{OpenSpecy} objects, typically one with
 knowns and one with unknowns.
 \code{ident_spec()} retrieves the top match values from a correlation matrix

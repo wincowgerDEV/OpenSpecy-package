@@ -226,6 +226,144 @@ test_that("H5 paths route through bounded FileSpecs analysis", {
   expect_named(memory_result$samples, "large")
 })
 
+test_that("particle model matching preserves rank-1 gated route audits", {
+  query <- as_OpenSpecy(
+    1:3,
+    spectra = matrix(
+      seq_len(9), nrow = 3L,
+      dimnames = list(NULL, c("a", "b", "c"))
+    ),
+    metadata = data.table::data.table(
+      x = 1:3, y = 0, feature_id = c("a", "b", "c")
+    )
+  )
+  model <- list(hierarchy_cols = c("material_type", "material_group"))
+  prediction <- data.table::data.table(
+    x = 1:3, y = 1:3, z = 0.1, value = c(0.8, 0.7, 0.6), rank = 1L,
+    name = c("polyethylene", "polyvinyl alcohol", "organic matter"),
+    routed_material_type = c("plastic", "plastic", "not plastic"),
+    material_type_probability = c(0.9, 0.85, 0.95),
+    routed_material_group = c("olefinic", "vinyl alcohol", "non-polymer"),
+    material_group_probability = c(0.8, 0.75, 1),
+    terminal_node = c("olefin", "vinyl", "nonpolymer")
+  )
+  local_mocked_bindings(
+    match_spec = function(...) prediction,
+    .package = "OpenSpecy"
+  )
+
+  matched <- OpenSpecy:::.append_particle_matches(
+    query, model, material_col = "material_class",
+    library_id_col = "sample_name"
+  )
+
+  expect_identical(matched$metadata$material_class, prediction$name)
+  expect_equal(matched$metadata$max_cor_val, prediction$value)
+  expect_identical(matched$metadata$routed_material_type,
+                   prediction$routed_material_type)
+  expect_equal(matched$metadata$material_group_probability,
+               prediction$material_group_probability)
+  expect_identical(matched$metadata$terminal_node, prediction$terminal_node)
+
+  details <- OpenSpecy:::.particle_details_table(
+    matched, "sample", "material_class", cor_threshold = 0.5,
+    pixel_length = 1, origin = c(0, 0)
+  )
+  expect_true(all(c(
+    "routed_material_type", "material_type_probability",
+    "routed_material_group", "material_group_probability", "terminal_node"
+  ) %in% names(details)))
+
+  route_cols <- OpenSpecy:::.particle_route_audit_columns(matched$metadata)
+  without_route <- matched
+  without_route$metadata[, (route_cols) := NULL]
+  expect_equal(
+    OpenSpecy:::.particle_summary_table(
+      matched, "sample", "material_class", pixel_length = 1, map = query
+    ),
+    OpenSpecy:::.particle_summary_table(
+      without_route, "sample", "material_class", pixel_length = 1,
+      map = query
+    )
+  )
+  unrelated <- data.table::data.table(
+    routed_level = "x", level_probability = 0.9,
+    calibration_probability = 0.2, terminal_node = "node"
+  )
+  expect_setequal(
+    OpenSpecy:::.particle_route_audit_columns(unrelated),
+    c("routed_level", "level_probability", "terminal_node")
+  )
+})
+
+test_that("file-backed model matching retains gated route audits", {
+  index <- data.table::data.table(
+    col_id = c("pixel_a", "pixel_b"), source_id = 1:2,
+    row = 1L, col = 1:2
+  )
+  file_specs <- structure(list(), class = c("FileSpecs", "Specs", "list"))
+  model <- list(hierarchy_cols = c("material_type", "material_group"))
+  local_mocked_bindings(
+    .filespec_index = function(x) index,
+    .filespec_axis = function(x) 1:3,
+    .filespec_read_values = function(x, index, ...) {
+      ids <- c("pixel_a", "pixel_b")[index]
+      list(
+        wavenumber = 1:3,
+        spectra = matrix(
+          seq_len(3L * length(index)), nrow = 3L,
+          dimnames = list(NULL, ids)
+        ),
+        index = data.table::data.table(col_id = ids)
+      )
+    },
+    .filespec_values_to_OpenSpecy = function(x, values) {
+      as_OpenSpecy(
+        values$wavenumber, spectra = values$spectra,
+        metadata = data.table::data.table(
+          col_id = colnames(values$spectra)
+        )
+      )
+    },
+    .process_for_particle_match = function(x, ...) x,
+    match_spec = function(x, library, ...) {
+      n <- ncol(x$spectra)
+      data.table::data.table(
+        x = seq_len(n), y = seq_len(n), z = 0.1,
+        value = seq(0.9, 0.8, length.out = n), rank = 1L,
+        name = c("polyethylene", "organic matter")[seq_len(n)],
+        routed_material_type = c("plastic", "not plastic")[seq_len(n)],
+        material_type_probability = c(0.95, 0.9)[seq_len(n)],
+        routed_material_group = c("olefinic", "non-polymer")[seq_len(n)],
+        material_group_probability = c(0.85, 1)[seq_len(n)],
+        terminal_node = c("olefin", "nonpolymer")[seq_len(n)]
+      )
+    },
+    .package = "OpenSpecy"
+  )
+
+  matches <- OpenSpecy:::.filespec_particle_matches(
+    file_specs, eligible = c(TRUE, TRUE), library = model,
+    process_args = list(), material_col = "material_class",
+    library_id_col = "sample_name", spectral_smooth = FALSE,
+    sigma1 = c(1, 1, 1), chunk_size = 10L
+  )
+
+  expect_identical(matches$object_id, c("pixel_a", "pixel_b"))
+  expect_identical(matches$routed_material_type,
+                   c("plastic", "not plastic"))
+  expect_equal(matches$material_group_probability, c(0.85, 1))
+  expect_identical(matches$terminal_node, c("olefin", "nonpolymer"))
+
+  flat_empty <- OpenSpecy:::.filespec_particle_matches(
+    file_specs, eligible = c(FALSE, FALSE), library = list(),
+    process_args = list(), material_col = "material_class",
+    library_id_col = "sample_name", spectral_smooth = FALSE,
+    sigma1 = c(1, 1, 1), chunk_size = 10L
+  )
+  expect_false("terminal_node" %in% names(flat_empty))
+})
+
 test_that("automate_particle_analysis() rejects removed legacy arguments", {
   wn <- 1:5
   os <- as_OpenSpecy(wn, spectra = matrix(seq_len(10), nrow = 5))

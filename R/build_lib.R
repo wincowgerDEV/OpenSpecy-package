@@ -72,9 +72,12 @@
 #' spectra with running signal-to-noise below two are removed before pruning.
 #' Full artifacts are then partitioned into Raman (200--4000), FTIR
 #' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-#' After pruning and class reassignment, the official workflow derives
-#' \code{material_form} from the curated form-regex CSV and all atomic metadata
-#' values, then joins evidence-backed \code{common_use} by final material class.
+#' After pruning and class reassignment, the official workflow joins the
+#' complete \code{material_group_reference.csv} crosswalk so every final
+#' \code{material_class} has exactly one \code{material_type} and
+#' \code{material_group} route. It then derives \code{material_form} from the
+#' curated form-regex CSV and all atomic metadata values and joins
+#' evidence-backed \code{common_use} by final material class.
 #' Existing form values take precedence when uniquely standardized; conflicting
 #' form categories remain missing and are audited. Common use may be
 #' \code{"consumer"}, \code{"industrial"}, \code{"mixed"}, or missing;
@@ -86,26 +89,40 @@
 #' most missing values. Spectra, metadata rows, identifiers, axes, and object
 #' attributes are unchanged.
 #' Official class completion temporarily assigns unresolved identities to
-#' \code{"other"}. By default, spectra with a blank identity or that unresolved
-#' literal class are removed before quality control and retained in the
-#' \code{other_review} assessment table. Reviewed \code{"other plastic"} and
-#' \code{"other material"} rows stay in the reference library and enter
-#' \code{prune_lib()}'s nearest-class semisupervised pathway.
+#' \code{"other"}. By default, spectra without a stable identity or any generic
+#' review label are removed before quality control and retained in the
+#' \code{other_review} assessment table. Named generic paint, varnish, rubber,
+#' latex, resin, and unresolved
+#' composite spectra remain eligible for correlation reassignment, as do
+#' reviewed \code{"other plastic"} and \code{"other material"} rows. Curated
+#' named monomers and small organic molecules instead map directly to
+#' \code{"organic matter"}/\code{"not plastic"} before correlation pruning.
 #' When requested, \code{prune_lib()} first resolves high-correlation conflicts
 #' between different reviewed classes within each source library. It repeatedly
 #' removes the spectrum with the most active wrong-class neighbors, recalculates
 #' after each round, and removes both endpoints of an adjacent maximum-score
 #' tie. It then resolves between-library conflicts by the number of distinct
 #' independent libraries supporting the opposing class. Generic and
-#' unclassified labels do not participate. Official builds repeat closure on
-#' the rounded typed and model-range views before deriving medoids, and retain
-#' excluded spectra plus conflict provenance in
-#' \code{quarantined_spectra.rds}. Pruning then reassigns generic classes by nearest same-technique
-#' correlation: \code{"other"} may use any established class,
+#' unclassified labels do not participate. Each immutable numeric/type view is
+#' normalized once and, when memory permits, receives one dense double
+#' correlation matrix keyed by stable identifiers, wavenumbers, processing
+#' state, range, and spectral content. Conflict closure, relabeling/removal
+#' queries, generic reassignment, and medoid checks index that matrix. After
+#' arbitrary-score consumers finish, a full-range view is losslessly compacted
+#' to its exact directed greater-than-threshold edges before a changed range is
+#' allocated; lower-threshold reuse is rejected. Bounded blocks remain the
+#' lower-memory fallback. Official builds repeat closure on the rounded typed and
+#' model-range views before deriving medoids, and retain excluded spectra plus
+#' conflict provenance in \code{quarantined_spectra.rds}. Pruning then
+#' reassigns generic classes by nearest same-technique correlation:
+#' \code{"other"} may use any established class,
 #' \code{"other plastic"} requires a plastic candidate, and
 #' \code{"other material"} requires \code{"organic matter"} or
-#' \code{"mineral"}. The matched material type and a correlation audit are
-#' retained. Once those labels are resolved, each class/spectrum-type group with
+#' \code{"mineral"}. The matched identifier, class, type, score, and candidate
+#' pool are audited while the original identity and form are retained. A
+#' generic row with no finite eligible candidate is retained with a no-match
+#' audit rather than deleted. Once those labels are resolved, each
+#' class/spectrum-type group with
 #' fewer than \code{min_n} spectra is reassigned as a whole to its
 #' most-correlated established class in the same technique pool and material
 #' type. A group is removed only when no eligible correlated destination
@@ -134,20 +151,34 @@
 #' spectrum's finite mean. Groups of at most 3,000 spectra use exact PAM;
 #' oversized groups use five deterministic 1,000-spectrum PAM samples and keep
 #' the candidate set with the best full-group correlation-distance objective.
-#' Official medoids are then selected from the original object so their genuine
-#' missing values are preserved.
+#' Official medoids group by material class and the same canonical source used
+#' by model validation (organization, falling back to library name). They are
+#' then selected from the original object so their genuine missing values and
+#' metadata are preserved.
 #'
 #' \code{train_spec_model()} trains either OpenSpecy's multinomial logistic
 #' regression model (\code{method = "logistic_regression"}) or an experimental
 #' probability random forest (\code{method = "random_forest"}). Logistic
 #' regression uses inverse class weights and stratified cross-validation to
-#' select a lambda from grouped out-of-fold predictions. The default
-#' guardrailed rule keeps candidates within one absolute percentage point of
-#' the maximum overall accuracy, then within one point of the best eligible
-#' macro accuracy, minimizes multiclass log loss, and prefers the largest
-#' lambda on ties. The historical macro-only and overall-only rules remain
-#' available. Supplying \code{hierarchy_col} trains a broad root followed by
-#' conditional class models and combines their probabilities along each path.
+#' select a lambda from grouped out-of-fold predictions. At a source-eligible
+#' gated node, the default guardrail keeps candidates within one absolute
+#' percentage point of the maximum overall accuracy, then successively within
+#' one point of the best eligible minimum class recall, worst-source accuracy,
+#' and macro accuracy, before minimizing multiclass log loss and Brier score and
+#' preferring the largest lambda on ties. Source-held-out folds and this
+#' expanded policy require at least 100 node spectra and five organizations,
+#' with at least 25 spectra and three organizations per child. Connected source
+#' components then determine whether at least three leakage-safe held-out folds
+#' are feasible. Other nodes fall back to identity-grouped folds and the
+#' historical overall/macro/loss guardrail. Organization is the canonical
+#' source (with library name used only when organization is absent), and
+#' worst-source accuracy includes only such sources represented by at least 25
+#' observations at that node. The macro-only and overall-only rules remain
+#' available. Supplying
+#' ordered \code{hierarchy_col} names trains a strict gated tree: each node
+#' chooses its top class, only that child is evaluated, and the terminal model
+#' returns conditional leaf probabilities. Gate probabilities are retained as
+#' diagnostics but are never multiplied, averaged, or otherwise pooled.
 #' Random
 #' forest uses inverse-frequency balanced case sampling and out-of-bag
 #' predictions. This improves minority-class representation in each bootstrap
@@ -270,14 +301,15 @@
 #' @param reuse logical; whether manifest-compatible completed checkpoints and
 #' versioned release files may be reused.
 #' @param remove_other logical; in the official end-to-end workflow, whether
-#' spectra with blank \code{spectrum_identity} or the unresolved literal
-#' \code{"other"} class are removed before quality control, medoid selection,
-#' and model fitting. Reviewed broad \code{"other plastic"} and
-#' \code{"other material"} categories remain in the reference libraries and
-#' are eligible for \code{prune_lib()}'s constrained nearest-class
-#' reassignment. Removed and reviewed rows remain visible in
-#' \code{assessments$cleanup$summary}. Source-only composable builds do not
-#' apply the official filter.
+#' spectra without a stable \code{spectrum_identity} or any generic review
+#' label are removed before quality control, medoid selection, and model
+#' fitting. Named generic manufactured
+#' materials and reviewed \code{"other plastic"}/\code{"other material"}
+#' categories remain eligible for \code{prune_lib()}'s constrained
+#' nearest-class correlation reassignment. A generic row without a finite
+#' eligible candidate is retained and audited. Removed and reviewed rows remain
+#' visible in \code{assessments$cleanup$summary}. Source-only composable builds
+#' do not apply the official filter.
 #' @param seed fixed seed for the grouped old/new assessment split.
 #' @param holdout fraction of stable spectrum groups reserved for assessment.
 #' @param group_cols metadata columns defining groups for reduction.
@@ -300,14 +332,22 @@
 #' \code{[0, 1]}. Cross-class correlations strictly greater than this value
 #' are conflicts when \code{cross_class = TRUE}.
 #' @param class_col,type_col metadata columns used for model labels.
-#' @param hierarchy_col optional metadata column defining the broad parent of
-#' each \code{class_col} value. Supplying it trains a hierarchical logistic
-#' model; \code{NULL} retains the flat model. Hierarchical random forests are
-#' not supported.
-#' @param selection_rule logistic lambda-selection policy. \code{"guardrailed"}
-#' protects maximum overall and macro accuracy within fixed absolute 0.01
-#' windows before minimizing log loss; \code{"macro"} and \code{"overall"}
-#' reproduce single-metric selection policies.
+#' @param hierarchy_col \code{NULL}, or ordered unique metadata column names
+#' defining the gates above each \code{class_col} leaf. For example,
+#' \code{c("material_type", "material_group")} trains a strict top-1
+#' type-to-group-to-class logistic tree. Routed gate labels are the exact
+#' metadata values from those columns; \code{type_col} prefixes terminal class
+#' labels only. \code{NULL} retains the flat model.
+#' Hierarchical random forests are not supported.
+#' @param selection_rule logistic lambda-selection policy. At source-eligible
+#' gated nodes, \code{"guardrailed"} applies node-local absolute 0.01 windows
+#' to maximum overall accuracy, minimum class recall, worst-source accuracy,
+#' and macro accuracy in that order, then minimizes log loss and Brier score and
+#' prefers the largest lambda. Worst-source accuracy uses organizations (or
+#' library-name fallback) with at least 25 node observations. Nodes below the documented spectrum/source
+#' thresholds use identity-grouped folds and the historical overall/macro/loss
+#' guardrail.
+#' \code{"macro"} and \code{"overall"} reproduce single-metric policies.
 #' @param nearest logical; if \code{TRUE}, \code{assess_lib()} compares each
 #' spectrum with its highest-correlation neighbor and reports the fraction where
 #' that neighbor has the same \code{class_col} value.
@@ -340,9 +380,13 @@
 #' \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
 #' Official libraries and medoids are nested by recipe and then
 #' \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
-#' recipe, and spectrum type. FTIR and Raman medoids/models use
-#' 800--3200 while the NIR interval is derived from finite coverage within
-#' 4000--12000. Assessments use five ordered process lists:
+#' recipe, and spectrum type. New official fits are stored under
+#' \code{gated_hierarchical_logistic_regression}; loaders and prediction keep
+#' accepting saved flat and pooled hierarchical artifacts. FTIR medoids/models
+#' use 800--2200 and 2420--3200, excluding the atmospheric CO2 interval to
+#' match the standard particle-analysis input axis. Raman uses 800--3200,
+#' while the NIR interval is derived from finite coverage within 4000--12000.
+#' Assessments use five ordered process lists:
 #' \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 #' \code{functionality}, with no more than ten nonempty review tables in total.
 #' Every spectrum receives a derived \code{library_name}: populated
@@ -365,14 +409,21 @@
 #' spectra excluded by cross-class closure.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
-#' object unless \code{return} requests a table, report, or ids.
+#' object unless \code{return} requests a table, report, or ids. A
+#' \code{prune_lib(return = "report")} result includes
+#' \code{generic_reassignment_audit}, with one row for every generic spectrum
+#' considered and an explicit reassigned, no-eligible-candidate, or
+#' no-finite-candidate action.
 #' \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
 #' supplied, in which case it writes the csv and invisibly returns the table.
 #' \code{train_spec_model()} and \code{build_model_lib()} return a list suitable
 #' for AI classification with
 #' \code{\link{match_spec}()} and one tidy \code{tests} table instead of
 #' separate accuracy/confusion summaries. It also contains typed
-#' \code{lambda_metrics} and \code{support} tables. Random-forest results also
+#' \code{lambda_metrics} and \code{support} tables. Gated models additionally
+#' retain their schema, ordered hierarchy columns, node topology/edges,
+#' node-local models, routed diagnostics, and conditional-probability semantics.
+#' Random-forest results also
 #' contain out-of-bag metrics and feature importance. \code{assess_lib()}
 #' returns a data.table summary.
 #'
@@ -1286,8 +1337,11 @@ predict_class_reference <- function(metadata, regex_reference,
     organization = character(), user_name = character(),
     citation = character(), other_info = character(), material = character(),
     material_class = character(), material_type = character(),
+    original_material_form = character(),
     spectrum_type = character(), generic_fields = character(),
-    reason = character(), action = character()
+    reason = character(), action = character(), matched_id = character(),
+    matched_material_class = character(), matched_material_type = character(),
+    match_correlation = numeric(), match_pool = character()
   )
 }
 
@@ -1325,7 +1379,10 @@ predict_class_reference <- function(metadata, regex_reference,
       label <- tolower(trimws(value(metadata, column)))
       !is.na(label) & label == "other"
     }, logical(nrow(metadata)))) > 0L
-    remove <- isTRUE(remove_other) & (missing_identity | unresolved)
+    # Generic manufactured-material labels are retained for the constrained
+    # correlation reassignment in prune_lib(). Only rows without any stable
+    # identity and without a generic review label retain the legacy removal.
+    remove <- isTRUE(remove_other) & missing_identity & !generic
     if (any(candidates)) {
       rows <- which(candidates)
       triggered <- apply(generic_matrix[rows, , drop = FALSE], 1L, function(x) {
@@ -1346,6 +1403,7 @@ predict_class_reference <- function(metadata, regex_reference,
         material = value(metadata, "material")[rows],
         material_class = value(metadata, "material_class")[rows],
         material_type = value(metadata, "material_type")[rows],
+        original_material_form = value(metadata, "material_form")[rows],
         spectrum_type = value(metadata, "spectrum_type")[rows],
         generic_fields = triggered,
         reason = data.table::fcase(
@@ -1354,10 +1412,19 @@ predict_class_reference <- function(metadata, regex_reference,
           default = "reviewed_broad_category"
         ),
         action = if (isTRUE(remove_other)) {
-          ifelse(remove[rows], "removed", "retained_reviewed_broad_category")
+          ifelse(
+            remove[rows], "removed",
+            ifelse(
+              generic[rows], "retained_for_correlation_reassignment",
+              "retained_reviewed_broad_category"
+            )
+          )
         } else {
-          rep("retained_for_semisupervised_reassignment", length(rows))
-        }
+          rep("retained_for_correlation_reassignment", length(rows))
+        },
+        matched_id = NA_character_, matched_material_class = NA_character_,
+        matched_material_type = NA_character_, match_correlation = NA_real_,
+        match_pool = NA_character_
       )
       reviews[[artifact]] <- review
     }
@@ -1372,9 +1439,9 @@ predict_class_reference <- function(metadata, regex_reference,
     summary <- data.table::data.table(
       artifact = artifact,
       action = if (isTRUE(remove_other)) {
-        "remove_unresolved_retain_reviewed_broad"
+        "retain_generic_for_correlation_remove_unidentified_nongeneric"
       } else {
-        "retain_for_semisupervised_reassignment"
+        "retain_for_correlation_reassignment"
       },
       before = as.integer(before),
       candidates = as.integer(sum(candidates)),
@@ -1414,6 +1481,62 @@ predict_class_reference <- function(metadata, regex_reference,
       .lib_other_filter_schema()
     }
   )
+}
+
+.lib_finalize_other_review <- function(review, libraries, prune_targets,
+                                       attempted = NULL) {
+  out <- data.table::copy(data.table::as.data.table(review))
+  if (!nrow(out)) return(out)
+  if (!is.null(attempted) && nrow(attempted)) {
+    attempted <- data.table::as.data.table(attempted)
+    required <- c(
+      "artifact", "spectrum_id", "material_class", "material_type",
+      "matched_id", "correlation", "pool", "action"
+    )
+    .lib_require_cols(attempted, required, "generic reassignment audit")
+    if (attempted[, anyDuplicated(paste(artifact, spectrum_id, sep = "\r"))]) {
+      stop("Generic reassignment audit has duplicate artifact/spectrum rows",
+           call. = FALSE)
+    }
+    attempted <- attempted[, .(
+      artifact, spectrum_id, matched_id,
+      matched_material_class = ifelse(
+        action == "reassigned", as.character(material_class), NA_character_
+      ),
+      matched_material_type = ifelse(
+        action == "reassigned", as.character(material_type), NA_character_
+      ),
+      match_correlation = correlation, match_pool = pool, action
+    )]
+    out[
+      attempted,
+      on = .(artifact, spectrum_id),
+      `:=`(
+        action = i.action,
+        matched_id = i.matched_id,
+        matched_material_class = i.matched_material_class,
+        matched_material_type = i.matched_material_type,
+        match_correlation = i.match_correlation,
+        match_pool = i.match_pool
+      )
+    ]
+  }
+  retained_keys <- unlist(lapply(names(libraries), function(name) {
+    paste(name, .lib_ids(libraries[[name]], "sample_name"), sep = "\r")
+  }), use.names = FALSE)
+  review_keys <- paste(out$artifact, out$spectrum_id, sep = "\r")
+  pending <- out$action == "retained_for_correlation_reassignment"
+  survived <- review_keys %in% retained_keys
+  out[pending & !survived, action := "removed_before_reassignment"]
+  out[
+    pending & survived & !artifact %in% prune_targets,
+    action := "retained_reassignment_not_attempted"
+  ]
+  out[
+    pending & survived & artifact %in% prune_targets,
+    action := "reassignment_audit_missing"
+  ]
+  out
 }
 
 .lib_prepare_sources <- function(sources, range, res, metadata_name_lookup,
@@ -2620,8 +2743,6 @@ prune_lib <- function(x, class_col = "material_class",
   )))
   spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
   pools <- .lib_prune_pools(metadata[[type_col]])
-  normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
-
   before_n <- length(ids)
   cross_class_removals <- .lib_prune_cross_class_schema()
   cross_class_conflicts <- .lib_prune_conflict_edge_schema()
@@ -2647,8 +2768,23 @@ prune_lib <- function(x, class_col = "material_class",
     cross_normalized <- .lib_prune_normalize(
       x$spectra, x$wavenumber, exclude = NULL
     )
+    cross_view <- .lib_new_correlation_view(
+      cross_normalized, ids = ids, pools = spectrum_types,
+      wavenumber = x$wavenumber, state = "prune_full",
+      progress = progress, block_size = 256L,
+      compact_threshold = cross_class_threshold
+    )
+    rm(cross_normalized)
+    # Every consumer of the full-spectrum view uses the same strict
+    # cross-class threshold.  Compact immediately so the dense matrices are
+    # released before the repeated conflict/evidence queries begin.
+    cross_view <- .lib_compact_threshold_correlation_view(
+      cross_view, threshold = cross_class_threshold,
+      progress = progress, block_size = 128L
+    )
+    gc(verbose = FALSE, full = TRUE)
     conflict <- .lib_prune_cross_class_conflicts(
-      classes, spectrum_types, cross_normalized, ids, library_names,
+      classes, spectrum_types, cross_view, ids, library_names,
       threshold = cross_class_threshold, progress = progress,
       block_size = 256L, support_groups = spectrum_types, min_n = min_n,
       correlation_view = "prune_full"
@@ -2670,18 +2806,35 @@ prune_lib <- function(x, class_col = "material_class",
       spectrum_types <- spectrum_types[keep]
       pools <- pools[keep]
       library_names <- library_names[keep]
-      normalized <- normalized[keep, , drop = FALSE]
     }
-    rm(cross_normalized)
   }
 
+  # The excluded-range view is independent by spectrum.  Build it only after
+  # the full-range conflict pass so its ~1 GiB production matrix does not
+  # coexist with the largest dense correlation pool.
+  normalized <- .lib_prune_normalize(x$spectra, x$wavenumber, exclude)
+  excluded_limits <- sort(exclude)
+  excluded_axis <- x$wavenumber[
+    x$wavenumber < excluded_limits[[1L]] |
+      x$wavenumber > excluded_limits[[2L]]
+  ]
+  prune_view <- .lib_new_correlation_view(
+    normalized, ids = ids, pools = pools, wavenumber = excluded_axis,
+    state = paste0(
+      "prune_excluding_", format(excluded_limits[[1L]], trim = TRUE), "_",
+      format(excluded_limits[[2L]], trim = TRUE)
+    ),
+    progress = progress, block_size = 256L
+  )
+  rm(normalized)
+
   generic_reassigned <- .lib_reassign_other_classes(
-    classes, material_types, pools, normalized, ids, progress = progress
+    classes, material_types, pools, prune_view, ids, progress = progress
   )
   classes <- generic_reassigned$classes
   material_types <- generic_reassigned$material_types
   small_reassigned <- .lib_reassign_small_classes(
-    classes, material_types, spectrum_types, pools, normalized, ids,
+    classes, material_types, spectrum_types, pools, prune_view, ids,
     min_n = min_n, progress = progress
   )
   classes <- small_reassigned$classes
@@ -2815,7 +2968,7 @@ prune_lib <- function(x, class_col = "material_class",
             ))
           }
           best <- .lib_prune_best_match(
-            query, active_candidates, normalized, ids,
+            query, active_candidates, prune_view, ids,
             exclude_self = TRUE, block_size = 32L
           )
           best_index[query] <- best$index
@@ -2891,13 +3044,12 @@ prune_lib <- function(x, class_col = "material_class",
       }
     }
   }
+  rm(prune_view)
+  gc(verbose = FALSE, full = TRUE)
   if (isTRUE(cross_class) && any(active)) {
     active_rows <- which(active)
-    closure_normalized <- .lib_prune_normalize(
-      x$spectra[, active_rows, drop = FALSE], x$wavenumber, exclude = NULL
-    )
     closure <- .lib_prune_cross_class_conflicts(
-      classes[active_rows], spectrum_types[active_rows], closure_normalized,
+      classes[active_rows], spectrum_types[active_rows], cross_view,
       ids[active_rows], library_names[active_rows],
       threshold = cross_class_threshold, progress = progress,
       block_size = 256L, support_groups = spectrum_types[active_rows],
@@ -2918,7 +3070,7 @@ prune_lib <- function(x, class_col = "material_class",
         list(cross_class_conflicts, closure$conflicts), fill = TRUE
       )
     }
-    rm(closure_normalized, closure)
+    rm(closure)
 
     resolved_active <- active & !protected & !is.na(spectrum_types) &
       nzchar(spectrum_types) & !is.na(classes) & nzchar(classes)
@@ -2958,7 +3110,10 @@ prune_lib <- function(x, class_col = "material_class",
       removal_rows[[removal_i]] <- floor_removals
     }
   }
-  rm(normalized)
+  if (isTRUE(cross_class)) {
+    rm(cross_view)
+  }
+  gc(verbose = FALSE, full = TRUE)
 
   removals <- if (length(removal_rows) > 0L) {
     data.table::rbindlist(removal_rows, fill = TRUE)
@@ -2979,6 +3134,7 @@ prune_lib <- function(x, class_col = "material_class",
     schedule = schedule,
     excluded_classes = excluded_classes,
     reassignments = reassignment_report,
+    generic_reassignment_audit = generic_reassigned$audit,
     cross_class_removals = cross_class_removals,
     cross_class_conflicts = cross_class_conflicts,
     removals = removals,
@@ -3062,8 +3218,500 @@ prune_lib <- function(x, class_col = "material_class",
   values
 }
 
+.lib_correlation_cache_limit <- function() {
+  value <- getOption(
+    "OpenSpecy.correlation_cache_max_bytes",
+    24 * 1024^3
+  )
+  environment_value <- Sys.getenv(
+    "OPENSPECY_CORRELATION_CACHE_MAX_BYTES", unset = ""
+  )
+  if (nzchar(environment_value)) {
+    value <- suppressWarnings(as.numeric(environment_value))
+  }
+  value <- suppressWarnings(as.numeric(value))
+  if (length(value) != 1L || is.na(value) || value < 0) return(0)
+  value
+}
+
+.lib_correlation_cache_mode <- function() {
+  value <- tolower(as.character(getOption(
+    "OpenSpecy.correlation_cache", "auto"
+  )))
+  if (length(value) != 1L || is.na(value) ||
+      !value %in% c("auto", "dense", "bounded")) {
+    return("auto")
+  }
+  value
+}
+
+.lib_numeric_view_hash <- function(spectra, wavenumber, ids,
+                                   state = "correlation") {
+  digest::digest(
+    list(
+      schema = "OpenSpecy_numeric_correlation_view_v1",
+      state = as.character(state), ids = as.character(ids),
+      wavenumber = as.numeric(wavenumber), dim = dim(spectra),
+      spectra = digest::digest(spectra, algo = "xxhash64")
+    ),
+    algo = "xxhash64"
+  )
+}
+
+.lib_is_correlation_view <- function(x) {
+  inherits(x, "OpenSpecyCorrelationView")
+}
+
+.lib_full_boundary_gc_required <- function(x, threshold = 256 * 1024^2) {
+  if (.lib_is_correlation_view(x)) {
+    preflight <- x$preflight
+    return(
+      is.data.frame(preflight) && nrow(preflight) > 0L &&
+        "full_boundary_gc" %in% names(preflight) &&
+        any(preflight$full_boundary_gc %in% TRUE)
+    )
+  }
+  as.numeric(utils::object.size(x)) >= as.numeric(threshold)
+}
+
+.lib_new_correlation_view <- function(normalized, ids, pools, wavenumber,
+                                      state = "correlation", progress = FALSE,
+                                      block_size = 256L,
+                                      compact_threshold = NULL) {
+  if (!is.matrix(normalized) || !is.numeric(normalized)) {
+    stop("A correlation view requires one numeric normalized matrix",
+         call. = FALSE)
+  }
+  ids <- as.character(ids)
+  pools <- as.character(pools)
+  n <- length(ids)
+  if (nrow(normalized) != n || length(pools) != n ||
+      length(wavenumber) != ncol(normalized)) {
+    stop("Correlation view IDs, pools, axis, and spectra are misaligned",
+         call. = FALSE)
+  }
+  if (anyNA(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
+    stop("Correlation view IDs must be populated and unique", call. = FALSE)
+  }
+  if (!is.null(compact_threshold) &&
+      (!is.numeric(compact_threshold) || length(compact_threshold) != 1L ||
+       !is.finite(compact_threshold))) {
+    stop("A finite compact threshold is required", call. = FALSE)
+  }
+  block_size <- max(1L, as.integer(block_size))
+  mode <- .lib_correlation_cache_mode()
+  limit <- .lib_correlation_cache_limit()
+  valid_pool <- !is.na(pools) & nzchar(pools)
+  pool_values <- sort(unique(pools[valid_pool]))
+  part_rows <- stats::setNames(lapply(pool_values, function(pool) {
+    which(valid_pool & pools == pool)
+  }), pool_values)
+  local_index <- integer(n)
+  for (pool in pool_values) {
+    rows <- part_rows[[pool]]
+    local_index[rows] <- seq_along(rows)
+  }
+
+  numeric_hash <- digest::digest(normalized, algo = "xxhash64")
+  key <- digest::digest(
+    list(
+      schema = "OpenSpecy_correlation_view_v1", state = as.character(state),
+      ids = ids, pools = pools, wavenumber = as.numeric(wavenumber),
+      numeric_hash = numeric_hash
+    ),
+    algo = "xxhash64"
+  )
+  correlations <- stats::setNames(vector("list", length(pool_values)),
+                                  pool_values)
+  preflight_rows <- vector("list", length(pool_values))
+  compaction_rows <- list()
+  normalized_bytes <- as.numeric(utils::object.size(normalized))
+  allocated_bytes <- 0
+  allocation_order <- pool_values[order(
+    -vapply(part_rows, length, integer(1L)), pool_values
+  )]
+  largest_matrix_bytes <- max(0, vapply(part_rows, function(rows) {
+    count <- as.double(length(rows))
+    8 * count * count
+  }, numeric(1L)))
+  # Full collections are material for production-scale matrices but impose a
+  # disproportionate fixed cost on the small correlation views used routinely.
+  full_boundary_gc <- max(normalized_bytes, largest_matrix_bytes) >=
+    256 * 1024^2
+  metrics <- new.env(parent = emptyenv())
+  metrics$dense_builds <- 0L
+  metrics$dense_queries <- 0L
+  metrics$bounded_queries <- 0L
+  metrics$compacted_queries <- 0L
+  # digest() can leave a serialized copy unreachable in an R process whose
+  # Vcell trigger was inflated by earlier reference-library stages.
+  .lib_compaction_gc(full = full_boundary_gc)
+
+  for (pool in allocation_order) {
+    rows <- part_rows[[pool]]
+    count <- length(rows)
+    matrix_bytes <- 8 * as.double(count) * as.double(count)
+    part_bytes <- 8 * as.double(count) * as.double(ncol(normalized))
+    block_bytes <- 8 * as.double(min(block_size, count)) * as.double(count)
+    compaction_transient_bytes <- if (is.null(compact_threshold)) 0 else
+      24 * as.double(min(128L, count)) * as.double(count)
+    working_bytes <- normalized_bytes + allocated_bytes + matrix_bytes +
+      part_bytes + max(block_bytes, compaction_transient_bytes)
+    dense <- mode != "bounded" && is.finite(working_bytes) &&
+      working_bytes <= limit
+    failure <- NA_character_
+    started <- proc.time()[["elapsed"]]
+    if (dense) {
+      value <- tryCatch({
+        # Keep the dense product in an ephemeral frame.  A named `result`
+        # binding in this loop survives after `value` is compacted and forces
+        # the next pool to allocate beside the previous square matrix.
+        local({
+          part <- normalized[rows, , drop = FALSE]
+          tcrossprod(part)
+        })
+      }, error = function(error) {
+        failure <<- conditionMessage(error)
+        NULL
+      })
+      if (is.null(value)) {
+        dense <- FALSE
+        gc(verbose = FALSE, full = TRUE)
+      } else {
+        # The pool slice used by tcrossprod() is now unreachable, but a large
+        # prior Vcell trigger can otherwise retain its pages into compaction.
+        .lib_compaction_gc(full = full_boundary_gc)
+        metrics$dense_builds <- metrics$dense_builds + 1L
+        if (is.null(compact_threshold)) {
+          correlations[[pool]] <- value
+          allocated_bytes <- allocated_bytes + matrix_bytes
+        } else {
+          compact_started <- proc.time()[["elapsed"]]
+          compact <- .lib_compact_threshold_correlation_pool(
+            value, threshold = compact_threshold, block_size = 128L
+          )
+          edge_count <- sum(lengths(compact$neighbors))
+          compact_bytes <- as.numeric(utils::object.size(compact))
+          correlations[[pool]] <- compact
+          allocated_bytes <- allocated_bytes + compact_bytes
+          compaction_rows[[length(compaction_rows) + 1L]] <-
+            data.table::data.table(
+              pool = pool, spectra = count, directed_edges = edge_count,
+              threshold = as.numeric(compact_threshold),
+              compact_bytes = compact_bytes,
+              elapsed_seconds = proc.time()[["elapsed"]] - compact_started
+            )
+          rm(value, compact)
+          gc(verbose = FALSE, full = TRUE)
+          if (isTRUE(progress)) message(sprintf(
+            paste0("correlation view %s/%s: compacted exact > %.4f edges ",
+                   "(%d directed; %.2f MiB; %.1fs)"),
+            state, pool, compact_threshold, edge_count,
+            compact_bytes / 1024^2,
+            proc.time()[["elapsed"]] - compact_started
+          ))
+        }
+      }
+    }
+    preflight_rows[[match(pool, pool_values)]] <- data.table::data.table(
+      pool = pool, spectra = count, features = ncol(normalized),
+      matrix_bytes = matrix_bytes, part_bytes = part_bytes,
+      block_bytes = block_bytes,
+      compaction_transient_bytes = compaction_transient_bytes,
+      full_boundary_gc = full_boundary_gc,
+      working_bytes = working_bytes,
+      budget_bytes = limit, mode = if (dense) "dense" else "bounded",
+      allocation_error = failure,
+      elapsed_seconds = proc.time()[["elapsed"]] - started
+    )
+    if (isTRUE(progress)) {
+      message(sprintf(
+        paste0("correlation view %s/%s: %s ",
+               "(spectra=%d; features=%d; matrix=%.2f GiB; ",
+               "working=%.2f GiB; budget=%.2f GiB; %.1fs)"),
+        state, pool, if (dense) "dense" else "bounded fallback", count,
+        ncol(normalized), matrix_bytes / 1024^3, working_bytes / 1024^3,
+        limit / 1024^3, proc.time()[["elapsed"]] - started
+      ))
+    }
+  }
+
+  structure(list(
+    schema = "OpenSpecy_correlation_view_v1", key = key,
+    state = as.character(state), ids = ids, pools = pools,
+    wavenumber = as.numeric(wavenumber), numeric_hash = numeric_hash,
+    normalized = if (!is.null(compact_threshold) &&
+      length(correlations) > 0L && all(vapply(
+        correlations, .lib_is_threshold_correlation_pool, logical(1L)
+      ))) NULL else normalized,
+    part_rows = part_rows,
+    local_index = local_index, correlations = correlations,
+    preflight = data.table::rbindlist(preflight_rows, fill = TRUE),
+    metrics = metrics,
+    minimum_retained_correlation = if (is.null(compact_threshold)) {
+      NULL
+    } else {
+      as.numeric(compact_threshold)
+    },
+    compaction = data.table::rbindlist(compaction_rows, fill = TRUE)
+  ), class = c("OpenSpecyCorrelationView", "list"))
+}
+
+.lib_is_threshold_correlation_pool <- function(x) {
+  inherits(x, "OpenSpecyThresholdCorrelationPool")
+}
+
+.lib_compaction_gc <- function(full = FALSE) {
+  gc(verbose = FALSE, full = full)
+  invisible(NULL)
+}
+
+.lib_compact_threshold_correlation_pool <- function(
+    dense, threshold, block_size = 128L) {
+  if (!is.matrix(dense) || !is.numeric(dense) || nrow(dense) != ncol(dense)) {
+    stop("A dense correlation pool must be one square numeric matrix",
+         call. = FALSE)
+  }
+  if (!is.numeric(threshold) || length(threshold) != 1L ||
+      !is.finite(threshold)) {
+    stop("A finite compaction threshold is required", call. = FALSE)
+  }
+  block_size <- max(1L, as.integer(block_size))
+  count <- nrow(dense)
+  neighbors <- vector("list", count)
+  values <- vector("list", count)
+  blocks <- split(seq_len(count), ceiling(seq_len(count) / block_size))
+  for (block in blocks) {
+    scores <- dense[block, , drop = FALSE]
+    hits <- is.finite(scores) & scores > threshold
+    for (local in seq_along(block)) {
+      row <- block[[local]]
+      columns <- which(hits[local, ])
+      columns <- columns[columns != row]
+      neighbors[[row]] <- as.integer(columns)
+      values[[row]] <- as.numeric(scores[local, columns])
+    }
+    rm(scores, hits)
+    # Each block creates several large logical temporaries.  Explicit partial
+    # collection bounds dead Vcells even after earlier QC inflated R's trigger.
+    .lib_compaction_gc()
+  }
+  structure(
+    list(n = count, neighbors = neighbors, values = values,
+         threshold = as.numeric(threshold)),
+    class = c("OpenSpecyThresholdCorrelationPool", "list")
+  )
+}
+
+.lib_compact_threshold_correlation_view <- function(
+    x, threshold, progress = FALSE, block_size = 128L) {
+  if (!.lib_is_correlation_view(x)) {
+    stop("Only a correlation view can be compacted", call. = FALSE)
+  }
+  if (!is.numeric(threshold) || length(threshold) != 1L ||
+      !is.finite(threshold)) {
+    stop("A finite compaction threshold is required", call. = FALSE)
+  }
+  if (!is.null(x$minimum_retained_correlation)) {
+    if (threshold < x$minimum_retained_correlation) {
+      stop("A compact correlation view cannot lower its threshold",
+           call. = FALSE)
+    }
+    return(x)
+  }
+  block_size <- max(1L, as.integer(block_size))
+  rows <- list()
+  for (pool in names(x$correlations)) {
+    dense <- x$correlations[[pool]]
+    if (is.null(dense)) next
+    started <- proc.time()[["elapsed"]]
+    count <- nrow(dense)
+    compact <- .lib_compact_threshold_correlation_pool(
+      dense, threshold = threshold, block_size = block_size
+    )
+    edge_count <- sum(lengths(compact$neighbors))
+    compact_bytes <- as.numeric(utils::object.size(compact))
+    x$correlations[[pool]] <- compact
+    rm(dense, compact)
+    gc(verbose = FALSE, full = TRUE)
+    rows[[length(rows) + 1L]] <- data.table::data.table(
+      pool = pool, spectra = count, directed_edges = edge_count,
+      threshold = as.numeric(threshold), compact_bytes = compact_bytes,
+      elapsed_seconds = proc.time()[["elapsed"]] - started
+    )
+    if (isTRUE(progress)) message(sprintf(
+      paste0("correlation view %s/%s: compacted exact > %.4f edges ",
+             "(%d directed; %.2f MiB; %.1fs)"),
+      x$state, pool, threshold, edge_count, compact_bytes / 1024^2,
+      proc.time()[["elapsed"]] - started
+    ))
+  }
+  x$minimum_retained_correlation <- as.numeric(threshold)
+  x$compaction <- data.table::rbindlist(rows, fill = TRUE)
+  x
+}
+
+.lib_correlation_view_stats <- function(x) {
+  if (!.lib_is_correlation_view(x)) {
+    stop("'x' is not an OpenSpecy correlation view", call. = FALSE)
+  }
+  dense_bytes <- if (nrow(x$preflight)) {
+    sum(x$preflight[mode == "dense", matrix_bytes])
+  } else {
+    0
+  }
+  bounded_pools <- if (nrow(x$preflight)) {
+    sum(x$preflight$mode == "bounded")
+  } else {
+    0L
+  }
+  data.table::data.table(
+    view_key = x$key,
+    dense_builds = as.integer(x$metrics$dense_builds),
+    dense_queries = as.integer(x$metrics$dense_queries),
+    bounded_queries = as.integer(x$metrics$bounded_queries),
+    compacted_queries = as.integer(x$metrics$compacted_queries),
+    dense_bytes = dense_bytes,
+    compacted_bytes = if (nrow(x$compaction)) {
+      sum(x$compaction$compact_bytes)
+    } else 0,
+    bounded_pools = bounded_pools,
+    minimum_retained_correlation = if (
+      is.null(x$minimum_retained_correlation)
+    ) NA_real_ else x$minimum_retained_correlation
+  )
+}
+
+.lib_correlation_values <- function(x, ids, query, candidates) {
+  if (!.lib_is_correlation_view(x)) {
+    return(tcrossprod(
+      x[query, , drop = FALSE], x[candidates, , drop = FALSE]
+    ))
+  }
+  ids <- as.character(ids)
+  query_rows <- match(ids[query], x$ids)
+  candidate_rows <- match(ids[candidates], x$ids)
+  if (anyNA(query_rows) || anyNA(candidate_rows)) {
+    stop("Correlation view is stale: one or more IDs are absent",
+         call. = FALSE)
+  }
+  selected_pools <- unique(c(x$pools[query_rows], x$pools[candidate_rows]))
+  selected_pools <- selected_pools[!is.na(selected_pools) &
+                                     nzchar(selected_pools)]
+  if (length(selected_pools) != 1L ||
+      anyNA(x$pools[c(query_rows, candidate_rows)]) ||
+      any(x$pools[query_rows] != selected_pools) ||
+      any(x$pools[candidate_rows] != selected_pools)) {
+    stop("A correlation query must stay within one immutable spectral pool",
+         call. = FALSE)
+  }
+  pool <- selected_pools[[1L]]
+  dense <- x$correlations[[pool]]
+  if (.lib_is_threshold_correlation_pool(dense)) {
+    x$metrics$compacted_queries <- x$metrics$compacted_queries + 1L
+    query_local <- x$local_index[query_rows]
+    candidate_local <- x$local_index[candidate_rows]
+    candidate_position <- integer(dense$n)
+    candidate_position[candidate_local] <- seq_along(candidate_local)
+    result <- matrix(-Inf, nrow = length(query_local),
+                     ncol = length(candidate_local))
+    for (row in seq_along(query_local)) {
+      neighbors <- dense$neighbors[[query_local[[row]]]]
+      positions <- candidate_position[neighbors]
+      keep <- positions > 0L
+      if (any(keep)) {
+        result[row, positions[keep]] <- dense$values[[query_local[[row]]]][keep]
+      }
+    }
+    return(result)
+  }
+  if (!is.null(dense)) {
+    x$metrics$dense_queries <- x$metrics$dense_queries + 1L
+    return(dense[
+      x$local_index[query_rows], x$local_index[candidate_rows], drop = FALSE
+    ])
+  }
+  x$metrics$bounded_queries <- x$metrics$bounded_queries + 1L
+  tcrossprod(
+    x$normalized[query_rows, , drop = FALSE],
+    x$normalized[candidate_rows, , drop = FALSE]
+  )
+}
+
+.lib_correlation_validation_summary <- function(view, object, classes,
+                                                threshold,
+                                                block_size = 128L) {
+  if (!.lib_is_correlation_view(view)) return(NULL)
+  if (!is.null(view$minimum_retained_correlation)) {
+    stop("Correlation validation requires an uncompacted numeric view",
+         call. = FALSE)
+  }
+  ids <- as.character(.lib_ids(object, "sample_name"))
+  classes <- as.character(classes)
+  rows <- match(ids, view$ids)
+  if (anyNA(rows) || length(classes) != length(ids)) {
+    stop("Correlation validation cache IDs and classes are misaligned",
+         call. = FALSE)
+  }
+  pools <- view$pools[rows]
+  pool_values <- sort(unique(pools[!is.na(pools) & nzchar(pools)]))
+  if (!length(pool_values) || any(vapply(pool_values, function(pool) {
+    is.null(view$correlations[[pool]])
+  }, logical(1L)))) {
+    return(NULL)
+  }
+
+  generic <- c("other", "other plastic", "other material", "unclassified")
+  class_keys <- tolower(trimws(classes))
+  eligible <- !is.na(classes) & nzchar(classes) & !class_keys %in% generic
+  maximum <- rep(-Inf, length(ids))
+  above <- integer(length(ids))
+  block_size <- max(1L, as.integer(block_size))
+  for (pool in pool_values) {
+    candidates <- which(pools == pool)
+    candidate_classes <- classes[candidates]
+    candidate_eligible <- eligible[candidates]
+    blocks <- split(
+      candidates, ceiling(seq_along(candidates) / block_size)
+    )
+    for (query in blocks) {
+      cors <- .lib_correlation_values(view, ids, query, candidates)
+      different <- outer(classes[query], candidate_classes, FUN = "!=")
+      different[is.na(different)] <- FALSE
+      valid <- outer(eligible[query], candidate_eligible, FUN = "&") &
+        different
+      cors[!is.finite(cors) | !valid] <- -Inf
+      maximum[candidates] <- pmax(
+        maximum[candidates], matrixStats::colMaxs(cors)
+      )
+      above[candidates] <- above[candidates] +
+        colSums(cors > threshold)
+      rm(cors, different, valid)
+      .lib_compaction_gc()
+    }
+  }
+  numeric_key <- .lib_numeric_view_hash(
+    object$spectra, object$wavenumber, ids, state = "model_range"
+  )
+  .lib_compaction_gc(full = .lib_full_boundary_gc_required(view))
+  structure(list(
+    schema = "OpenSpecy_medoid_correlation_validation_v1",
+    view_key = view$key,
+    numeric_key = numeric_key,
+    ids = ids, classes = classes, wavenumber = object$wavenumber,
+    threshold = as.numeric(threshold),
+    max_wrong_class_correlation = maximum,
+    wrong_class_pairs_above_threshold = above
+  ), class = c("OpenSpecyCorrelationValidation", "list"))
+}
+
 .lib_prune_best_match <- function(query, candidates, normalized, ids,
                                   exclude_self = FALSE, block_size = 32L) {
+  if (.lib_is_correlation_view(normalized) &&
+      !is.null(normalized$minimum_retained_correlation)) {
+    stop("Best-match queries require an uncompacted correlation view",
+         call. = FALSE)
+  }
   candidate_order <- order(ids[candidates], candidates, na.last = TRUE)
   candidates <- candidates[candidate_order]
   best_index <- rep(NA_integer_, length(query))
@@ -3075,8 +3723,15 @@ prune_lib <- function(x, class_col = "material_class",
     # Multiply against the resident normalized matrix and subset the small
     # correlation block, rather than copying the full candidate library for
     # every query block.
-    cors <- tcrossprod(normalized[query[block], , drop = FALSE], normalized)
-    cors <- cors[, candidates, drop = FALSE]
+    if (.lib_is_correlation_view(normalized)) {
+      cors <- .lib_correlation_values(
+        normalized, ids, query[block], candidates
+      )
+    } else {
+      cors <- tcrossprod(
+        normalized[query[block], , drop = FALSE], normalized
+      )[, candidates, drop = FALSE]
+    }
     cors[!is.finite(cors)] <- -Inf
     if (isTRUE(exclude_self)) {
       self_col <- match(query[block], candidates)
@@ -3147,7 +3802,7 @@ prune_lib <- function(x, class_col = "material_class",
   stopifnot(
     length(classes) == n, length(pools) == n,
     length(library_names) == n, length(support_groups) == n,
-    nrow(normalized) == n
+    .lib_is_correlation_view(normalized) || nrow(normalized) == n
   )
   generic <- c("other", "other plastic", "other material", "unclassified")
   class_keys <- tolower(trimws(classes))
@@ -3169,18 +3824,18 @@ prune_lib <- function(x, class_col = "material_class",
     )
     candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
     if (length(candidates) < 2L) next
+    candidate_classes <- classes[candidates]
     blocks <- split(candidates, ceiling(seq_along(candidates) / block_size))
     for (query in blocks) {
-      cors <- tcrossprod(
-        normalized[query, , drop = FALSE],
-        normalized[candidates, , drop = FALSE]
+      cors <- .lib_correlation_values(
+        normalized, ids, query, candidates
       )
       cors[!is.finite(cors)] <- -Inf
       for (row in seq_along(query)) {
         q <- query[[row]]
         matched <- candidates[
           candidates > q & cors[row, ] > threshold &
-            classes[candidates] != classes[[q]]
+            candidate_classes != classes[[q]]
         ]
         if (!length(matched)) next
         edge_i <- edge_i + 1L
@@ -3191,6 +3846,7 @@ prune_lib <- function(x, class_col = "material_class",
         )
       }
       rm(cors)
+      .lib_compaction_gc()
     }
   }
   edges <- if (length(edge_rows)) {
@@ -3348,7 +4004,8 @@ prune_lib <- function(x, class_col = "material_class",
   started <- proc.time()[["elapsed"]]
   stopifnot(
     length(classes) == n, length(pools) == n,
-    length(library_names) == n, nrow(normalized) == n
+    length(library_names) == n,
+    .lib_is_correlation_view(normalized) || nrow(normalized) == n
   )
   generic <- c("other", "other plastic", "other material", "unclassified")
   class_keys <- tolower(trimws(classes))
@@ -3362,26 +4019,32 @@ prune_lib <- function(x, class_col = "material_class",
   for (pool in pool_values) {
     candidates <- which(eligible & pools == pool)
     candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+    candidate_classes <- classes[candidates]
+    candidate_libraries <- library_names[candidates]
     blocks <- split(candidates, ceiling(seq_along(candidates) / block_size))
     if (isTRUE(progress)) {
+      features <- if (.lib_is_correlation_view(normalized)) {
+        length(normalized$wavenumber)
+      } else {
+        ncol(normalized)
+      }
       message(sprintf(
         paste0("prune_lib: cross-class evidence scan %s starting ",
                "(%d spectra; %d features; block=%d; threshold > %.4f)"),
-        pool, length(candidates), ncol(normalized), block_size, threshold
+        pool, length(candidates), features, block_size, threshold
       ))
     }
     for (query in blocks) {
-      cors <- tcrossprod(
-        normalized[query, , drop = FALSE],
-        normalized[candidates, , drop = FALSE]
+      cors <- .lib_correlation_values(
+        normalized, ids, query, candidates
       )
       cors[!is.finite(cors)] <- -Inf
       for (row in seq_along(query)) {
         q <- query[[row]]
         matched <- candidates[
           cors[row, ] > threshold & candidates != q &
-            library_names[candidates] != library_names[[q]] &
-            classes[candidates] != classes[[q]]
+            candidate_libraries != library_names[[q]] &
+            candidate_classes != classes[[q]]
         ]
         conflicting_spectra[[q]] <- length(matched)
         if (length(matched)) {
@@ -3389,6 +4052,7 @@ prune_lib <- function(x, class_col = "material_class",
         }
       }
       rm(cors)
+      .lib_compaction_gc()
     }
     if (isTRUE(progress)) {
       message(sprintf(
@@ -3427,21 +4091,22 @@ prune_lib <- function(x, class_col = "material_class",
       candidates <- candidates[
         order(ids[candidates], candidates, na.last = TRUE)
       ]
+      candidate_classes <- classes[candidates]
+      candidate_libraries <- library_names[candidates]
       blocks <- split(
         query_rows, ceiling(seq_along(query_rows) / block_size)
       )
       for (query in blocks) {
-        cors <- tcrossprod(
-          normalized[query, , drop = FALSE],
-          normalized[candidates, , drop = FALSE]
+        cors <- .lib_correlation_values(
+          normalized, ids, query, candidates
         )
         cors[!is.finite(cors)] <- -Inf
         for (row in seq_along(query)) {
           q <- query[[row]]
           matched <- candidates[
             cors[row, ] > threshold & candidates != q &
-              library_names[candidates] != library_names[[q]] &
-              classes[candidates] != classes[[q]]
+              candidate_libraries != library_names[[q]] &
+              candidate_classes != classes[[q]]
           ]
           if (!length(matched)) next
           if (any(evidence_libraries[matched] > score)) {
@@ -3470,6 +4135,7 @@ prune_lib <- function(x, class_col = "material_class",
           remove_round <- c(remove_round, q)
         }
         rm(cors)
+        .lib_compaction_gc()
       }
     }
     remove_round <- sort(unique(remove_round))
@@ -3489,19 +4155,28 @@ prune_lib <- function(x, class_col = "material_class",
     candidates <- retained[pools[retained] == pool]
     if (length(candidates) < 2L) next
     candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+    candidate_classes <- classes[candidates]
+    candidate_libraries <- library_names[candidates]
     blocks <- split(candidates, ceiling(seq_along(candidates) / block_size))
+    postcondition_started <- proc.time()[["elapsed"]]
+    if (isTRUE(progress)) {
+      message(sprintf(
+        paste0("prune_lib: cross-class postcondition scan %s starting ",
+               "(%d spectra; block=%d; threshold > %.4f)"),
+        pool, length(candidates), block_size, threshold
+      ))
+    }
     for (query in blocks) {
-      cors <- tcrossprod(
-        normalized[query, , drop = FALSE],
-        normalized[candidates, , drop = FALSE]
+      cors <- .lib_correlation_values(
+        normalized, ids, query, candidates
       )
       cors[!is.finite(cors)] <- -Inf
       for (row in seq_along(query)) {
         q <- query[[row]]
         conflict <- candidates[
           cors[row, ] > threshold & candidates != q &
-            library_names[candidates] != library_names[[q]] &
-            classes[candidates] != classes[[q]]
+            candidate_libraries != library_names[[q]] &
+            candidate_classes != classes[[q]]
         ]
         if (length(conflict)) {
           stop(
@@ -3511,6 +4186,14 @@ prune_lib <- function(x, class_col = "material_class",
         }
       }
       rm(cors)
+      .lib_compaction_gc()
+    }
+    if (isTRUE(progress)) {
+      message(sprintf(
+        paste0("prune_lib: cross-class postcondition scan %s complete ",
+               "(elapsed=%.1fs)"),
+        pool, proc.time()[["elapsed"]] - postcondition_started
+      ))
     }
   }
 
@@ -3551,6 +4234,14 @@ prune_lib <- function(x, class_col = "material_class",
     classes, pools, normalized, ids, library_names, threshold,
     support_groups = pools, min_n = 1L, correlation_view = "prune_full",
     progress = FALSE, block_size = 32L) {
+  if (.lib_is_correlation_view(normalized) &&
+      !is.null(normalized$minimum_retained_correlation) &&
+      threshold < normalized$minimum_retained_correlation) {
+    stop(
+      "Compact correlation view threshold exceeds the requested threshold",
+      call. = FALSE
+    )
+  }
   internal <- .lib_prune_internal_class_conflicts(
     classes, pools, normalized, ids, library_names, threshold,
     support_groups = support_groups, min_n = min_n,
@@ -3558,8 +4249,13 @@ prune_lib <- function(x, class_col = "material_class",
     block_size = block_size
   )
   keep <- setdiff(seq_along(ids), internal$removed_rows)
+  independent_normalized <- if (.lib_is_correlation_view(normalized)) {
+    normalized
+  } else {
+    normalized[keep, , drop = FALSE]
+  }
   independent <- .lib_prune_between_library_conflicts(
-    classes[keep], pools[keep], normalized[keep, , drop = FALSE], ids[keep],
+    classes[keep], pools[keep], independent_normalized, ids[keep],
     library_names[keep], threshold, correlation_view = correlation_view,
     progress = progress, block_size = block_size
   )
@@ -3578,13 +4274,17 @@ prune_lib <- function(x, class_col = "material_class",
       list(conflicts, independent_edges), fill = TRUE
     )
   }
-  list(
+  out <- list(
     removed_rows = sort(unique(c(internal$removed_rows, independent_rows))),
     removals = data.table::rbindlist(
       list(internal$removals, independent$removals), fill = TRUE
     ),
     conflicts = conflicts
   )
+  if (.lib_full_boundary_gc_required(normalized)) {
+    .lib_compaction_gc(full = TRUE)
+  }
+  out
 }
 
 .lib_prune_correlations <- function(x, query, candidates, exclude, ids) {
@@ -3617,11 +4317,12 @@ prune_lib <- function(x, class_col = "material_class",
 }
 
 .lib_reassign_other_classes <- function(classes, material_types, pools,
-                                        normalized, ids, progress = FALSE) {
+                                         normalized, ids, progress = FALSE) {
   class_keys <- tolower(classes)
   generic_labels <- c("other", "other plastic", "other material")
   generic <- which(class_keys %in% generic_labels)
   rows <- list()
+  audit_rows <- list()
   if (isTRUE(progress) && length(generic)) {
     message(sprintf(
       "prune_lib: reassigning %d generic-class spectrum/spectra",
@@ -3647,24 +4348,46 @@ prune_lib <- function(x, class_col = "material_class",
         target_pool, generic_class, length(query), length(candidates)
       ))
     }
-    if (length(candidates) == 0L) next
-    best <- .lib_prune_best_match(query, candidates, normalized, ids)
-    matched <- which(!is.na(best$index))
-    if (!length(matched)) next
-    query_rows <- query[matched]
-    candidate_rows <- best$index[matched]
-    prior_class <- classes[query_rows]
-    prior_type <- material_types[query_rows]
-    classes[query_rows] <- classes[candidate_rows]
-    material_types[query_rows] <- material_types[candidate_rows]
-    rows[[length(rows) + 1L]] <- data.table::data.table(
-      spectrum_id = ids[query_rows], prior_class,
-      material_class = classes[query_rows], prior_material_type = prior_type,
-      material_type = material_types[query_rows],
-      matched_id = ids[candidate_rows],
-      correlation = best$correlation[matched], pool = pools[query_rows],
-      reason = "nearest_eligible_class"
+    prior_class <- classes[query]
+    prior_type <- material_types[query]
+    attempted <- data.table::data.table(
+      spectrum_id = ids[query], prior_class,
+      material_class = classes[query], prior_material_type = prior_type,
+      material_type = material_types[query], matched_id = NA_character_,
+      correlation = NA_real_, pool = pools[query],
+      action = if (length(candidates)) {
+        "retained_no_finite_candidate"
+      } else {
+        "retained_no_eligible_candidate"
+      },
+      reason = if (length(candidates)) {
+        "no_finite_candidate"
+      } else {
+        "no_eligible_candidate"
+      }
     )
+    if (length(candidates)) {
+      best <- .lib_prune_best_match(query, candidates, normalized, ids)
+      matched <- which(!is.na(best$index))
+      if (length(matched)) {
+        query_rows <- query[matched]
+        candidate_rows <- best$index[matched]
+        classes[query_rows] <- classes[candidate_rows]
+        material_types[query_rows] <- material_types[candidate_rows]
+        attempted[matched, `:=`(
+          material_class = classes[query_rows],
+          material_type = material_types[query_rows],
+          matched_id = ids[candidate_rows],
+          correlation = best$correlation[matched],
+          action = "reassigned",
+          reason = "nearest_eligible_class"
+        )]
+        rows[[length(rows) + 1L]] <- data.table::copy(
+          attempted[matched]
+        )[, action := NULL][]
+      }
+    }
+    audit_rows[[length(audit_rows) + 1L]] <- attempted
   }
   report <- if (length(rows) > 0L) {
     data.table::rbindlist(rows, fill = TRUE)
@@ -3682,13 +4405,28 @@ prune_lib <- function(x, class_col = "material_class",
       nrow(report), length(generic) - nrow(report)
     ))
   }
-  list(classes = classes, material_types = material_types, report = report)
+  audit <- if (length(audit_rows) > 0L) {
+    data.table::rbindlist(audit_rows, fill = TRUE)
+  } else {
+    data.table::data.table(
+      spectrum_id = character(), prior_class = character(),
+      material_class = character(), prior_material_type = character(),
+      material_type = character(), matched_id = character(),
+      correlation = numeric(), pool = character(), action = character(),
+      reason = character()
+    )
+  }
+  list(
+    classes = classes, material_types = material_types,
+    report = report, audit = audit
+  )
 }
 
 .lib_reassign_small_classes <- function(classes, material_types,
                                         spectrum_types, pools, normalized,
                                         ids, min_n, progress = FALSE) {
-  generic <- c("other", "other plastic", "other material", "unclassified")
+  retained_generic <- c("other", "other plastic", "other material")
+  generic <- c(retained_generic, "unclassified")
   support <- data.table::data.table(
     row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
     material_class = classes, material_type = material_types
@@ -3705,7 +4443,9 @@ prune_lib <- function(x, class_col = "material_class",
     ),
     by = .(spectrum_type, pool, material_class)
   ]
-  small <- support[observed_n < min_n]
+  small <- support[
+    observed_n < min_n & !tolower(material_class) %in% retained_generic
+  ]
   if (nrow(small)) {
     data.table::setorder(small, spectrum_type, material_class)
   }
@@ -3803,13 +4543,22 @@ prune_lib <- function(x, class_col = "material_class",
 
 .lib_prune_best_class <- function(query, candidates, classes, normalized, ids) {
   if (!length(query) || !length(candidates)) return(NULL)
+  if (.lib_is_correlation_view(normalized) &&
+      !is.null(normalized$minimum_retained_correlation)) {
+    stop("Best-class queries require an uncompacted correlation view",
+         call. = FALSE)
+  }
   candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
   destination <- sort(unique(classes[candidates]))
   destination <- destination[!is.na(destination) & nzchar(destination)]
   if (!length(destination)) return(NULL)
-  correlations <- tcrossprod(
-    normalized[query, , drop = FALSE], normalized
-  )[, candidates, drop = FALSE]
+  correlations <- if (.lib_is_correlation_view(normalized)) {
+    .lib_correlation_values(normalized, ids, query, candidates)
+  } else {
+    tcrossprod(
+      normalized[query, , drop = FALSE], normalized
+    )[, candidates, drop = FALSE]
+  }
   correlations[!is.finite(correlations)] <- -Inf
   scores <- vapply(destination, function(class) {
     columns <- which(classes[candidates] == class)
@@ -3840,6 +4589,16 @@ prune_lib <- function(x, class_col = "material_class",
 reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
                        k = 50, min_n = k, return = c("object", "ids"),
                        progress = FALSE, ...) {
+  .lib_reduce_lib(
+    x = x, group_cols = group_cols, id_col = id_col, k = k, min_n = min_n,
+    return = return, progress = progress, correlation_view = NULL, ...
+  )
+}
+
+.lib_reduce_lib <- function(x, group_cols = "material_class",
+                            id_col = "sample_name", k = 50, min_n = k,
+                            return = c("object", "ids"), progress = FALSE,
+                            correlation_view = NULL, ...) {
   return <- match.arg(return)
   if (!is.logical(progress) || length(progress) != 1L || is.na(progress)) {
     stop("'progress' must be TRUE or FALSE", call. = FALSE)
@@ -3848,6 +4607,16 @@ reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
   .lib_require_cols(x$metadata, group_cols, "metadata")
 
   ids <- .lib_ids(x, id_col)
+  if (!is.null(correlation_view)) {
+    if (!.lib_is_correlation_view(correlation_view) ||
+        !is.null(correlation_view$minimum_retained_correlation) ||
+        !identical(as.numeric(x$wavenumber),
+                   as.numeric(correlation_view$wavenumber)) ||
+        anyNA(match(as.character(ids), correlation_view$ids))) {
+      stop("The medoid correlation view is stale or misaligned",
+           call. = FALSE)
+    }
+  }
   groups <- do.call(paste, c(x$metadata[, group_cols, with = FALSE], sep = "_"))
   group_index <- split(seq_along(groups), groups)
   reduce_group <- lengths(group_index) > min_n & lengths(group_index) > k
@@ -3891,13 +4660,15 @@ reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
         label, length(idx), missing_values
       ))
     }
-    reduction_group$spectra <- make_rel(
-      .lib_spectrum_mean_replace(reduction_group$spectra), na.rm = TRUE
-    )
-    # A constant spectrum has no relative range. Keep it as a flat zero
-    # candidate so the support rule, rather than complete-case behavior,
-    # controls eligibility; cor_spec() will assign it no positive similarity.
-    reduction_group$spectra[!is.finite(reduction_group$spectra)] <- 0
+    if (is.null(correlation_view)) {
+      reduction_group$spectra <- make_rel(
+        .lib_spectrum_mean_replace(reduction_group$spectra), na.rm = TRUE
+      )
+      # A constant spectrum has no relative range. Keep it as a flat zero
+      # candidate so the support rule, rather than complete-case behavior,
+      # controls eligibility; cor_spec() will assign it no positive similarity.
+      reduction_group$spectra[!is.finite(reduction_group$spectra)] <- 0
+    }
     if (isTRUE(progress)) {
       message(sprintf(
         paste0("reduce_lib: spectrum-mean fill complete ",
@@ -3908,7 +4679,8 @@ reduce_lib <- function(x, group_cols = "material_class", id_col = "sample_name",
     }
     selected <- .pam_group_ids(
       reduction_group, id_col = id_col, k = k,
-      progress = progress, group_label = label, ...
+      progress = progress, group_label = label,
+      correlation_view = correlation_view, ...
     )
     if (isTRUE(progress)) {
       message(sprintf(
@@ -3959,9 +4731,47 @@ build_model_lib <- function(x, class_col = "material_class",
   workers
 }
 
+.lib_with_model_workers <- function(expr) {
+  workers <- min(5L, .lib_build_workers())
+  dependencies <- c("doFuture", "doRNG", "future", "foreach")
+  available <- all(vapply(
+    dependencies, requireNamespace, logical(1L), quietly = TRUE
+  ))
+  if (workers <= 1L || !available) return(force(expr))
+
+  sequential <- !foreach::getDoParRegistered() ||
+    identical(foreach::getDoParName(), "doSEQ")
+  # Respect a backend supplied by a caller.  The official build enters here
+  # sequentially and owns one persistent pool only for its model fits.
+  if (!sequential) return(force(expr))
+
+  previous_plan <- future::plan()
+  on.exit({
+    future::plan(previous_plan)
+    foreach::registerDoSEQ()
+  }, add = TRUE)
+  doFuture::registerDoFuture()
+  future::plan(future::multisession, workers = workers)
+  force(expr)
+}
+
+.lib_cv_parallel_work <- function(arguments, threshold = 5e5) {
+  x <- arguments$x
+  y <- arguments$y
+  classes <- if (is.null(y)) 1L else length(unique(as.character(y)))
+  work <- as.double(nrow(x)) * as.double(ncol(x)) *
+    as.double(max(1L, classes))
+  is.finite(work) && work > as.double(threshold)
+}
+
 .lib_cv_glmnet <- function(arguments, workers, folds, seed) {
   workers <- min(as.integer(workers), as.integer(folds))
+  # On the reference-library workload, dispatching five future folds imposes
+  # a roughly 40-second floor on every small gated node.  Serial and parallel
+  # cv.glmnet fits are identical when foldid is fixed, so reserve the backend
+  # for nodes large enough to amortize that overhead.
   can_parallelize <- workers > 1L &&
+    .lib_cv_parallel_work(arguments) &&
     requireNamespace("doFuture", quietly = TRUE) &&
     requireNamespace("doRNG", quietly = TRUE) &&
     requireNamespace("future", quietly = TRUE) &&
@@ -3996,6 +4806,158 @@ build_model_lib <- function(x, class_col = "material_class",
     labels <- ifelse(is.na(types), labels, paste(types, labels, sep = "_"))
   }
   labels
+}
+
+.lib_model_source_groups <- function(metadata, group_ids = NULL) {
+  metadata <- data.table::as.data.table(metadata)
+  out <- rep.int(NA_character_, nrow(metadata))
+  for (column in c("organization", "library_name")) {
+    if (!column %in% names(metadata)) next
+    value <- trimws(as.character(metadata[[column]]))
+    use <- (is.na(out) | !nzchar(out)) & !is.na(value) & nzchar(value)
+    out[use] <- value[use]
+  }
+  if (!is.null(group_ids)) {
+    if (length(group_ids) != length(out)) {
+      stop("'group_ids' must align with model metadata", call. = FALSE)
+    }
+    missing <- is.na(out) | !nzchar(out)
+    out[missing] <- paste0("group:", as.character(group_ids[missing]))
+  }
+  out
+}
+
+.lib_model_source_fold_assignment <- function(group_ids, labels, source_ids,
+                                              seed) {
+  group_ids <- as.character(group_ids)
+  labels <- as.character(labels)
+  source_ids <- trimws(as.character(source_ids))
+  if (length(group_ids) != length(labels) ||
+      length(source_ids) != length(labels)) {
+    stop("Model fold inputs must have equal lengths", call. = FALSE)
+  }
+  source_ids[is.na(source_ids) | !nzchar(source_ids)] <-
+    paste0("group:", group_ids[is.na(source_ids) | !nzchar(source_ids)])
+  group_labels <- unique(data.table::data.table(
+    group_id = group_ids, final_class = labels
+  ))
+  mixed_groups <- group_labels[, data.table::uniqueN(final_class),
+                               by = group_id][V1 > 1L, group_id]
+  if (length(mixed_groups)) {
+    stop("Stable spectral groups span multiple model classes", call. = FALSE)
+  }
+
+  group_key <- paste0("group\r", group_ids)
+  source_key <- paste0("source\r", source_ids)
+  keys <- unique(c(group_key, source_key))
+  parent <- seq_along(keys)
+  names(parent) <- keys
+  find_root <- function(index) {
+    while (parent[[index]] != index) {
+      parent[[index]] <<- parent[[parent[[index]]]]
+      index <- parent[[index]]
+    }
+    index
+  }
+  union_root <- function(left, right) {
+    left <- find_root(left)
+    right <- find_root(right)
+    if (left != right) parent[[right]] <<- left
+  }
+  for (i in seq_along(group_key)) {
+    union_root(match(group_key[[i]], keys), match(source_key[[i]], keys))
+  }
+  component <- vapply(match(group_key, keys), find_root, integer(1L))
+  component_key <- sprintf("source_component_%05d",
+                           match(component, unique(component)))
+  rows <- data.table::data.table(
+    row_id = seq_along(labels), group_id = group_ids,
+    source_id = source_ids, source_component_id = component_key,
+    final_class = labels
+  )
+  components <- unique(rows[, .(
+    source_component_id, final_class, row_id
+  )])[, .(observations = .N), by = .(source_component_id, final_class)]
+  component_ids <- unique(components$source_component_id)
+  nfolds <- min(5L, length(component_ids))
+  if (nfolds < 3L) {
+    return(list(
+      foldid = rep.int(NA_integer_, length(labels)), nfolds = nfolds,
+      groups = unique(rows[, .(group_id, source_id, source_component_id)])[
+        , fold := NA_integer_],
+      source_id = source_ids, source_component_id = component_key,
+      fold_mode = "source_component_insufficient_folds"
+    ))
+  }
+  classes <- sort(unique(labels))
+  count_matrix <- matrix(
+    0, nrow = length(component_ids), ncol = length(classes),
+    dimnames = list(component_ids, classes)
+  )
+  count_matrix[cbind(
+    match(components$source_component_id, component_ids),
+    match(components$final_class, classes)
+  )] <- components$observations
+  totals <- rowSums(count_matrix)
+  set.seed(seed)
+  tie_order <- sample(seq_along(component_ids))
+  order_components <- order(-totals, tie_order, component_ids)
+  target <- colSums(count_matrix) / nfolds
+  fold_counts <- matrix(0, nrow = nfolds, ncol = length(classes))
+  fold_totals <- numeric(nfolds)
+  assignment <- integer(length(component_ids))
+  target_total <- sum(totals) / nfolds
+  for (position in seq_along(order_components)) {
+    item <- order_components[[position]]
+    candidate_folds <- if (position <= nfolds) position else seq_len(nfolds)
+    scores <- vapply(candidate_folds, function(fold) {
+      proposed <- fold_counts[fold, ] + count_matrix[item, ]
+      sum(((proposed - target) / pmax(target, 1))^2) +
+        ((fold_totals[[fold]] + totals[[item]] - target_total) /
+           max(target_total, 1))^2
+    }, numeric(1L))
+    fold <- candidate_folds[which.min(scores)]
+    assignment[[item]] <- fold
+    fold_counts[fold, ] <- fold_counts[fold, ] + count_matrix[item, ]
+    fold_totals[[fold]] <- fold_totals[[fold]] + totals[[item]]
+  }
+  component_fold <- stats::setNames(assignment, component_ids)
+  foldid <- unname(component_fold[component_key])
+  groups <- unique(rows[, .(group_id, source_id, source_component_id)])
+  groups[, fold := as.integer(component_fold[source_component_id])]
+  list(
+    foldid = as.integer(foldid), nfolds = as.integer(nfolds), groups = groups,
+    source_id = source_ids, source_component_id = component_key,
+    fold_mode = "source_component_holdout"
+  )
+}
+
+.lib_model_node_fold_info <- function(fold_info, rows, labels,
+                                      minimum_class_folds = 2L) {
+  global_foldid <- as.integer(fold_info$foldid)
+  foldid <- global_foldid[rows]
+  available <- sort(unique(foldid[!is.na(foldid)]))
+  if (length(available)) foldid <- match(foldid, available)
+  class_fold_count <- data.table::data.table(
+    class = as.character(labels), fold = foldid
+  )[!is.na(fold), data.table::uniqueN(fold), by = class]
+  supported <- length(available) >= 3L &&
+    !anyNA(foldid) && nrow(class_fold_count) == data.table::uniqueN(labels) &&
+    all(class_fold_count$V1 >= as.integer(minimum_class_folds))
+  list(
+    foldid = if (supported) as.integer(foldid) else
+      rep.int(NA_integer_, length(rows)),
+    nfolds = if (supported) as.integer(length(available)) else 0L,
+    groups = fold_info$groups,
+    evaluation_foldid = if (supported) {
+      as.integer(match(global_foldid, available))
+    } else {
+      rep.int(NA_integer_, length(global_foldid))
+    },
+    fold_levels = if (supported) as.integer(available) else integer(),
+    fold_mode = if (supported) fold_info$fold_mode else
+      paste0(fold_info$fold_mode, "_unsupported_node")
+  )
 }
 
 .lib_model_fold_assignment <- function(group_ids, labels, seed) {
@@ -4145,6 +5107,100 @@ build_model_lib <- function(x, class_col = "material_class",
   metrics[]
 }
 
+.lib_select_gated_lambda_metrics <- function(metrics, selection_rule,
+                                             accuracy_tolerance = 0.01) {
+  metrics <- data.table::copy(data.table::as.data.table(metrics))
+  for (column in c(
+      "minimum_class_recall", "worst_source_accuracy", "supported_sources"
+  )) {
+    if (!column %in% names(metrics)) {
+      metrics[, (column) := if (column == "supported_sources") 0L else NA_real_]
+    }
+  }
+  selection_rule <- match.arg(
+    selection_rule, c("guardrailed", "macro", "overall")
+  )
+  metrics[, `:=`(
+    overall_eligible = FALSE, minimum_class_eligible = FALSE,
+    source_eligible = FALSE, macro_eligible = FALSE,
+    loss_eligible = FALSE, brier_eligible = FALSE, selected = FALSE,
+    selection_scope = "out_of_fold", selection_rule = selection_rule,
+    accuracy_tolerance = as.numeric(accuracy_tolerance)
+  )]
+  finite_overall <- which(is.finite(metrics$overall_accuracy))
+  finite_macro <- which(is.finite(metrics$macro_class_accuracy))
+  if (!length(finite_overall) || !length(finite_macro)) {
+    stop("No finite out-of-fold accuracy is available for lambda selection",
+         call. = FALSE)
+  }
+  if (identical(selection_rule, "guardrailed")) {
+    maximum <- max(metrics$overall_accuracy[finite_overall])
+    eligible <- finite_overall[
+      abs(metrics$overall_accuracy[finite_overall] - maximum) <=
+        accuracy_tolerance + sqrt(.Machine$double.eps)
+    ]
+    metrics[eligible, overall_eligible := TRUE]
+    retain_best <- function(rows, column, maximize = TRUE) {
+      finite <- rows[is.finite(metrics[[column]][rows])]
+      if (!length(finite)) return(rows)
+      best <- if (isTRUE(maximize)) {
+        max(metrics[[column]][finite])
+      } else {
+        min(metrics[[column]][finite])
+      }
+      finite[
+        abs(metrics[[column]][finite] - best) <=
+          accuracy_tolerance + sqrt(.Machine$double.eps)
+      ]
+    }
+    eligible <- retain_best(eligible, "minimum_class_recall")
+    metrics[eligible, minimum_class_eligible := TRUE]
+    eligible <- retain_best(eligible, "worst_source_accuracy")
+    metrics[eligible, source_eligible := TRUE]
+    eligible <- retain_best(eligible, "macro_class_accuracy")
+    metrics[eligible, macro_eligible := TRUE]
+    finite_loss <- eligible[is.finite(metrics$log_loss[eligible])]
+    if (length(finite_loss)) {
+      best_loss <- min(metrics$log_loss[finite_loss])
+      eligible <- finite_loss[
+        abs(metrics$log_loss[finite_loss] - best_loss) <=
+          sqrt(.Machine$double.eps)
+      ]
+    }
+    metrics[eligible, loss_eligible := TRUE]
+    finite_brier <- eligible[is.finite(metrics$brier_score[eligible])]
+    if (length(finite_brier)) {
+      best_brier <- min(metrics$brier_score[finite_brier])
+      eligible <- finite_brier[
+        abs(metrics$brier_score[finite_brier] - best_brier) <=
+          sqrt(.Machine$double.eps)
+      ]
+    }
+    metrics[eligible, brier_eligible := TRUE]
+  } else if (identical(selection_rule, "macro")) {
+    best_macro <- max(metrics$macro_class_accuracy[finite_macro])
+    eligible <- finite_macro[metrics$macro_class_accuracy[finite_macro] ==
+                               best_macro]
+    metrics[eligible, `:=`(
+      overall_eligible = TRUE, minimum_class_eligible = TRUE,
+      source_eligible = TRUE, macro_eligible = TRUE,
+      loss_eligible = TRUE, brier_eligible = TRUE
+    )]
+  } else {
+    maximum <- max(metrics$overall_accuracy[finite_overall])
+    eligible <- finite_overall[metrics$overall_accuracy[finite_overall] ==
+                                  maximum]
+    metrics[eligible, `:=`(
+      overall_eligible = TRUE, minimum_class_eligible = TRUE,
+      source_eligible = TRUE, macro_eligible = TRUE,
+      loss_eligible = TRUE, brier_eligible = TRUE
+    )]
+  }
+  selected <- eligible[which.max(metrics$lambda[eligible])]
+  metrics[selected, selected := TRUE]
+  metrics[]
+}
+
 .lib_logistic_coefficients <- function(model, lambda, dimension_conversion) {
   coefficients <- stats::coef(model, s = lambda)
   coef_list <- if (is.list(coefficients)) coefficients else list(coefficients)
@@ -4173,9 +5229,87 @@ build_model_lib <- function(x, class_col = "material_class",
   out
 }
 
+.lib_gated_cross_fitted_probabilities <- function(
+    model, glmnet_args, train, outcome, fold_info, lambda, selected_index,
+    oof_probabilities, evaluation_train, training_rows) {
+  evaluation_train <- as.matrix(evaluation_train)
+  training_rows <- as.integer(training_rows)
+  evaluation_foldid <- as.integer(fold_info$evaluation_foldid)
+  if (nrow(train) != length(training_rows) ||
+      anyNA(training_rows) || anyDuplicated(training_rows) ||
+      any(training_rows < 1L | training_rows > nrow(evaluation_train)) ||
+      length(evaluation_foldid) != nrow(evaluation_train)) {
+    stop("Gated cross-fit rows do not align with the evaluation matrix",
+         call. = FALSE)
+  }
+  if (identical(training_rows, seq_len(nrow(evaluation_train)))) {
+    return(oof_probabilities)
+  }
+  probabilities <- .lib_probability_matrix(
+    predict(model, newx = evaluation_train, s = lambda, type = "response"),
+    n = nrow(evaluation_train)
+  )
+  if (!is.null(colnames(oof_probabilities))) {
+    colnames(probabilities) <- colnames(oof_probabilities)
+  }
+  foldid <- as.integer(fold_info$foldid)
+  if (length(foldid) != nrow(train) || anyNA(foldid)) {
+    stop("Gated node fold IDs do not align with its training matrix",
+         call. = FALSE)
+  }
+  for (fold in seq_len(as.integer(fold_info$nfolds))) {
+    retain <- foldid != fold
+    score_rows <- which(evaluation_foldid == fold)
+    if (!length(score_rows)) next
+    fold_args <- glmnet_args
+    fold_args[c(
+      "foldid", "nfolds", "type.measure", "keep", "parallel",
+      "alignment", "grouped"
+    )] <- NULL
+    fold_args$x <- train[retain, , drop = FALSE]
+    fold_args$y <- outcome[retain]
+    if (!is.null(fold_args$weights)) {
+      fold_args$weights <- fold_args$weights[retain]
+    }
+    if (!is.null(fold_args$offset)) {
+      offset <- fold_args$offset
+      fold_args$offset <- if (is.null(dim(offset))) {
+        offset[retain]
+      } else {
+        offset[retain, , drop = FALSE]
+      }
+    }
+    path_end <- min(
+      length(model$lambda), max(2L, as.integer(selected_index))
+    )
+    fold_args$lambda <- as.numeric(model$lambda[seq_len(path_end)])
+    fold_args$nlambda <- NULL
+    fold_model <- do.call(glmnet::glmnet, fold_args)
+    fold_model$call <- NULL
+    fold_probability <- .lib_probability_matrix(
+      predict(
+        fold_model, newx = evaluation_train[score_rows, , drop = FALSE],
+        s = lambda, type = "response"
+      ),
+      n = length(score_rows)
+    )
+    if (!is.null(colnames(probabilities))) {
+      colnames(fold_probability) <- colnames(probabilities)
+    }
+    probabilities[score_rows, ] <- fold_probability
+  }
+  probabilities[training_rows, ] <- oof_probabilities
+  probabilities
+}
+
 .lib_fit_logistic_node <- function(train, labels, group_ids, fold_info = NULL,
                                    alpha, grouped, weights, seed,
-                                   selection_rule, user_args = list()) {
+                                   selection_rule, user_args = list(),
+                                   source_groups = NULL,
+                                   selection_policy = c("legacy", "gated"),
+                                   evaluation_train = NULL,
+                                   training_rows = NULL) {
+  selection_policy <- match.arg(selection_policy)
   outcome_factor <- factor(labels)
   outcome <- as.integer(outcome_factor)
   class_names <- levels(outcome_factor)
@@ -4204,6 +5338,7 @@ build_model_lib <- function(x, class_col = "material_class",
   }
   nfolds <- as.integer(fold_info$nfolds)
   oof_probabilities <- NULL
+  routed_oof_probabilities <- NULL
   if (nfolds >= 3L) {
     cv_args <- glmnet_args
     cv_args$foldid <- as.integer(fold_info$foldid)
@@ -4216,7 +5351,8 @@ build_model_lib <- function(x, class_col = "material_class",
     model <- fit$glmnet.fit
     lambda_metrics <- .lib_macro_lambda_metrics(
       fit$fit.preval, outcome = outcome, lambda = fit$lambda,
-      selection_rule = selection_rule
+      selection_rule = selection_rule, source_groups = source_groups,
+      selection_policy = selection_policy
     )
     selected_index <- which(lambda_metrics$selected)[[1L]]
     lambda <- lambda_metrics$lambda[selected_index]
@@ -4232,12 +5368,21 @@ build_model_lib <- function(x, class_col = "material_class",
     selected_index <- length(model$lambda)
     lambda_metrics <- data.table::data.table(
       lambda = as.numeric(lambda), macro_class_accuracy = NA_real_,
-      overall_accuracy = NA_real_, log_loss = NA_real_, brier_score = NA_real_,
+      overall_accuracy = NA_real_,
+      log_loss = NA_real_, brier_score = NA_real_,
       overall_eligible = TRUE, macro_eligible = TRUE, selected = TRUE,
       selection_scope = "minimum_lambda_insufficient_folds",
       selection_rule = "minimum_lambda_without_three_folds",
       accuracy_tolerance = 0.01
     )
+    if (identical(selection_policy, "gated")) {
+      lambda_metrics[, `:=`(
+        minimum_class_recall = NA_real_, worst_source_accuracy = NA_real_,
+        supported_sources = 0L, minimum_class_eligible = TRUE,
+        source_eligible = TRUE, loss_eligible = TRUE,
+        brier_eligible = TRUE
+      )]
+    }
   }
   convergence_error <- if (is.null(model$jerr)) 0L else as.integer(model$jerr)
   selected_lambda_converged <- convergence_error == 0L ||
@@ -4255,6 +5400,22 @@ build_model_lib <- function(x, class_col = "material_class",
   )
   if (!is.null(oof_probabilities)) {
     colnames(oof_probabilities) <- colnames(full_probabilities)
+    if (!is.null(evaluation_train) || !is.null(training_rows)) {
+      if (is.null(evaluation_train) || is.null(training_rows) ||
+          is.null(fold_info$evaluation_foldid)) {
+        stop(
+          "Gated cross-fit evaluation requires aligned data, rows, and folds",
+          call. = FALSE
+        )
+      }
+      routed_oof_probabilities <- .lib_gated_cross_fitted_probabilities(
+        model = model, glmnet_args = glmnet_args, train = train,
+        outcome = outcome, fold_info = fold_info, lambda = lambda,
+        selected_index = selected_index,
+        oof_probabilities = oof_probabilities,
+        evaluation_train = evaluation_train, training_rows = training_rows
+      )
+    }
     selected_summary <- .lib_probability_summary(oof_probabilities, outcome)
     class_metrics <- data.table::data.table(
       class = class_names,
@@ -4273,7 +5434,10 @@ build_model_lib <- function(x, class_col = "material_class",
     lambda_path_complete = convergence_error == 0L,
     selected_lambda_converged = selected_lambda_converged,
     convergence_error = convergence_error,
-    selection_metric = if (identical(selection_rule, "guardrailed")) {
+    selection_metric = if (identical(selection_policy, "gated") &&
+                           identical(selection_rule, "guardrailed")) {
+      "lexicographic_accuracy_recall_source_macro_loss"
+    } else if (identical(selection_rule, "guardrailed")) {
       "guardrailed_overall_macro_log_loss"
     } else if (identical(selection_rule, "macro")) {
       "macro_class_accuracy"
@@ -4287,6 +5451,7 @@ build_model_lib <- function(x, class_col = "material_class",
     coefficients = coefficients,
     full_probabilities = full_probabilities,
     oof_probabilities = oof_probabilities,
+    routed_oof_probabilities = routed_oof_probabilities,
     fold_info = fold_info
   )
 }
@@ -4594,6 +5759,666 @@ build_model_lib <- function(x, class_col = "material_class",
   )
 }
 
+.lib_gated_path_key <- function(values) {
+  if (!length(values)) return("root")
+  values <- enc2utf8(as.character(values))
+  paste0(nchar(values, type = "bytes"), ":", values, collapse = "|")
+}
+
+.lib_gated_topology <- function(hierarchy_labels, hierarchy_cols, labels,
+                                class_col = "material_class") {
+  n <- length(labels)
+  level_count <- length(hierarchy_cols)
+  stopifnot(level_count >= 1L)
+  nodes <- list(list(
+    node_id = "node_000001", parent_id = NA_character_,
+    incoming_label = NA_character_, depth = 0L,
+    target_col = hierarchy_cols[[1L]], terminal = FALSE,
+    path_key = "root", rows = seq_len(n), target = hierarchy_labels[[1L]]
+  ))
+  path_to_node <- new.env(parent = emptyenv())
+  assign("root", "node_000001", envir = path_to_node)
+  for (depth in seq_len(level_count)) {
+    prefix <- data.table::as.data.table(hierarchy_labels[seq_len(depth)])
+    data.table::setnames(prefix, paste0("level_", seq_len(depth)))
+    prefix <- unique(prefix)
+    data.table::setorderv(prefix, names(prefix), na.last = TRUE)
+    for (prefix_i in seq_len(nrow(prefix))) {
+      values <- as.character(prefix[prefix_i])
+      rows <- which(Reduce(`&`, Map(
+        function(observed, expected) observed == expected,
+        hierarchy_labels[seq_len(depth)], values
+      )))
+      key <- .lib_gated_path_key(values)
+      parent_key <- .lib_gated_path_key(head(values, -1L))
+      node_id <- sprintf("node_%06d", length(nodes) + 1L)
+      terminal <- depth == level_count
+      nodes[[length(nodes) + 1L]] <- list(
+        node_id = node_id,
+        parent_id = get(parent_key, envir = path_to_node, inherits = FALSE),
+        incoming_label = tail(values, 1L), depth = as.integer(depth),
+        target_col = if (terminal) class_col else
+          hierarchy_cols[[depth + 1L]],
+        terminal = terminal, path_key = key, rows = rows,
+        target = if (terminal) labels[rows] else
+          hierarchy_labels[[depth + 1L]][rows]
+      )
+      assign(key, node_id, envir = path_to_node)
+    }
+  }
+  topology <- data.table::rbindlist(lapply(nodes, function(node) {
+    data.table::data.table(
+      node_id = node$node_id, parent_id = node$parent_id,
+      incoming_label = node$incoming_label, depth = node$depth,
+      target_col = node$target_col, terminal = node$terminal,
+      path_key = node$path_key, observations = length(node$rows),
+      classes = data.table::uniqueN(node$target)
+    )
+  }), fill = TRUE)
+  edges <- topology[!is.na(parent_id), .(
+    node_id = parent_id, label = incoming_label,
+    child_node_id = node_id
+  )]
+  list(nodes = nodes, topology = topology, edges = edges)
+}
+
+.lib_route_fitted_gates <- function(train, specifications, fitted_nodes,
+                                    topology, edges, leaf_conversion,
+                                    hierarchy_cols, use_oof = FALSE) {
+  n <- nrow(train)
+  active <- stats::setNames(vector("list", length(fitted_nodes)),
+                            names(fitted_nodes))
+  root_id <- topology[depth == 0L, node_id][[1L]]
+  active[[root_id]] <- seq_len(n)
+  gate_names <- matrix(
+    NA_character_, nrow = n, ncol = length(hierarchy_cols),
+    dimnames = list(rownames(train), hierarchy_cols)
+  )
+  gate_values <- matrix(
+    NA_real_, nrow = n, ncol = length(hierarchy_cols),
+    dimnames = list(rownames(train), hierarchy_cols)
+  )
+  leaf <- rep.int(NA_character_, n)
+  leaf_value <- rep.int(NA_real_, n)
+  terminal_node <- rep.int(NA_character_, n)
+  ordered_nodes <- topology[order(depth, node_id), node_id]
+  for (node_id in ordered_nodes) {
+    current_node_id <- node_id
+    rows <- active[[node_id]]
+    if (!length(rows)) next
+    fitted <- fitted_nodes[[node_id]]
+    specification <- specifications[[node_id]]
+    has_routed_oof <- isTRUE(use_oof) &&
+      !isTRUE(fitted$deterministic) &&
+      !is.null(fitted$routed_oof_probabilities)
+    if (has_routed_oof) {
+      routed <- as.matrix(fitted$routed_oof_probabilities)
+      expected_columns <- nrow(fitted$dimension_conversion)
+      if (nrow(routed) != n || ncol(routed) != expected_columns) {
+        stop("Gated routed OOF probabilities do not align with the model",
+             call. = FALSE)
+      }
+      probabilities <- routed[rows, , drop = FALSE]
+    } else {
+      probabilities <- .lib_predict_fitted_logistic_node(
+        fitted, train[rows, , drop = FALSE]
+      )
+    }
+    if (isTRUE(use_oof) && !isTRUE(fitted$deterministic) &&
+        !has_routed_oof) {
+      own <- intersect(rows, specification$rows)
+      foreign <- setdiff(rows, own)
+      if (length(foreign)) {
+        probabilities[match(foreign, rows), ] <- NA_real_
+      }
+      if (length(own) && is.null(fitted$oof_probabilities)) {
+        probabilities[match(own, rows), ] <- NA_real_
+      } else if (length(own)) {
+        probabilities[match(own, rows), ] <- fitted$oof_probabilities[
+          match(own, specification$rows), , drop = FALSE
+        ]
+      }
+    }
+    scores <- probabilities
+    scores[!is.finite(scores)] <- -Inf
+    selected <- max.col(scores, ties.method = "first")
+    invalid <- rowSums(is.finite(probabilities)) == 0L
+    selected[invalid] <- NA_integer_
+    conversion <- data.table::as.data.table(fitted$dimension_conversion)
+    selected_name <- rep.int(NA_character_, length(rows))
+    selected_value <- rep.int(NA_real_, length(rows))
+    valid <- !is.na(selected)
+    selected_name[valid] <- conversion$name[selected[valid]]
+    selected_value[valid] <- probabilities[cbind(
+      which(valid), selected[valid]
+    )]
+    node <- topology[topology[["node_id"]] == current_node_id]
+    if (isTRUE(node$terminal[[1L]])) {
+      leaf[rows] <- selected_name
+      leaf_value[rows] <- selected_value
+      terminal_node[rows] <- node_id
+      next
+    }
+    gate <- node$depth[[1L]] + 1L
+    gate_names[rows, gate] <- selected_name
+    gate_values[rows, gate] <- selected_value
+    node_edges <- edges[edges[["node_id"]] == current_node_id]
+    for (label in unique(selected_name[!is.na(selected_name)])) {
+      current_label <- label
+      child <- node_edges[node_edges[["label"]] == current_label,
+                          child_node_id]
+      if (length(child) != 1L) {
+        stop("Gated hierarchy has no unique child for '", label,
+             "' at ", node_id, call. = FALSE)
+      }
+      routed <- !is.na(selected_name) & selected_name == label
+      active[[child]] <- c(active[[child]], rows[routed])
+    }
+  }
+  list(
+    leaf = leaf, leaf_value = leaf_value, terminal_node = terminal_node,
+    gate_names = gate_names, gate_values = gate_values,
+    leaf_factor = leaf_conversion$factor_num[match(leaf, leaf_conversion$name)]
+  )
+}
+
+.lib_routed_accuracy <- function(predicted, expected) {
+  expected <- as.character(expected)
+  predicted <- as.character(predicted)
+  valid <- !is.na(expected) & nzchar(expected)
+  classes <- sort(unique(expected[valid]))
+  recall <- vapply(classes, function(class) {
+    rows <- valid & expected == class
+    correct <- !is.na(predicted[rows]) & predicted[rows] == expected[rows]
+    sum(correct) / length(correct)
+  }, numeric(1L))
+  correct <- !is.na(predicted[valid]) & predicted[valid] == expected[valid]
+  list(
+    overall_accuracy = if (!any(valid)) NA_real_ else
+      sum(correct) / length(correct),
+    macro_class_accuracy = if (!length(recall)) NA_real_ else
+      mean(recall, na.rm = TRUE),
+    minimum_class_recall = if (!length(recall)) NA_real_ else
+      min(recall, na.rm = TRUE),
+    route_coverage = if (!any(valid)) NA_real_ else
+      mean(!is.na(predicted[valid]) & nzchar(predicted[valid]))
+  )
+}
+
+.lib_gated_scope_evidence <- function(node_support, target_cols) {
+  target_names <- unique(as.character(target_cols))
+  nodes <- data.table::as.data.table(node_support)
+  if (!all(c("target_col", "classes", "fold_mode") %in% names(nodes))) {
+    return("deterministic")
+  }
+  nodes <- nodes[
+    nodes[["target_col"]] %in% target_names & nodes[["classes"]] > 1L
+  ]
+  modes <- unique(as.character(nodes$fold_mode))
+  modes <- modes[!is.na(modes) & nzchar(modes)]
+  if (!length(modes)) return("deterministic")
+  if (all(modes == "source_component_holdout")) {
+    return("source_component_holdout")
+  }
+  if (all(startsWith(modes, "identity_grouped"))) {
+    return("identity_grouped")
+  }
+  "hybrid_node_oof"
+}
+
+.lib_gated_routed_fold_summary <- function(node_support, target_cols) {
+  nodes <- data.table::as.data.table(node_support)
+  required <- c("target_col", "classes", "folds")
+  if (!all(required %in% names(nodes))) {
+    return(list(folds = 0L, maximum_node_folds = 0L))
+  }
+  nodes <- nodes[
+    nodes[["target_col"]] %in% as.character(target_cols) &
+      nodes[["classes"]] > 1L
+  ]
+  values <- as.integer(nodes$folds)
+  values <- values[!is.na(values) & values >= 0L]
+  if (!length(values)) {
+    return(list(folds = 0L, maximum_node_folds = 0L))
+  }
+  list(
+    folds = as.integer(min(values)),
+    maximum_node_folds = as.integer(max(values))
+  )
+}
+
+.lib_gated_conditional_metrics <- function(node_support, lambda_metrics,
+                                           target_col) {
+  target_name <- as.character(target_col)[[1L]]
+  nodes <- data.table::as.data.table(node_support)
+  if (!all(c("target_col", "node_id", "observations", "classes") %in%
+           names(nodes))) {
+    return(list(log_loss = NA_real_, brier_score = NA_real_))
+  }
+  nodes <- nodes[nodes[["target_col"]] == target_name]
+  if (!nrow(nodes)) {
+    return(list(log_loss = NA_real_, brier_score = NA_real_))
+  }
+  lambda_metrics <- data.table::as.data.table(lambda_metrics)
+  required <- c(
+    "target_col", "node_id", "selected", "log_loss", "brier_score"
+  )
+  selected_metrics <- if (all(required %in% names(lambda_metrics))) {
+    lambda_metrics[
+      lambda_metrics[["target_col"]] == target_name &
+        !is.na(lambda_metrics[["selected"]]) &
+        lambda_metrics[["selected"]],
+      .(node_id, log_loss, brier_score)
+    ]
+  } else {
+    data.table::data.table(
+      node_id = character(), log_loss = numeric(), brier_score = numeric()
+    )
+  }
+  if (anyDuplicated(selected_metrics$node_id)) {
+    stop("Gated node metrics contain multiple selected lambdas", call. = FALSE)
+  }
+  values <- merge(
+    nodes[, .(node_id, observations, classes)], selected_metrics,
+    by = "node_id", all.x = TRUE, sort = FALSE
+  )
+  values[classes == 1L, `:=`(log_loss = 0, brier_score = 0)]
+  weighted <- function(column) {
+    valid <- is.finite(values[[column]]) & values$observations > 0
+    if (!all(valid) || !any(valid)) return(NA_real_)
+    stats::weighted.mean(values[[column]][valid], values$observations[valid])
+  }
+  list(log_loss = weighted("log_loss"),
+       brier_score = weighted("brier_score"))
+}
+
+.lib_train_gated_hierarchical_logistic <- function(
+    train, labels, hierarchy_labels, hierarchy_cols, metadata, type_col,
+    class_col, group_ids, fold_info, source_fold_info, alpha, grouped,
+    weights, seed,
+    selection_rule,
+    user_args, fill, support, class_support, fill_replaced,
+    fold_assignments, node_checkpoint = NULL) {
+  if (!is.null(node_checkpoint) &&
+      (!is.list(node_checkpoint) ||
+       !is.function(node_checkpoint$get) ||
+       !is.function(node_checkpoint$put))) {
+    stop("Internal gated node checkpoint callbacks are malformed",
+         call. = FALSE)
+  }
+  leaf_names <- levels(factor(labels))
+  leaf_conversion <- data.table::data.table(
+    factor_num = seq_along(leaf_names), name = leaf_names
+  )
+  structure <- .lib_gated_topology(
+    hierarchy_labels, hierarchy_cols, labels, class_col = class_col
+  )
+  specifications <- stats::setNames(structure$nodes, vapply(
+    structure$nodes, `[[`, character(1L), "node_id"
+  ))
+  canonical_source_groups <- .lib_model_source_groups(metadata)
+  source_groups <- .lib_model_source_groups(metadata, group_ids)
+  source_components <- source_fold_info$source_component_id
+  fitted_nodes <- vector("list", length(specifications))
+  names(fitted_nodes) <- names(specifications)
+  lambda_rows <- list()
+  class_rows <- list()
+  support_rows <- list()
+  for (node_i in seq_along(specifications)) {
+    specification <- specifications[[node_i]]
+    rows <- specification$rows
+    target <- specification$target
+    node_id <- specification$node_id
+    target_names <- sort(unique(target))
+    canonical_source <- !is.na(canonical_source_groups[rows]) &
+      nzchar(canonical_source_groups[rows])
+    child_support <- data.table::data.table(
+      target = target, source = canonical_source_groups[rows],
+      component = source_components[rows],
+      canonical_source = canonical_source
+    )[, .(
+      spectra = .N,
+      sources = data.table::uniqueN(source[canonical_source]),
+      source_components = data.table::uniqueN(component[canonical_source])
+    ), by = target]
+    source_eligible <- length(rows) >= 100L &&
+      data.table::uniqueN(canonical_source_groups[rows][canonical_source]) >=
+        5L &&
+      all(child_support$spectra >= 25L) &&
+      all(child_support$sources >= 3L)
+    source_node_fold <- .lib_model_node_fold_info(
+      source_fold_info, rows, target, minimum_class_folds = 3L
+    )
+    identity_node_fold <- .lib_model_node_fold_info(fold_info, rows, target)
+    node_fold <- if (source_eligible && source_node_fold$nfolds >= 3L) {
+      source_node_fold
+    } else {
+      identity_node_fold$fold_mode <- if (source_eligible) {
+        "identity_grouped_source_fold_unavailable"
+      } else {
+        "identity_grouped_undersupported_source"
+      }
+      identity_node_fold
+    }
+    support_rows[[length(support_rows) + 1L]] <- data.table::data.table(
+      node_id = node_id, depth = specification$depth,
+      target_col = specification$target_col,
+      node_role = if (specification$depth == 0L) "root" else if
+        (isTRUE(specification$terminal)) "terminal" else "gate",
+      observations = length(rows), classes = length(target_names),
+      canonical_sources = data.table::uniqueN(
+        canonical_source_groups[rows][canonical_source]
+      ),
+      source_components = data.table::uniqueN(
+        source_components[rows][canonical_source]
+      ),
+      minimum_child_spectra = min(child_support$spectra),
+      minimum_child_sources = min(child_support$sources),
+      minimum_child_source_components = min(child_support$source_components),
+      source_eligible = source_eligible,
+      fold_mode = if (length(target_names) == 1L) "deterministic" else
+        node_fold$fold_mode,
+      folds = if (length(target_names) == 1L) 0L else node_fold$nfolds
+    )
+    message(sprintf(
+      paste0("train_spec_model: fitting gated node %s (%s; ",
+             "%d spectra; %d classes)"),
+      node_id, specification$target_col, length(rows), length(target_names)
+    ))
+    cached_node <- if (!is.null(node_checkpoint) &&
+                        length(target_names) > 1L) {
+      node_checkpoint$get(node_id)
+    } else {
+      NULL
+    }
+    if (!is.null(cached_node)) {
+      cached_problems <- character()
+      if (!identical(as.character(cached_node$class_names), target_names)) {
+        cached_problems <- c(cached_problems, "class names")
+      }
+      if (!is.matrix(cached_node$full_probabilities) ||
+          !identical(dim(cached_node$full_probabilities),
+                     c(length(rows), length(target_names)))) {
+        cached_problems <- c(cached_problems, "training probabilities")
+      }
+      if (node_fold$nfolds >= 3L &&
+          (!is.matrix(cached_node$oof_probabilities) ||
+           !identical(dim(cached_node$oof_probabilities),
+                      c(length(rows), length(target_names))))) {
+        cached_problems <- c(cached_problems, "node OOF probabilities")
+      }
+      if (node_fold$nfolds >= 3L &&
+          (!is.matrix(cached_node$routed_oof_probabilities) ||
+           !identical(dim(cached_node$routed_oof_probabilities),
+                      c(nrow(train), length(target_names))))) {
+        cached_problems <- c(cached_problems, "routed OOF probabilities")
+      }
+      cached_fold <- cached_node$fold_info
+      if (is.null(cached_fold) ||
+          !identical(as.integer(cached_fold$foldid),
+                     as.integer(node_fold$foldid)) ||
+          !identical(as.integer(cached_fold$evaluation_foldid),
+                     as.integer(node_fold$evaluation_foldid))) {
+        cached_problems <- c(cached_problems, "fold assignment")
+      }
+      if (length(cached_problems)) {
+        message(
+          "train_spec_model: discarding incompatible gated node checkpoint ",
+          node_id, " (", paste(unique(cached_problems), collapse = ", "), ")"
+        )
+        cached_node <- NULL
+      }
+    }
+    fitted <- if (!is.null(cached_node)) {
+      cached_node
+    } else if (length(target_names) == 1L) {
+      .lib_deterministic_logistic_node(target_names[[1L]], length(rows))
+    } else {
+      .lib_fit_logistic_node(
+        train = train[rows, , drop = FALSE], labels = target,
+        group_ids = group_ids[rows], fold_info = node_fold,
+        alpha = alpha, grouped = grouped, weights = weights,
+        seed = seed + node_i - 1L, selection_rule = selection_rule,
+        user_args = user_args,
+        source_groups = canonical_source_groups[rows],
+        selection_policy = if (source_eligible &&
+                               source_node_fold$nfolds >= 3L) {
+          "gated"
+        } else {
+          "legacy"
+        },
+        evaluation_train = train, training_rows = rows
+      )
+    }
+    if (is.null(cached_node) && !is.null(node_checkpoint) &&
+        length(target_names) > 1L) {
+      node_checkpoint$put(node_id, fitted)
+    }
+    fitted_nodes[[node_id]] <- fitted
+    if (nrow(fitted$lambda_metrics)) {
+      metric <- data.table::copy(fitted$lambda_metrics)
+      metric[, `:=`(
+        node_id = node_id, depth = specification$depth,
+        target_col = specification$target_col,
+        node_role = if (specification$depth == 0L) "root" else if
+          (isTRUE(specification$terminal)) "terminal" else "gate",
+        fold_mode = if (length(target_names) == 1L) "deterministic" else
+          node_fold$fold_mode
+      )]
+      lambda_rows[[length(lambda_rows) + 1L]] <- metric
+    }
+    classes <- data.table::copy(fitted$class_metrics)
+    classes[, `:=`(
+      node_id = node_id, depth = specification$depth,
+      target_col = specification$target_col,
+      node_role = if (specification$depth == 0L) "root" else if
+        (isTRUE(specification$terminal)) "terminal" else "gate",
+      fold_mode = if (length(target_names) == 1L) "deterministic" else
+        node_fold$fold_mode
+    )]
+    class_rows[[length(class_rows) + 1L]] <- classes
+  }
+
+  lambda_metrics <- data.table::rbindlist(lambda_rows, fill = TRUE)
+  node_support <- data.table::rbindlist(support_rows, fill = TRUE)
+  full_route <- .lib_route_fitted_gates(
+    train, specifications, fitted_nodes, structure$topology, structure$edges,
+    leaf_conversion, hierarchy_cols, use_oof = FALSE
+  )
+  oof_route <- if (fold_info$nfolds >= 3L) .lib_route_fitted_gates(
+    train, specifications, fitted_nodes, structure$topology, structure$edges,
+    leaf_conversion, hierarchy_cols, use_oof = TRUE
+  ) else NULL
+  evaluation_route <- if (is.null(oof_route)) full_route else oof_route
+  ids <- if ("sample_name" %in% names(metadata)) {
+    as.character(metadata$sample_name)
+  } else {
+    rownames(train)
+  }
+  if (is.null(ids)) ids <- paste0("spectrum_", seq_len(nrow(train)))
+  first_failed <- rep.int(NA_character_, length(labels))
+  for (level in seq_along(hierarchy_cols)) {
+    failed <- is.na(first_failed) &
+      evaluation_route$gate_names[, level] != hierarchy_labels[[level]]
+    failed[is.na(failed)] <- TRUE
+    first_failed[failed] <- hierarchy_cols[[level]]
+  }
+  leaf_failed <- is.na(first_failed) & evaluation_route$leaf != labels
+  leaf_failed[is.na(leaf_failed)] <- TRUE
+  first_failed[leaf_failed] <- class_col
+  tests <- data.table::data.table(
+    spectrum_id = ids,
+    technique = if (!is.null(type_col) && type_col %in% names(metadata))
+      as.character(metadata[[type_col]]) else NA_character_,
+    expected_class = labels, predicted_class = evaluation_route$leaf,
+    correct = !is.na(evaluation_route$leaf) &
+      labels == evaluation_route$leaf,
+    score = evaluation_route$leaf_value,
+    split = if (is.null(oof_route)) "training" else "out_of_fold",
+    provenance = if (is.null(oof_route)) {
+      "gated_hierarchical_model_fit"
+    } else {
+      "gated_hierarchical_routed_oof"
+    },
+    first_failed_gate = first_failed,
+    terminal_node = evaluation_route$terminal_node
+  )
+  for (level in seq_along(hierarchy_cols)) {
+    tests[, (paste0("gate_", level, "_name")) :=
+            evaluation_route$gate_names[, level]]
+    tests[, (paste0("gate_", level, "_value")) :=
+            evaluation_route$gate_values[, level]]
+  }
+
+  hierarchy_metrics <- data.table::data.table()
+  source_metrics <- data.table::data.table()
+  if (!is.null(oof_route)) {
+    metrics <- lapply(seq_along(hierarchy_cols), function(level) {
+      summary <- .lib_routed_accuracy(
+        oof_route$gate_names[, level], hierarchy_labels[[level]]
+      )
+      conditional <- .lib_gated_conditional_metrics(
+        node_support, lambda_metrics, hierarchy_cols[[level]]
+      )
+      fold_summary <- .lib_gated_routed_fold_summary(
+        node_support, hierarchy_cols[seq_len(level)]
+      )
+      data.table::data.table(
+        scope = paste0("gate:", hierarchy_cols[[level]]),
+        depth = level, overall_accuracy = summary$overall_accuracy,
+        macro_class_accuracy = summary$macro_class_accuracy,
+        minimum_class_recall = summary$minimum_class_recall,
+        route_coverage = summary$route_coverage,
+        log_loss = conditional$log_loss,
+        brier_score = conditional$brier_score,
+        probability_metric_scope = "weighted_selected_node_conditional",
+        fold_evidence = .lib_gated_scope_evidence(
+          node_support, hierarchy_cols[seq_len(level)]
+        ),
+        folds = fold_summary$folds,
+        maximum_node_folds = fold_summary$maximum_node_folds
+      )
+    })
+    leaf_summary <- .lib_routed_accuracy(oof_route$leaf, labels)
+    leaf_conditional <- .lib_gated_conditional_metrics(
+      node_support, lambda_metrics, class_col
+    )
+    leaf_fold_summary <- .lib_gated_routed_fold_summary(
+      node_support, c(hierarchy_cols, class_col)
+    )
+    metrics[[length(metrics) + 1L]] <- data.table::data.table(
+      scope = "routed_leaf", depth = length(hierarchy_cols) + 1L,
+      overall_accuracy = leaf_summary$overall_accuracy,
+      macro_class_accuracy = leaf_summary$macro_class_accuracy,
+      minimum_class_recall = leaf_summary$minimum_class_recall,
+      route_coverage = leaf_summary$route_coverage,
+      log_loss = leaf_conditional$log_loss,
+      brier_score = leaf_conditional$brier_score,
+      probability_metric_scope = "weighted_selected_node_conditional",
+      fold_evidence = .lib_gated_scope_evidence(
+        node_support, c(hierarchy_cols, class_col)
+      ),
+      folds = leaf_fold_summary$folds,
+      maximum_node_folds = leaf_fold_summary$maximum_node_folds
+    )
+    hierarchy_metrics <- data.table::rbindlist(metrics, fill = TRUE)
+    source_inputs <- lapply(seq_along(hierarchy_cols), function(level) {
+      list(
+        scope = paste0("gate:", hierarchy_cols[[level]]), depth = level,
+        target_col = hierarchy_cols[[level]],
+        target_cols = hierarchy_cols[seq_len(level)],
+        expected = hierarchy_labels[[level]],
+        predicted = oof_route$gate_names[, level]
+      )
+    })
+    source_inputs[[length(source_inputs) + 1L]] <- list(
+      scope = "routed_leaf", depth = length(hierarchy_cols) + 1L,
+      target_col = class_col, target_cols = c(hierarchy_cols, class_col),
+      expected = labels, predicted = oof_route$leaf
+    )
+    source_metrics <- data.table::rbindlist(lapply(source_inputs, function(item) {
+      data.table::data.table(
+        source = canonical_source_groups, expected_class = item$expected,
+        predicted_class = item$predicted
+      )[!is.na(source) & nzchar(source), .(
+        observations = .N, classes = data.table::uniqueN(expected_class),
+        accuracy = sum(!is.na(predicted_class) &
+                         predicted_class == expected_class) / .N,
+        route_coverage = mean(!is.na(predicted_class) &
+                                nzchar(predicted_class))
+      ), by = source][, `:=`(
+        scope = item$scope, depth = item$depth,
+        supported = observations >= 25L, minimum_observations = 25L,
+        evidence = .lib_gated_scope_evidence(node_support, item$target_cols)
+      )]
+    }), fill = TRUE)
+    worst <- source_metrics[supported == TRUE, .(
+      worst_source_accuracy = min(accuracy, na.rm = TRUE),
+      supported_sources = .N
+    ), by = scope]
+    hierarchy_metrics[worst, on = "scope", `:=`(
+      worst_source_accuracy = i.worst_source_accuracy,
+      supported_sources = i.supported_sources
+    )]
+    if (!"worst_source_accuracy" %in% names(hierarchy_metrics)) {
+      hierarchy_metrics[, `:=`(
+        worst_source_accuracy = NA_real_, supported_sources = 0L
+      )]
+    } else {
+      hierarchy_metrics[is.na(supported_sources), supported_sources := 0L]
+    }
+  }
+
+  runtime_nodes <- lapply(fitted_nodes, .lib_logistic_node_runtime)
+  root_id <- structure$topology[depth == 0L, node_id][[1L]]
+  root <- fitted_nodes[[root_id]]
+  converged <- vapply(
+    fitted_nodes, `[[`, logical(1L), "selected_lambda_converged"
+  )
+  complete <- vapply(fitted_nodes, `[[`, logical(1L), "lambda_path_complete")
+  errors <- vapply(fitted_nodes, `[[`, integer(1L), "convergence_error")
+  coefficient_axes <- unlist(lapply(
+    fitted_nodes, function(node) node$coefficients$names
+  ), use.names = FALSE)
+  hierarchy_values <- c(
+    stats::setNames(hierarchy_labels, hierarchy_cols), list(labels)
+  )
+  names(hierarchy_values)[[length(hierarchy_values)]] <- class_col
+  hierarchy <- unique(data.table::as.data.table(hierarchy_values))
+  data.table::setorderv(hierarchy, c(hierarchy_cols, class_col))
+  list(
+    model = root$model,
+    model_type = "gated_hierarchical_logistic_regression",
+    model_schema = "OpenSpecy_gated_hierarchy_v1",
+    hierarchy_cols = hierarchy_cols, root_node_id = root_id,
+    gated_nodes = runtime_nodes, gated_topology = structure$topology,
+    gated_edges = structure$edges, hierarchy = hierarchy,
+    lambda_selected = root$lambda_selected,
+    lambda_path_complete = all(complete),
+    selected_lambda_converged = all(converged),
+    convergence_error = if (length(errors)) max(errors) else 0L,
+    training_groups = data.table::uniqueN(group_ids),
+    selection_metric = "node_local_lexicographic_accuracy_recall_source_macro_loss",
+    selection_rule = selection_rule, selection_accuracy_tolerance = 0.01,
+    selection_policy = "OpenSpecy_gated_node_selection_v1",
+    probability_semantics = "terminal_conditional_probability",
+    lambda_metrics = lambda_metrics,
+    class_metrics = data.table::rbindlist(class_rows, fill = TRUE),
+    hierarchy_metrics = hierarchy_metrics, source_metrics = source_metrics,
+    node_support = node_support,
+    fold_assignments = fold_assignments,
+    dimension_conversion = leaf_conversion, tests = tests,
+    coefficients = data.table::data.table(), class_names = leaf_names,
+    class_num = length(leaf_names), observation_count = length(labels),
+    fill = fill, support = support, class_support = class_support,
+    fill_method = "wavenumber_mean",
+    fill_replaced = as.integer(fill_replaced),
+    variable_num = length(unique(coefficient_axes[is.finite(coefficient_axes)])),
+    all_variables = suppressWarnings(as.numeric(colnames(train))),
+    variables_in = sort(unique(coefficient_axes[is.finite(coefficient_axes)]))
+  )
+}
+
 #' @rdname build_lib
 #' @export
 train_spec_model <- function(x, class_col = "material_class",
@@ -4605,12 +6430,37 @@ train_spec_model <- function(x, class_col = "material_class",
                              hierarchy_col = NULL,
                              selection_rule = c("guardrailed", "macro", "overall"),
                              ...) {
+  node_checkpoint <- attr(
+    x, "OpenSpecy_internal_node_checkpoint", exact = TRUE
+  )
+  attr(x, "OpenSpecy_internal_node_checkpoint") <- NULL
+  .lib_train_spec_model(
+    x = x, class_col = class_col, type_col = type_col, min_n = min_n,
+    alpha = alpha, seed = seed, grouped = grouped, weights = weights,
+    make_relative = make_relative, method = method,
+    hierarchy_col = hierarchy_col, selection_rule = selection_rule,
+    node_checkpoint = node_checkpoint, ...
+  )
+}
+
+.lib_train_spec_model <- function(
+    x, class_col = "material_class", type_col = "spectrum_type", min_n = 10,
+    alpha = 0.1, seed = 123, grouped = TRUE, weights = TRUE,
+    make_relative = TRUE,
+    method = c("logistic_regression", "random_forest"), hierarchy_col = NULL,
+    selection_rule = c("guardrailed", "macro", "overall"),
+    node_checkpoint = NULL, ...) {
   method <- match.arg(method)
   selection_rule <- match.arg(selection_rule)
   if (!is.null(hierarchy_col) &&
-      (!is.character(hierarchy_col) || length(hierarchy_col) != 1L ||
-       is.na(hierarchy_col) || !nzchar(hierarchy_col))) {
-    stop("'hierarchy_col' must be NULL or one nonempty column name",
+      (!is.character(hierarchy_col) || !length(hierarchy_col) ||
+       anyNA(hierarchy_col) || any(!nzchar(trimws(hierarchy_col))) ||
+       anyDuplicated(hierarchy_col))) {
+    stop("'hierarchy_col' must be NULL or ordered, unique, nonempty column names",
+         call. = FALSE)
+  }
+  if (!is.null(hierarchy_col) && any(hierarchy_col %in% c(class_col, type_col))) {
+    stop("'hierarchy_col' cannot include 'class_col' or 'type_col'",
          call. = FALSE)
   }
   if (!is.null(hierarchy_col) && identical(method, "random_forest")) {
@@ -4655,30 +6505,32 @@ train_spec_model <- function(x, class_col = "material_class",
   grouping_object$metadata <- metadata
   group_ids <- .lib_stable_group_info(grouping_object)$group_id
 
-  broad_labels <- NULL
+  hierarchy_labels <- NULL
   if (!is.null(hierarchy_col)) {
-    broad_raw <- as.character(metadata[[hierarchy_col]])
-    incomplete <- is.na(broad_raw) | !nzchar(trimws(broad_raw))
-    if (any(incomplete)) {
-      stop(
-        "Hierarchical model metadata has ", sum(incomplete),
-        " retained spectrum/spectra without '", hierarchy_col, "'",
-        call. = FALSE
-      )
-    }
-    hierarchy_metadata <- data.table::copy(metadata)
-    hierarchy_metadata[[hierarchy_col]] <- broad_raw
-    broad_labels <- .lib_model_labels(
-      hierarchy_metadata, hierarchy_col, type_col
-    )
-    leaf_branch <- unique(data.table::data.table(
-      leaf = labels, branch = broad_labels
-    ))
-    ambiguous <- leaf_branch[, data.table::uniqueN(branch), by = leaf][V1 > 1L]
+    hierarchy_labels <- lapply(hierarchy_col, function(column) {
+      raw <- as.character(metadata[[column]])
+      incomplete <- is.na(raw) | !nzchar(trimws(raw))
+      if (any(incomplete)) {
+        stop(
+          "Hierarchical model metadata has ", sum(incomplete),
+          " retained spectrum/spectra without '", column, "'",
+          call. = FALSE
+        )
+      }
+      raw
+    })
+    names(hierarchy_labels) <- hierarchy_col
+    path_values <- c(stats::setNames(hierarchy_labels, hierarchy_col),
+                     list(labels))
+    names(path_values)[[length(path_values)]] <- class_col
+    path <- data.table::as.data.table(path_values)
+    leaf_paths <- unique(path)
+    ambiguous <- leaf_paths[, .N, by = class_col][N > 1L]
     if (nrow(ambiguous)) {
       stop(
-        "Each final model class must map to exactly one hierarchy parent; ",
-        "ambiguous class(es): ", paste(ambiguous$leaf, collapse = ", "),
+        "Each final model class must map to exactly one hierarchy path; ",
+        "ambiguous class(es): ",
+        paste(ambiguous[[class_col]], collapse = ", "),
         call. = FALSE
       )
     }
@@ -4714,6 +6566,11 @@ train_spec_model <- function(x, class_col = "material_class",
     ))
   }
   fold_info <- .lib_model_fold_assignment(group_ids, labels, seed)
+  fold_info$fold_mode <- "identity_grouped"
+  source_groups <- .lib_model_source_groups(metadata, group_ids)
+  source_fold_info <- .lib_model_source_fold_assignment(
+    group_ids, labels, source_groups, seed
+  )
   user_args <- list(...)
 
   ids <- if ("sample_name" %in% names(metadata)) {
@@ -4724,19 +6581,31 @@ train_spec_model <- function(x, class_col = "material_class",
   if (is.null(ids)) ids <- paste0("spectrum_", seq_len(nrow(train)))
   fold_assignments <- data.table::data.table(
     spectrum_id = ids, group_id = as.character(group_ids),
-    fold = as.integer(fold_info$foldid), final_class = labels,
-    broad_class = if (is.null(broad_labels)) NA_character_ else broad_labels
+    source_id = source_groups,
+    source_component_id = source_fold_info$source_component_id,
+    fold = as.integer(fold_info$foldid),
+    source_fold = as.integer(source_fold_info$foldid),
+    fold_mode = fold_info$fold_mode,
+    source_fold_mode = source_fold_info$fold_mode,
+    final_class = labels
   )
+  if (!is.null(hierarchy_labels)) {
+    for (level in seq_along(hierarchy_col)) {
+      fold_assignments[, (hierarchy_col[[level]]) := hierarchy_labels[[level]]]
+    }
+  }
 
   if (!is.null(hierarchy_col)) {
-    return(.lib_train_hierarchical_logistic(
-      train = train, labels = labels, broad_labels = broad_labels,
-      metadata = metadata, type_col = type_col, group_ids = group_ids,
-      fold_info = fold_info, alpha = alpha, grouped = grouped,
+    return(.lib_train_gated_hierarchical_logistic(
+      train = train, labels = labels, hierarchy_labels = hierarchy_labels,
+      hierarchy_cols = hierarchy_col, metadata = metadata,
+      type_col = type_col, class_col = class_col, group_ids = group_ids,
+      fold_info = fold_info, source_fold_info = source_fold_info,
+      alpha = alpha, grouped = grouped,
       weights = weights, seed = seed, selection_rule = selection_rule,
       user_args = user_args, fill = fill, support = support,
       class_support = class_support, fill_replaced = filled$replaced,
-      fold_assignments = fold_assignments
+      fold_assignments = fold_assignments, node_checkpoint = node_checkpoint
     ))
   }
 
@@ -4986,8 +6855,11 @@ train_spec_model <- function(x, class_col = "material_class",
 
 .lib_macro_lambda_metrics <- function(
     predictions, outcome, lambda,
-    selection_rule = c("guardrailed", "macro", "overall")) {
+    selection_rule = c("guardrailed", "macro", "overall"),
+    source_groups = NULL,
+    selection_policy = c("legacy", "gated")) {
   selection_rule <- match.arg(selection_rule)
+  selection_policy <- match.arg(selection_policy)
   dimensions <- dim(predictions)
   if (length(dimensions) != 3L || dimensions[1L] != length(outcome) ||
       dimensions[3L] != length(lambda)) {
@@ -5010,7 +6882,50 @@ train_spec_model <- function(x, class_col = "material_class",
     log_loss = vapply(summaries, `[[`, numeric(1L), "log_loss"),
     brier_score = vapply(summaries, `[[`, numeric(1L), "brier_score")
   )
-  .lib_select_lambda_metrics(
+  if (identical(selection_policy, "legacy")) {
+    return(.lib_select_lambda_metrics(
+      metrics, selection_rule = selection_rule, accuracy_tolerance = 0.01
+    ))
+  }
+  source_groups <- if (is.null(source_groups)) {
+    rep.int(NA_character_, length(outcome))
+  } else {
+    trimws(as.character(source_groups))
+  }
+  if (length(source_groups) != length(outcome)) {
+    stop("'source_groups' must align with model outcomes", call. = FALSE)
+  }
+  source_groups[is.na(source_groups) | !nzchar(source_groups)] <- NA_character_
+  source_min_observations <- 25L
+  source_metrics <- lapply(summaries, function(summary) {
+    source <- data.table::data.table(
+      source = source_groups, outcome = outcome,
+      correct = summary$predicted == outcome
+    )[!is.na(source)]
+    supported <- source[, .(
+      observations = .N, classes = data.table::uniqueN(outcome),
+      accuracy = sum(!is.na(correct) & correct) / .N
+    ), by = source][observations >= source_min_observations]
+    list(
+      worst = if (nrow(supported)) min(supported$accuracy) else NA_real_,
+      count = nrow(supported)
+    )
+  })
+  metrics[, `:=`(
+    minimum_class_recall = vapply(summaries, function(summary) {
+      recall <- summary$class_accuracy
+      if (!length(recall) || all(!is.finite(recall))) NA_real_ else
+        min(recall, na.rm = TRUE)
+    }, numeric(1L)),
+    worst_source_accuracy = vapply(
+      source_metrics, `[[`, numeric(1L), "worst"
+    ),
+    supported_sources = vapply(
+      source_metrics, `[[`, integer(1L), "count"
+    ),
+    source_min_observations = source_min_observations
+  )]
+  .lib_select_gated_lambda_metrics(
     metrics, selection_rule = selection_rule, accuracy_tolerance = 0.01
   )
 }
@@ -5237,7 +7152,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other
     ),
-    component_version = "reference-artifacts-v12-correlation-closure-quarantine"
+    component_version = "reference-artifacts-v16-routed-oof-provenance"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -5271,6 +7186,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   libraries <- checkpoints$get("libraries")
   local_assessments <- checkpoints$get("library_assessments")
   quarantine <- checkpoints$get("quarantined_spectra")
+  prebuilt_medoids <- NULL
+  correlation_validation_cache <- checkpoints$get(
+    "correlation_validation_cache"
+  )
   if (is.null(libraries)) {
     core_path <- file.path(output_dir, "checkpoints", "core_libraries.rds")
     core <- checkpoints$get("core_libraries", key = core_signature)
@@ -5304,14 +7223,19 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       report = report
     )
     libraries <- completed$libraries
+    prebuilt_medoids <- completed$medoids
     local_assessments <- completed$assessments
     quarantine <- completed$quarantine
+    correlation_validation_cache <- completed$correlation_validation_cache
     quarantine$manifest$build_signature <- artifact_signature
     quarantine$manifest$source_hashes <- artifact_signature
     .lib_write_quarantine_review(quarantine, output_dir)
     checkpoints$put("libraries", libraries)
     checkpoints$put("library_assessments", local_assessments)
     checkpoints$put("quarantined_spectra", quarantine)
+    checkpoints$put(
+      "correlation_validation_cache", correlation_validation_cache
+    )
     for (name in names(libraries)) {
       checkpoints$put(paste0("library_", name), libraries[[name]])
     }
@@ -5330,12 +7254,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (is.null(medoids)) {
     medoids <- .lib_build_medoids(
       libraries, report = report, checkpoints = checkpoints,
-      progress = progress
+      progress = progress, prebuilt = prebuilt_medoids
     )
     checkpoints$put("medoids", medoids)
   }
   correlation_closure <- .lib_validate_medoid_parent_closure(
-    libraries, medoids, prune_spec = prune, report = report
+    libraries, medoids, prune_spec = prune, report = report,
+    correlation_cache = correlation_validation_cache
   )
   local_assessments$correlation_closure <- correlation_closure
 
@@ -5345,16 +7270,35 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   local_assessments$metadata_finalization <- finalized$assessment
 
-  models <- checkpoints$get("models_guardrailed_hierarchy_v1")
-  model_warnings <- .lib_warning_schema()
+  models <- checkpoints$get("models_gated_hierarchy_v1")
+  model_problems <- if (is.null(models)) character() else
+    .lib_gated_model_checkpoint_problems(models, medoids)
+  if (length(model_problems)) {
+    report(paste0(
+      "discarding incomplete aggregate model checkpoint: ",
+      paste(model_problems, collapse = "; ")
+    ))
+    models <- NULL
+  }
+  model_warnings <- if (is.null(models)) .lib_warning_schema() else
+    .lib_collect_model_warnings(models)
   if (is.null(models)) {
-    model_result <- .lib_build_models(
-      libraries, medoids, report = report, checkpoints = checkpoints,
-      methods = c("logistic_regression", "hierarchical_logistic_regression")
+    model_result <- .lib_with_model_workers(
+      .lib_build_models(
+        libraries, medoids, report = report, checkpoints = checkpoints,
+        methods = "gated_hierarchical_logistic_regression"
+      )
     )
     models <- model_result$models
     model_warnings <- model_result$warnings
-    checkpoints$put("models_guardrailed_hierarchy_v1", models)
+    model_problems <- .lib_gated_model_checkpoint_problems(models, medoids)
+    if (length(model_problems)) {
+      stop(
+        "Official gated model build is incomplete: ",
+        paste(model_problems, collapse = "; "), call. = FALSE
+      )
+    }
+    checkpoints$put("models_gated_hierarchy_v1", models)
   }
 
   build <- list(
@@ -5370,7 +7314,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "hierarchical-bundles-v19-accuracy-comparison"
+      assessment_version = "gated-hierarchy-v20-accuracy-comparison"
     ),
     algo = "sha256"
   )
@@ -5417,7 +7361,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   .lib_validate_reference_build(build)
   checkpoints$put("assessments", build$assessments, key = assessment_key)
   checkpoints$put("reference_library_build", build, key = assessment_key)
-  release_signature <- .lib_release_signature(assessment_key)
+  release_signature <- .lib_release_signature(assessment_key, build$models)
 
   report("promoting validated artifacts to a versioned release directory")
   promotion <- .lib_promote_reference_build(
@@ -5466,19 +7410,39 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   libraries <- .lib_drop_typed_range_flats(input$libraries, report = report)
   completed <- input$assessments
   quarantine <- input$quarantine
-  signature <- digest::digest(list(
-    input = input$signature,
-    downstream_version = "guardrailed-hierarchical-model-v6"
-  ), algo = "sha256")
+  signature <- .lib_rebuild_checkpoint_signature(
+    libraries = libraries, medoids = input$medoids,
+    input_signature = input$signature
+  )
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = signature, reuse = reuse, report = report
   )
 
   medoids <- checkpoints$get("medoids")
+  if (!is.null(medoids)) {
+    medoid_problems <- .lib_supplied_medoid_problems(libraries, medoids)
+    if (length(medoid_problems)) {
+      report(paste0(
+        "discarding incompatible medoid checkpoint: ",
+        paste(medoid_problems, collapse = "; ")
+      ))
+      medoids <- NULL
+    }
+  }
   if (is.null(medoids) && !is.null(input$medoids)) {
-    report("reusing compatible medoids supplied by the completed build")
-    medoids <- input$medoids
-    checkpoints$put("medoids", medoids)
+    medoid_problems <- .lib_supplied_medoid_problems(
+      libraries, input$medoids
+    )
+    if (length(medoid_problems)) {
+      report(paste0(
+        "rebuilding incompatible supplied medoids: ",
+        paste(medoid_problems, collapse = "; ")
+      ))
+    } else {
+      report("reusing compatible medoids supplied by the completed build")
+      medoids <- input$medoids
+      checkpoints$put("medoids", medoids)
+    }
   }
   if (is.null(medoids)) {
     medoids <- .lib_build_medoids(
@@ -5493,17 +7457,36 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   if (is.null(completed)) completed <- list()
   completed$metadata_finalization <- finalized$assessment
-  models <- checkpoints$get("models_guardrailed_hierarchy_v1")
-  model_warnings <- .lib_warning_schema()
+  models <- checkpoints$get("models_gated_hierarchy_v1")
+  model_problems <- if (is.null(models)) character() else
+    .lib_gated_model_checkpoint_problems(models, medoids)
+  if (length(model_problems)) {
+    report(paste0(
+      "discarding incomplete aggregate model checkpoint: ",
+      paste(model_problems, collapse = "; ")
+    ))
+    models <- NULL
+  }
+  model_warnings <- if (is.null(models)) .lib_warning_schema() else
+    .lib_collect_model_warnings(models)
   if (is.null(models)) {
     report("reusing completed libraries/medoids and refitting model candidates")
-    result <- .lib_build_models(
-      libraries, medoids, report = report, checkpoints = checkpoints,
-      methods = c("logistic_regression", "hierarchical_logistic_regression")
+    result <- .lib_with_model_workers(
+      .lib_build_models(
+        libraries, medoids, report = report, checkpoints = checkpoints,
+        methods = "gated_hierarchical_logistic_regression"
+      )
     )
     models <- result$models
     model_warnings <- result$warnings
-    checkpoints$put("models_guardrailed_hierarchy_v1", models)
+    model_problems <- .lib_gated_model_checkpoint_problems(models, medoids)
+    if (length(model_problems)) {
+      stop(
+        "Official gated model build is incomplete: ",
+        paste(model_problems, collapse = "; "), call. = FALSE
+      )
+    }
+    checkpoints$put("models_gated_hierarchy_v1", models)
   }
   build <- list(
     libraries = libraries, medoids = medoids, models = models,
@@ -5515,7 +7498,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prior_signature <- .lib_previous_signature(previous_library_dir)
   assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
-    assessment_version = "hierarchical-bundles-v19-accuracy-comparison"
+    assessment_version = "gated-hierarchy-v20-accuracy-comparison"
   ), algo = "sha256")
   fallback_assessment_key <- digest::digest(list(
     signature, prior_signature, seed = seed, holdout = holdout,
@@ -5557,7 +7540,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   .lib_validate_reference_build(build)
   checkpoints$put("assessments", build$assessments, key = assessment_key)
   checkpoints$put("reference_library_build", build, key = assessment_key)
-  release_signature <- .lib_release_signature(assessment_key)
+  release_signature <- .lib_release_signature(assessment_key, build$models)
 
   report("promoting downstream artifacts to a versioned release directory")
   promotion <- .lib_promote_reference_build(
@@ -5638,6 +7621,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     quarantine <- x$quarantine
     if (!is.null(models) &&
         !any(c("logistic_regression", "hierarchical_logistic_regression",
+               "gated_hierarchical_logistic_regression",
                "random_forest") %in% names(models))) {
       models <- list(logistic_regression = models)
     }
@@ -5712,7 +7696,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   ))
   required <- c(
     "classes_reference.csv", "classes_regex.csv", "library_types.csv",
-    "material_hierarchy.csv", "known_bad_ids.csv",
+    "material_hierarchy.csv", "material_group_reference.csv",
+    "known_bad_ids.csv",
     "metadata_drop_columns.csv", "material_form_regex.csv",
     "common_use_reference.csv"
   )
@@ -5740,6 +7725,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     classes_regex = "classes_regex.csv",
     library_types = "library_types.csv",
     material_hierarchy = "material_hierarchy.csv",
+    material_group_reference = "material_group_reference.csv",
     known_bad_ids = "known_bad_ids.csv",
     metadata_drop = "metadata_drop_columns.csv",
     material_form_regex = "material_form_regex.csv",
@@ -5829,11 +7815,93 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             collapse = ", "), call. = FALSE
     )
   }
+  .lib_require_cols(
+    tables$material_group_reference,
+    c("material_class", "material_type", "material_group"),
+    "material_group_reference"
+  )
+  group_reference <- data.table::copy(tables$material_group_reference)
+  for (column in c("material_class", "material_type", "material_group")) {
+    group_reference[[column]] <- trimws(as.character(group_reference[[column]]))
+    if (any(is.na(group_reference[[column]]) |
+            !nzchar(group_reference[[column]]))) {
+      stop("material_group_reference ", column,
+           " values must be nonblank", call. = FALSE)
+    }
+  }
+  if (anyDuplicated(group_reference$material_class)) {
+    stop("material_group_reference material_class keys must be unique",
+         call. = FALSE)
+  }
+  hierarchy_paths <- unique(data.table::data.table(
+    material_class = material_class,
+    material_type = trimws(as.character(
+      tables$material_hierarchy$material_type
+    ))
+  ))
+  if (anyDuplicated(hierarchy_paths$material_class)) {
+    stop("Each material_class must map to one material_type",
+         call. = FALSE)
+  }
+  if (!setequal(hierarchy_paths$material_class,
+                group_reference$material_class)) {
+    missing_group <- setdiff(
+      hierarchy_paths$material_class, group_reference$material_class
+    )
+    extra_group <- setdiff(
+      group_reference$material_class, hierarchy_paths$material_class
+    )
+    stop(
+      "material_group_reference class coverage differs from the hierarchy",
+      if (length(missing_group)) paste0(
+        "; missing: ", paste(missing_group, collapse = ", ")
+      ) else "",
+      if (length(extra_group)) paste0(
+        "; extra: ", paste(extra_group, collapse = ", ")
+      ) else "",
+      call. = FALSE
+    )
+  }
+  aligned_type <- hierarchy_paths$material_type[match(
+    group_reference$material_class, hierarchy_paths$material_class
+  )]
+  if (any(group_reference$material_type != aligned_type)) {
+    stop("material_group_reference material_type disagrees with the hierarchy",
+         call. = FALSE)
+  }
   .lib_validate_material_form_regex(tables$material_form_regex)
   .lib_validate_common_use_reference(
     tables$common_use_reference, tables$material_hierarchy
   )
   invisible(TRUE)
+}
+
+.lib_enrich_material_group <- function(metadata, reference) {
+  metadata <- data.table::as.data.table(data.table::copy(metadata))
+  reference <- data.table::as.data.table(data.table::copy(reference))
+  .lib_require_cols(metadata, c("material_class", "material_type"), "metadata")
+  .lib_require_cols(
+    reference, c("material_class", "material_type", "material_group"),
+    "material_group_reference"
+  )
+  index <- match(as.character(metadata$material_class),
+                 as.character(reference$material_class))
+  if (anyNA(index)) {
+    missing <- sort(unique(as.character(metadata$material_class[is.na(index)])))
+    stop("No material_group route exists for material_class: ",
+         paste(missing, collapse = ", "), call. = FALSE)
+  }
+  expected_type <- as.character(reference$material_type[index])
+  observed_type <- as.character(metadata$material_type)
+  mismatch <- is.na(observed_type) | !nzchar(trimws(observed_type)) |
+    observed_type != expected_type
+  if (any(mismatch)) {
+    stop("Material type disagrees with material_group_reference for: ",
+         paste(sort(unique(as.character(metadata$material_class[mismatch]))),
+               collapse = ", "), call. = FALSE)
+  }
+  metadata[, material_group := as.character(reference$material_group[index])]
+  metadata
 }
 
 .lib_validate_material_form_regex <- function(regex_reference) {
@@ -6190,6 +8258,60 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   !escaped
 }
 
+.lib_build_source_root <- function() {
+  installed <- tryCatch(
+    path.package("OpenSpecy"), error = function(...) character()
+  )
+  source_file <- getSrcFilename(.lib_build_source_paths, full.names = TRUE)
+  source_root <- if (length(source_file) && nzchar(source_file[[1L]])) {
+    dirname(dirname(source_file[[1L]]))
+  } else {
+    character()
+  }
+  current <- normalizePath(getwd(), mustWork = FALSE)
+  parents <- current
+  repeat {
+    parent <- dirname(current)
+    if (identical(parent, current)) break
+    parents <- c(parents, parent)
+    current <- parent
+  }
+  candidates <- unique(c(installed, source_root, parents))
+  for (candidate in candidates) {
+    description <- file.path(candidate, "DESCRIPTION")
+    if (!file.exists(description)) next
+    package <- tryCatch(
+      read.dcf(description, fields = "Package")[[1L]],
+      error = function(...) NA_character_
+    )
+    if (identical(package, "OpenSpecy")) {
+      return(normalizePath(candidate, mustWork = TRUE))
+    }
+  }
+  stop("Cannot locate the loaded OpenSpecy package source for provenance",
+       call. = FALSE)
+}
+
+.lib_build_source_paths <- function() {
+  root <- .lib_build_source_root()
+  r_dir <- file.path(root, "R")
+  r_files <- if (dir.exists(r_dir)) {
+    paths <- list.files(r_dir, full.names = TRUE, all.files = TRUE)
+    paths[!file.info(paths)$isdir]
+  } else {
+    character()
+  }
+  paths <- c(
+    file.path(root, "DESCRIPTION"), file.path(root, "NAMESPACE"), r_files,
+    file.path(root, "workflows", "OpenSpecy_reference_library.R")
+  )
+  sort(unique(normalizePath(paths[file.exists(paths)], mustWork = TRUE)))
+}
+
+.lib_build_source_signatures <- function() {
+  .lib_file_signatures(.lib_build_source_paths(), checksum_limit = Inf)
+}
+
 .lib_build_signature <- function(x, workflow_paths, arguments) {
   sources <- if (is.character(x)) {
     .lib_file_signatures(x)
@@ -6200,32 +8322,60 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
   }
   workflow <- .lib_file_signatures(workflow_paths, checksum_limit = Inf)
-  description <- if (file.exists("DESCRIPTION")) {
-    read.dcf("DESCRIPTION", fields = "Version")[[1L]]
-  } else {
-    NA_character_
-  }
-  code_checksum <- if (file.exists(file.path("R", "build_lib.R"))) {
-    .lib_sha256_file(file.path("R", "build_lib.R"))
-  } else {
-    NA_character_
-  }
+  source_paths <- .lib_build_source_paths()
+  description_path <- source_paths[basename(source_paths) == "DESCRIPTION"]
+  description <- read.dcf(description_path[[1L]], fields = "Version")[[1L]]
+  package_source <- .lib_build_source_signatures()
   digest::digest(
     list(sources = sources, workflow = workflow, arguments = arguments,
-         version = description, code = code_checksum,
+         version = description, package_source = package_source,
          git = .lib_git_state(), runtime = .lib_runtime_provenance()),
     algo = "sha256"
   )
 }
 
-.lib_release_signature <- function(assessment_signature) {
-  package_source <- .lib_file_signatures(
-    c("DESCRIPTION", file.path("R", "build_lib.R")), checksum_limit = Inf
-  )
+.lib_release_signature <- function(assessment_signature, models = NULL) {
+  package_source <- .lib_build_source_signatures()
+  model_payload <- if (is.null(models)) NULL else
+    digest::digest(.lib_slim_model_collection(models), algo = "sha256")
   digest::digest(
     list(
       assessment = assessment_signature, package_source = package_source,
+      model_payload = model_payload,
       git = .lib_git_state(), runtime = .lib_runtime_provenance()
+    ),
+    algo = "sha256"
+  )
+}
+
+.lib_nested_content_signature <- function(x) {
+  if (is_OpenSpecy(x)) {
+    return(digest::digest(x, algo = "sha256"))
+  }
+  if (!is.list(x)) {
+    return(digest::digest(x, algo = "sha256"))
+  }
+  digest::digest(
+    list(
+      names = names(x),
+      values = lapply(x, .lib_nested_content_signature)
+    ),
+    algo = "sha256"
+  )
+}
+
+.lib_rebuild_checkpoint_signature <- function(libraries, medoids,
+                                              input_signature) {
+  digest::digest(
+    list(
+      schema = "OpenSpecy_rebuild_checkpoint_v1",
+      input = as.character(input_signature),
+      libraries = .lib_nested_content_signature(libraries),
+      medoids = if (is.null(medoids)) NULL else
+        .lib_nested_content_signature(medoids),
+      package_source = .lib_build_source_signatures(),
+      runtime = .lib_runtime_provenance(),
+      downstream_version = "gated-hierarchical-model-v8"
     ),
     algo = "sha256"
   )
@@ -6242,10 +8392,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     )
   }
   workflow <- .lib_file_signatures(workflow_paths, checksum_limit = Inf)
+  package_source <- .lib_build_source_signatures()
   digest::digest(
     list(
       sources = sources, workflow = workflow, arguments = arguments,
-      component_version = component_version,
+      component_version = component_version, package_source = package_source,
       runtime = .lib_runtime_provenance()
     ),
     algo = "sha256"
@@ -6633,6 +8784,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prune_rows <- list()
   prune_excluded_rows <- list()
   prune_reassignment_rows <- list()
+  prune_generic_reassignment_rows <- list()
   prune_removal_rows <- list()
   prune_conflict_rows <- list()
   quarantine_parts <- list()
@@ -6690,6 +8842,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         pruned$reassignments
       )[, artifact := name][]
     }
+    if (nrow(pruned$generic_reassignment_audit)) {
+      prune_generic_reassignment_rows[[name]] <- data.table::copy(
+        pruned$generic_reassignment_audit
+      )[, artifact := name][]
+    }
     if (nrow(pruned$removals)) {
       prune_removal_rows[[name]] <- data.table::copy(
         pruned$removals
@@ -6715,20 +8872,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     retention_stages,
     .lib_library_stage_counts(libraries, stage = "post_prune")
   ), fill = TRUE)
-  if (!isTRUE(remove_other) && nrow(other_policy$review)) {
-    other_policy$review[
-      action == "retained_for_semisupervised_reassignment",
-      action := "retained_unresolved"
-    ]
-    if (length(prune_reassignment_rows)) {
-      reassigned_ids <- data.table::rbindlist(
-        prune_reassignment_rows, fill = TRUE
-      )[, .(artifact, spectrum_id)]
-      other_policy$review[
-        reassigned_ids,
-        on = .(artifact, spectrum_id),
-        action := "reassigned"
-      ]
+  if (nrow(other_policy$review)) {
+    attempted <- if (length(prune_generic_reassignment_rows)) {
+      data.table::rbindlist(prune_generic_reassignment_rows, fill = TRUE)
+    } else {
+      NULL
+    }
+    other_policy$review <- .lib_finalize_other_review(
+      other_policy$review, libraries, prune_targets, attempted
+    )
+    for (name in names(libraries)) {
+      review <- other_policy$review[artifact == name]
+      attr(libraries[[name]], "other_review_report") <- if (nrow(review)) {
+        data.table::copy(review)
+      } else {
+        .lib_other_review_schema()
+      }
     }
   }
 
@@ -6738,7 +8897,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   common_use_rows <- list()
   common_use_coverage_rows <- list()
   for (name in names(libraries)) {
-    report(paste0("enriching material form and common use (", name, ")"))
+    report(paste0(
+      "enriching material group, material form, and common use (", name, ")"
+    ))
+    libraries[[name]]$metadata <- .lib_enrich_material_group(
+      libraries[[name]]$metadata, tables$material_group_reference
+    )
     form <- .lib_enrich_material_form(
       libraries[[name]]$metadata, tables$material_form_regex
     )
@@ -6867,6 +9031,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   libraries <- closure$libraries
   closure$libraries <- NULL
+  prebuilt_medoids <- closure$medoids
+  closure$medoids <- NULL
+  correlation_validation_cache <- closure$correlation_validation_cache
+  closure$correlation_validation_cache <- NULL
   if (nrow(closure$removals)) {
     prune_removal_rows$final_closure <- closure$removals
   }
@@ -6918,6 +9086,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
   list(
     libraries = libraries,
+    medoids = prebuilt_medoids,
     assessments = list(
       class_prediction = data.table::rbindlist(prediction_rows, fill = TRUE),
       class_coverage = data.table::rbindlist(coverage_rows, fill = TRUE),
@@ -6973,7 +9142,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       ),
       metadata_drop = drop_status
     ),
-    quarantine = quarantine
+    quarantine = quarantine,
+    correlation_validation_cache = correlation_validation_cache
   )
 }
 
@@ -7430,6 +9600,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   conflict_rows <- list()
   quarantine_parts <- list()
   support_rows <- list()
+  validation_cache <- list()
+  medoids <- list()
   row_i <- 0L
   conflict_i <- 0L
   part_i <- 0L
@@ -7466,12 +9638,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       close_view <- function(object, view) {
         ids <- as.character(.lib_ids(object, "sample_name"))
         metadata <- object$metadata
+        normalized <- .lib_prune_normalize(
+          object$spectra, object$wavenumber, exclude = NULL
+        )
+        numeric_view <- .lib_new_correlation_view(
+          normalized, ids = ids, pools = rep(type, length(ids)),
+          wavenumber = object$wavenumber,
+          state = paste(artifact, type, view, sep = "/"),
+          progress = progress, block_size = 128L
+        )
+        rm(normalized)
         result <- .lib_prune_cross_class_conflicts(
           classes = as.character(metadata$material_class),
           pools = rep(type, length(ids)),
-          normalized = .lib_prune_normalize(
-            object$spectra, object$wavenumber, exclude = NULL
-          ),
+          normalized = numeric_view,
           ids = ids,
           library_names = as.character(metadata$library_name),
           threshold = threshold, support_groups = rep(type, length(ids)),
@@ -7480,6 +9660,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         )
         if (nrow(result$removals)) result$removals[, phase := "final_closure"]
         if (nrow(result$conflicts)) result$conflicts[, phase := "final_closure"]
+        result$numeric_view <- numeric_view
         result
       }
       full_result <- close_view(parent, "typed_full")
@@ -7496,6 +9677,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         conflict_i <- conflict_i + 1L
         conflict_rows[[conflict_i]] <- full_result$conflicts[, artifact := artifact][]
       }
+      full_result$numeric_view <- NULL
+      rm(full_result)
+      gc(verbose = FALSE, full = TRUE)
       model_view <- .lib_restrict_model_range(parent, type)
       model_result <- close_view(model_view, "model_range")
       if (nrow(model_result$removals)) {
@@ -7550,6 +9734,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         )
         parent <- filter_spec(parent, -drop)
       }
+      final_model_view <- .lib_restrict_model_range(parent, type)
+      validation_key <- paste(artifact, type, sep = "\r")
+      validation_cache[[validation_key]] <-
+        .lib_correlation_validation_summary(
+          model_result$numeric_view, final_model_view,
+          classes = as.character(final_model_view$metadata$material_class),
+          threshold = threshold, block_size = 128L
+        )
+      if (is.null(medoids[[artifact]])) medoids[[artifact]] <- list()
+      medoids[[artifact]][[type]] <- .lib_build_single_medoid(
+        parent, artifact = artifact, type = type, report = report,
+        progress = progress, correlation_view = model_result$numeric_view
+      )
+      model_result$numeric_view <- NULL
+      rm(model_result, model_view, final_model_view)
+      gc(verbose = FALSE, full = TRUE)
       libraries[[artifact]][[type]] <- parent
       if (!is.null(report)) report(sprintf(
         "final correlation closure %s/%s complete (retained=%d)",
@@ -7572,56 +9772,201 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     quarantine_parts = Filter(Negate(is.null), quarantine_parts),
     support_drops = if (length(support_rows)) {
       data.table::rbindlist(support_rows, fill = TRUE)
-    } else .lib_quality_schema()
+    } else .lib_quality_schema(),
+    correlation_validation_cache = Filter(Negate(is.null), validation_cache),
+    medoids = medoids
   )
 }
 
+.lib_medoid_parent_signature <- function(x, artifact, type) {
+  ids <- as.character(.lib_ids(x, "sample_name"))
+  .lib_require_cols(x$metadata, "material_class", "medoid parent metadata")
+  digest::digest(
+    list(
+      schema = "OpenSpecy_medoid_parent_v1",
+      artifact = as.character(artifact), type = as.character(type),
+      ids = ids, wavenumber = as.numeric(x$wavenumber),
+      spectra = digest::digest(x$spectra, algo = "sha256"),
+      source = .lib_model_source_groups(x$metadata),
+      material_class = as.character(x$metadata$material_class),
+      group_columns = c("canonical_source", "material_class"),
+      k = 50L, min_n = 50L
+    ),
+    algo = "sha256"
+  )
+}
+
+.lib_medoid_eligible_parent <- function(x, artifact, type) {
+  x <- .lib_restrict_model_range(x, type)
+  .lib_drop_range_flat_spectra(
+    x, artifact = paste0("medoid_", artifact), spectrum_type = type,
+    reason = "post_model_range_flat_spectrum", report = NULL
+  )
+}
+
+.lib_supplied_medoid_problems <- function(libraries, medoids) {
+  expected_recipes <- intersect(
+    c("derivative", "nobaseline"), names(libraries)
+  )
+  if (!is.list(medoids) || is.null(names(medoids))) {
+    return("medoid collection is not a named list")
+  }
+  problems <- character()
+  if (!setequal(names(medoids), expected_recipes)) {
+    problems <- c(problems, "medoid recipes do not match completed libraries")
+  }
+  for (artifact in expected_recipes) {
+    expected_types <- names(libraries[[artifact]])
+    supplied <- medoids[[artifact]]
+    if (!is.list(supplied) || is.null(names(supplied)) ||
+        !setequal(names(supplied), expected_types)) {
+      problems <- c(
+        problems, paste0(artifact, " medoid types do not match its library")
+      )
+      next
+    }
+    for (type in expected_types) {
+      label <- paste(artifact, type, sep = "/")
+      medoid <- supplied[[type]]
+      if (!is_OpenSpecy(medoid)) {
+        problems <- c(problems, paste0(label, " is not an OpenSpecy object"))
+        next
+      }
+      parent <- .lib_medoid_eligible_parent(
+        libraries[[artifact]][[type]], artifact, type
+      )
+      expected_signature <- .lib_medoid_parent_signature(
+        parent, artifact, type
+      )
+      supplied_signature <- attr(
+        medoid, "medoid_parent_signature", exact = TRUE
+      )
+      if (!identical(supplied_signature, expected_signature)) {
+        problems <- c(
+          problems, paste0(label, " has stale parent/source provenance")
+        )
+        next
+      }
+      parent_ids <- as.character(.lib_ids(parent, "sample_name"))
+      medoid_ids <- as.character(.lib_ids(medoid, "sample_name"))
+      index <- match(medoid_ids, parent_ids)
+      if (anyNA(index) || anyDuplicated(medoid_ids) ||
+          !identical(as.numeric(medoid$wavenumber),
+                     as.numeric(parent$wavenumber)) ||
+          !identical(medoid$spectra,
+                     parent$spectra[, index, drop = FALSE])) {
+        problems <- c(
+          problems, paste0(label, " is not an unchanged parent subset")
+        )
+        next
+      }
+      relevant <- intersect(
+        c("material_class", "material_type", "material_group",
+          "spectrum_type"),
+        union(names(parent$metadata), names(medoid$metadata))
+      )
+      metadata_match <- all(vapply(relevant, function(column) {
+        column %in% names(parent$metadata) &&
+          column %in% names(medoid$metadata) &&
+          identical(
+            as.character(medoid$metadata[[column]]),
+            as.character(parent$metadata[[column]][index])
+          )
+      }, logical(1L))) && identical(
+        .lib_model_source_groups(medoid$metadata),
+        .lib_model_source_groups(parent$metadata)[index]
+      )
+      if (!metadata_match) {
+        problems <- c(
+          problems, paste0(label, " has stale model/source metadata")
+        )
+      }
+    }
+  }
+  unique(problems)
+}
+
+.lib_build_single_medoid <- function(x, artifact, type, report,
+                                     progress = TRUE,
+                                     correlation_view = NULL) {
+  report <- if (is.function(report)) report else function(...) invisible(NULL)
+  x <- .lib_restrict_model_range(x, type)
+  dropped <- attr(x, "identification_dropped_ids", exact = TRUE)
+  if (length(dropped)) report(sprintf(
+    paste0("discarded spectra below 10%% observed support ",
+           "(%s/%s; removed=%d; minimum=%d/%d wavenumbers)"),
+    artifact, type, length(dropped),
+    attr(x, "identification_minimum_observed", exact = TRUE),
+    nrow(x$spectra)
+  ))
+  x <- .lib_drop_range_flat_spectra(
+    x, artifact = paste0("medoid_", artifact), spectrum_type = type,
+    reason = "post_model_range_flat_spectrum", report = report
+  )
+  flat_drops <- attr(x, "range_flat_drops", exact = TRUE)
+  if (!is.null(flat_drops) && nrow(flat_drops)) {
+    dropped <- unique(c(dropped, flat_drops$spectrum_id))
+  }
+  report(sprintf(
+    "selecting medoids (%s/%s; spectra=%d; wavenumbers=%d; range=%g-%g)",
+    artifact, type, ncol(x$spectra), nrow(x$spectra),
+    min(x$wavenumber), max(x$wavenumber)
+  ))
+  reduction <- x
+  reduction$metadata <- data.table::copy(x$metadata)
+  source_col <- ".OpenSpecy_medoid_source"
+  reduction$metadata[[source_col]] <-
+    .lib_model_source_groups(reduction$metadata)
+  ids <- .lib_reduce_lib(
+    reduction,
+    group_cols = intersect(c(source_col, "material_class"),
+                           names(reduction$metadata)),
+    k = 50, min_n = 50, return = "ids", progress = progress,
+    correlation_view = correlation_view
+  )
+  result <- filter_spec(x, ids)
+  attr(result, "medoid_parent_signature") <-
+    .lib_medoid_parent_signature(x, artifact, type)
+  attr(result, "identification_range") <- range(x$wavenumber)
+  attr(result, "identification_ranges") <-
+    attr(x, "identification_ranges", exact = TRUE)
+  attr(result, "identification_support") <-
+    attr(x, "identification_support", exact = TRUE)
+  attr(result, "identification_dropped_ids") <- dropped
+  attr(result, "identification_minimum_observed") <-
+    attr(x, "identification_minimum_observed", exact = TRUE)
+  attr(result, "range_flat_drops") <- flat_drops
+  result
+}
+
 .lib_build_medoids <- function(libraries, report, checkpoints = NULL,
-                               progress = TRUE) {
+                               progress = TRUE, prebuilt = NULL) {
   processed <- intersect(c("derivative", "nobaseline"), names(libraries))
   out <- lapply(processed, function(name) {
     types <- libraries[[name]]
     stats::setNames(lapply(names(types), function(type) {
       stage <- paste0("medoid_", name, "_", type)
       cached <- if (is.null(checkpoints)) NULL else checkpoints$get(stage)
-      if (!is.null(cached)) return(cached)
-      x <- .lib_restrict_model_range(types[[type]], type)
-      dropped <- attr(x, "identification_dropped_ids", exact = TRUE)
-      if (length(dropped)) report(sprintf(
-        paste0("discarded spectra below 10%% observed support ",
-               "(%s/%s; removed=%d; minimum=%d/%d wavenumbers)"),
-        name, type, length(dropped)
-        , attr(x, "identification_minimum_observed", exact = TRUE),
-        nrow(x$spectra)
-      ))
-      x <- .lib_drop_range_flat_spectra(
-        x, artifact = paste0("medoid_", name), spectrum_type = type,
-        reason = "post_model_range_flat_spectrum", report = report
-      )
-      flat_drops <- attr(x, "range_flat_drops", exact = TRUE)
-      if (!is.null(flat_drops) && nrow(flat_drops)) {
-        dropped <- unique(c(dropped, flat_drops$spectrum_id))
+      compatible <- function(candidate) {
+        if (is.null(candidate)) return(FALSE)
+        single_library <- stats::setNames(
+          list(stats::setNames(list(types[[type]]), type)), name
+        )
+        single_medoid <- stats::setNames(
+          list(stats::setNames(list(candidate), type)), name
+        )
+        !length(.lib_supplied_medoid_problems(single_library, single_medoid))
       }
-      report(sprintf(
-        "selecting medoids (%s/%s; spectra=%d; wavenumbers=%d; range=%g-%g)",
-        name, type, ncol(x$spectra), nrow(x$spectra),
-        min(x$wavenumber), max(x$wavenumber)
-      ))
-      ids <- reduce_lib(
-        x,
-        group_cols = intersect(c("organization", "material_class"),
-                               names(x$metadata)),
-        k = 50, min_n = 50, return = "ids",
-        progress = progress
-      )
-      result <- filter_spec(x, ids)
-      attr(result, "identification_range") <- range(x$wavenumber)
-      attr(result, "identification_support") <-
-        attr(x, "identification_support", exact = TRUE)
-      attr(result, "identification_dropped_ids") <- dropped
-      attr(result, "identification_minimum_observed") <-
-        attr(x, "identification_minimum_observed", exact = TRUE)
-      attr(result, "range_flat_drops") <- flat_drops
+      if (compatible(cached)) return(cached)
+      supplied <- prebuilt[[name]][[type]]
+      result <- if (compatible(supplied)) {
+        supplied
+      } else {
+        .lib_build_single_medoid(
+          types[[type]], artifact = name, type = type, report = report,
+          progress = progress
+        )
+      }
       if (!is.null(checkpoints)) checkpoints$put(stage, result)
       result
     }), names(types))
@@ -7631,8 +9976,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_validate_medoid_parent_closure <- function(libraries, medoids, prune_spec,
-                                                report = NULL,
-                                                block_size = 128L) {
+                                                 report = NULL,
+                                                 block_size = 128L,
+                                                 correlation_cache = NULL) {
   rows <- list()
   row_i <- 0L
   generic <- c("other", "other plastic", "other material", "unclassified")
@@ -7644,6 +9990,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       as.numeric(args$cross_class_threshold)
     for (type in intersect(names(medoids[[artifact]]), names(libraries[[artifact]]))) {
       parent <- .lib_restrict_model_range(libraries[[artifact]][[type]], type)
+      full_boundary_gc <- .lib_full_boundary_gc_required(parent$spectra)
       medoid <- medoids[[artifact]][[type]]
       parent_ids <- as.character(.lib_ids(parent, "sample_name"))
       medoid_ids <- as.character(.lib_ids(medoid, "sample_name"))
@@ -7663,36 +10010,73 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         stop("Medoids are not unchanged spectra from the closed parent: ",
              artifact, "/", type, call. = FALSE)
       }
-      parent_normalized <- .lib_prune_normalize(
-        parent$spectra, parent$wavenumber, exclude = NULL
-      )
-      medoid_normalized <- parent_normalized[index, , drop = FALSE]
-      eligible_parent <- !tolower(trimws(parent_classes)) %in% generic
-      eligible_medoid <- !tolower(trimws(medoid_classes)) %in% generic
-      eligible_parent[is.na(eligible_parent)] <- FALSE
-      eligible_medoid[is.na(eligible_medoid)] <- FALSE
-      maximum <- -Inf
-      wrong_pairs <- 0L
-      blocks <- split(
-        seq_along(parent_ids),
-        ceiling(seq_along(parent_ids) / as.integer(block_size))
-      )
-      for (block in blocks) {
-        cors <- tcrossprod(
-          parent_normalized[block, , drop = FALSE], medoid_normalized
+      cache_key <- paste(artifact, type, sep = "\r")
+      cached <- if (is.null(correlation_cache)) NULL else
+        correlation_cache[[cache_key]]
+      if (!is.null(cached)) {
+        actual_key <- .lib_numeric_view_hash(
+          parent$spectra, parent$wavenumber, parent_ids,
+          state = "model_range"
         )
-        different <- outer(
-          parent_classes[block], medoid_classes, FUN = "!="
-        )
-        different[is.na(different)] <- FALSE
-        valid <- outer(eligible_parent[block], eligible_medoid, FUN = "&") &
-          different
-        scores <- cors[valid & is.finite(cors)]
-        if (length(scores)) {
-          maximum <- max(maximum, max(scores))
-          wrong_pairs <- wrong_pairs + sum(scores > threshold)
+        valid_cache <- identical(
+          cached$schema, "OpenSpecy_medoid_correlation_validation_v1"
+        ) && identical(cached$numeric_key, actual_key) &&
+          identical(cached$ids, parent_ids) &&
+          identical(cached$classes, parent_classes) &&
+          identical(cached$wavenumber, parent$wavenumber) &&
+          isTRUE(all.equal(cached$threshold, threshold, tolerance = 0))
+        if (!valid_cache) {
+          stop(
+            "Stale correlation validation cache for ", artifact, "/", type,
+            call. = FALSE
+          )
         }
-        rm(cors, different, valid, scores)
+        selected_maximum <- cached$max_wrong_class_correlation[index]
+        selected_maximum <- selected_maximum[is.finite(selected_maximum)]
+        maximum <- if (length(selected_maximum)) {
+          max(selected_maximum)
+        } else {
+          -Inf
+        }
+        wrong_pairs <- sum(
+          cached$wrong_class_pairs_above_threshold[index]
+        )
+      } else {
+        parent_normalized <- .lib_prune_normalize(
+          parent$spectra, parent$wavenumber, exclude = NULL
+        )
+        medoid_normalized <- parent_normalized[index, , drop = FALSE]
+        eligible_parent <- !tolower(trimws(parent_classes)) %in% generic
+        eligible_medoid <- !tolower(trimws(medoid_classes)) %in% generic
+        eligible_parent[is.na(eligible_parent)] <- FALSE
+        eligible_medoid[is.na(eligible_medoid)] <- FALSE
+        maximum <- -Inf
+        wrong_pairs <- 0L
+        blocks <- split(
+          seq_along(parent_ids),
+          ceiling(seq_along(parent_ids) / as.integer(block_size))
+        )
+        for (block in blocks) {
+          cors <- tcrossprod(
+            parent_normalized[block, , drop = FALSE], medoid_normalized
+          )
+          different <- outer(
+            parent_classes[block], medoid_classes, FUN = "!="
+          )
+          different[is.na(different)] <- FALSE
+          valid <- outer(
+            eligible_parent[block], eligible_medoid, FUN = "&"
+          ) & different
+          scores <- cors[valid & is.finite(cors)]
+          if (length(scores)) {
+            maximum <- max(maximum, max(scores))
+            wrong_pairs <- wrong_pairs + sum(scores > threshold)
+          }
+          rm(cors, different, valid, scores)
+          .lib_compaction_gc()
+        }
+        rm(parent_normalized, medoid_normalized, eligible_parent,
+           eligible_medoid, blocks)
       }
       if (wrong_pairs > 0L) {
         stop(
@@ -7715,6 +10099,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         "validated parent-to-medoid closure %s/%s (pairs>%g: %d)",
         artifact, type, threshold, wrong_pairs
       ))
+      rm(parent, medoid)
+      .lib_compaction_gc(full = full_boundary_gc)
     }
   }
   data.table::rbindlist(rows, fill = TRUE)
@@ -7726,7 +10112,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   methods <- match.arg(
     methods,
     c("logistic_regression", "hierarchical_logistic_regression",
-      "random_forest"),
+      "gated_hierarchical_logistic_regression", "random_forest"),
     several.ok = TRUE
   )
   if (!is.list(random_forest_args) ||
@@ -7751,6 +10137,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         hierarchy_col = "material_type", selection_rule = "guardrailed"
       )
     ),
+    gated_hierarchical_logistic_regression = list(
+      source = medoids,
+      recipes = intersect(c("derivative", "nobaseline"), names(medoids)),
+      method = "logistic_regression",
+      args = list(
+        hierarchy_col = c("material_type", "material_group"),
+        selection_rule = "guardrailed"
+      )
+    ),
     random_forest = list(
       source = libraries,
       recipes = intersect(c("raw", "derivative", "nobaseline"),
@@ -7772,10 +10167,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       # second forest over the already-covered FTIR and Raman rows would only
       # duplicate the two largest training jobs.
       if (algorithm %in% c(
-          "logistic_regression", "hierarchical_logistic_regression"
+          "logistic_regression", "hierarchical_logistic_regression",
+          "gated_hierarchical_logistic_regression"
         ) &&
           all(c("ftir", "raman") %in% names(sources))) {
-        sources$both <- .lib_bind_same_axis(
+        sources$both <- .lib_bind_shared_axis(
           list(sources$ftir, sources$raman),
           label = paste0(recipe, " FTIR/Raman model input")
         )
@@ -7785,7 +10181,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       stage <- paste0(
         paste("model", algorithm, recipe, type, sep = "_"),
         if (algorithm %in% c(
-            "logistic_regression", "hierarchical_logistic_regression"
+            "logistic_regression", "hierarchical_logistic_regression",
+            "gated_hierarchical_logistic_regression"
           )) {
           "_selection_guardrail_v1"
         } else {
@@ -7793,6 +10190,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         }
       )
       cached <- if (is.null(checkpoints)) NULL else checkpoints$get(stage)
+      if (!is.null(cached) &&
+          identical(algorithm, "gated_hierarchical_logistic_regression")) {
+        cached_problems <- .lib_gated_model_problems(cached, stage)
+        if (length(cached_problems)) {
+          report(paste0(
+            "discarding incomplete model checkpoint: ",
+            paste(cached_problems, collapse = "; ")
+          ))
+          cached <- NULL
+        }
+      }
       if (!is.null(cached)) {
         models[[algorithm]][[recipe]][[type]] <- cached
         cached_warnings <- attr(cached, "training_warnings", exact = TRUE)
@@ -7824,15 +10232,39 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         if(is.na(model_classes)) "unknown" else model_classes
       ))
       training_warnings <- character()
+      node_checkpoint <- if (
+          identical(algorithm, "gated_hierarchical_logistic_regression") &&
+          !is.null(checkpoints)) {
+        local({
+          model_stage <- stage
+          list(
+            get = function(node_id) checkpoints$get(paste0(
+              model_stage, "_", node_id
+            )),
+            put = function(node_id, value) checkpoints$put(
+              paste0(model_stage, "_", node_id), value
+            )
+          )
+        })
+      } else {
+        NULL
+      }
       models[[algorithm]][[recipe]][[type]] <- tryCatch(
         withCallingHandlers(
-          do.call(
-            train_spec_model,
-            c(
-              list(sources[[type]], method = configuration$method),
-              configuration$args
+          {
+            training_source <- sources[[type]]
+            if (!is.null(node_checkpoint)) {
+              attr(training_source, "OpenSpecy_internal_node_checkpoint") <-
+                node_checkpoint
+            }
+            do.call(
+              train_spec_model,
+              c(
+                list(training_source, method = configuration$method),
+                configuration$args
+              )
             )
-          ),
+          },
           warning = function(condition) {
             message <- conditionMessage(condition)
             training_warnings <<- unique(c(training_warnings, message))
@@ -7855,7 +10287,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           warning = training_warnings
         )
       }
+      model_elapsed <- proc.time()[["elapsed"]] - model_started
       if(!is.null(models[[algorithm]][[recipe]][[type]])) {
+        models[[algorithm]][[recipe]][[type]]$training_elapsed_seconds <-
+          as.numeric(model_elapsed)
         attr(models[[algorithm]][[recipe]][[type]], "training_warnings") <-
           training_warnings
       }
@@ -7876,13 +10311,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             algorithm, recipe, type, fitted$observation_count,
             fitted$class_num, fill_replaced, parameters$num_trees,
             parameters$mtry, metrics$macro_class_accuracy,
-            proc.time()[["elapsed"]] - model_started
+            model_elapsed
           ))
-        } else if (identical(algorithm, "hierarchical_logistic_regression")) {
+        } else if (algorithm %in% c(
+            "hierarchical_logistic_regression",
+            "gated_hierarchical_logistic_regression"
+        )) {
           hierarchy_metrics <- fitted$hierarchy_metrics
           leaf_accuracy <- if (is.null(hierarchy_metrics) ||
               !nrow(hierarchy_metrics)) NA_real_ else
-            hierarchy_metrics[scope == "leaf", overall_accuracy][[1L]]
+            hierarchy_metrics[scope %in% c("leaf", "routed_leaf"),
+                              overall_accuracy][[1L]]
           report(sprintf(
             paste0("model complete (%s/%s/%s; observations=%d; classes=%d; ",
                    "filled=%d; root lambda=%s; OOF leaf accuracy=%s; %.1fs)"),
@@ -7898,7 +10337,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             } else {
               "unavailable"
             },
-            proc.time()[["elapsed"]] - model_started
+            model_elapsed
           ))
         } else {
           selection_metric <- fitted$selection_metric
@@ -7911,7 +10350,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
             algorithm, recipe, type, fitted$observation_count,
             fitted$class_num, fill_replaced, fitted$lambda_selected,
             selection_metric,
-            proc.time()[["elapsed"]] - model_started
+            model_elapsed
           ))
         }
       }
@@ -7934,10 +10373,115 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
 }
 
+.lib_gated_model_problems <- function(model, label) {
+  problems <- character()
+  required <- c(
+    "model", "class_names", "class_num", "fill", "all_variables",
+    "model_schema", "hierarchy_cols", "root_node_id", "gated_nodes",
+    "gated_topology", "gated_edges", "training_elapsed_seconds"
+  )
+  if (!all(required %in% names(model)) || !is_OpenSpecy(model$fill)) {
+    problems <- c(problems, paste0(label, " incomplete"))
+  }
+  topology_cols <- c(
+    "node_id", "parent_id", "incoming_label", "depth", "target_col",
+    "terminal"
+  )
+  edge_cols <- c("node_id", "label", "child_node_id")
+  topology <- data.table::as.data.table(model$gated_topology)
+  edges <- data.table::as.data.table(model$gated_edges)
+  if (!all(topology_cols %in% names(topology)) ||
+      !all(edge_cols %in% names(edges))) {
+    problems <- c(problems, paste0(label, " incomplete topology"))
+  }
+  node_fields <- c(
+    "model", "deterministic", "lambda_selected", "dimension_conversion",
+    "class_names", "lambda_path_complete", "selected_lambda_converged"
+  )
+  node_names <- names(model$gated_nodes)
+  if (!length(model$gated_nodes) || is.null(node_names) ||
+      length(model$root_node_id) != 1L || !model$root_node_id %in% node_names ||
+      any(vapply(
+        model$gated_nodes,
+        function(node) !all(node_fields %in% names(node)), logical(1L)
+      ))) {
+    problems <- c(problems, paste0(label, " incomplete gated nodes"))
+  }
+  if (!identical(model$model_schema, "OpenSpecy_gated_hierarchy_v1") ||
+      !identical(
+        as.character(model$hierarchy_cols),
+        c("material_type", "material_group")
+      )) {
+    problems <- c(problems, paste0(label, " unsupported hierarchy"))
+  }
+  if (length(model$training_elapsed_seconds) != 1L ||
+      !is.finite(model$training_elapsed_seconds) ||
+      model$training_elapsed_seconds < 0) {
+    problems <- c(problems, paste0(label, " invalid training runtime"))
+  }
+  converged <- tryCatch(
+    .lib_selected_lambda_converged(model), error = function(...) FALSE
+  )
+  if (!isTRUE(converged)) {
+    problems <- c(problems, paste0(label, " selected lambda unconverged"))
+  }
+  unique(problems)
+}
+
+.lib_gated_model_checkpoint_problems <- function(models, medoids) {
+  algorithm <- "gated_hierarchical_logistic_regression"
+  collection <- models[[algorithm]]
+  if (is.null(collection)) return(paste0(algorithm, " missing"))
+  recipes <- intersect(c("derivative", "nobaseline"), names(medoids))
+  if (!length(recipes)) return("gated model source recipes missing")
+  problems <- character()
+  for (recipe in recipes) {
+    expected <- names(medoids[[recipe]])
+    if (all(c("ftir", "raman") %in% expected)) {
+      expected <- c(expected, "both")
+    }
+    for (type in expected) {
+      label <- paste(algorithm, recipe, type, sep = "/")
+      model <- collection[[recipe]][[type]]
+      if (is.null(model)) {
+        problems <- c(problems, paste0(label, " missing"))
+        next
+      }
+      problems <- c(problems, .lib_gated_model_problems(model, label))
+    }
+  }
+  unique(problems)
+}
+
+.lib_collect_model_warnings <- function(models) {
+  rows <- list()
+  row_i <- 0L
+  for (algorithm in names(models)) {
+    for (artifact in names(models[[algorithm]])) {
+      for (model_name in names(models[[algorithm]][[artifact]])) {
+        model <- models[[algorithm]][[artifact]][[model_name]]
+        value <- attr(model, "training_warnings", exact = TRUE)
+        if (!length(value)) next
+        row_i <- row_i + 1L
+        rows[[row_i]] <- data.table::data.table(
+          algorithm = algorithm, artifact = artifact, model = model_name,
+          warning = as.character(value)
+        )
+      }
+    }
+  }
+  if (length(rows)) data.table::rbindlist(rows, fill = TRUE) else
+    .lib_warning_schema()
+}
+
 .lib_restrict_model_range <- function(x, type) {
   type <- tolower(type)
-  if (type %in% c("ftir", "raman")) {
-    limits <- c(800, 3200)
+  if (identical(type, "ftir")) {
+    minimum <- c(800, 2420)
+    maximum <- c(2200, 3200)
+  } else if (identical(type, "raman")) {
+    minimum <- 800
+    maximum <- 3200
   } else if (identical(type, "nir")) {
     finite_fraction <- rowMeans(is.finite(x$spectra))
     usable <- x$wavenumber >= 4000 & x$wavenumber <= 12000 &
@@ -7955,16 +10499,20 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     ends <- cumsum(runs$lengths)
     starts <- ends - runs$lengths + 1L
     indices <- seq.int(starts[run], ends[run])
-    limits <- range(x$wavenumber[indices])
+    minimum <- min(x$wavenumber[indices])
+    maximum <- max(x$wavenumber[indices])
   } else {
     stop("Unsupported spectrum type: ", type, call. = FALSE)
   }
   out <- restrict_range(
-    x, min = limits[1L], max = limits[2L], make_rel = FALSE
+    x, min = minimum, max = maximum, make_rel = FALSE
   )
   supported <- .lib_filter_spectral_support(out, min_fraction = 0.1)
   out <- supported$object
-  attr(out, "identification_range") <- limits
+  attr(out, "identification_range") <- range(out$wavenumber)
+  attr(out, "identification_ranges") <- data.table::data.table(
+    minimum = as.numeric(minimum), maximum = as.numeric(maximum)
+  )
   out
 }
 
@@ -7982,6 +10530,26 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   out <- as_OpenSpecy(out)
   out
+}
+
+.lib_bind_shared_axis <- function(objects, label = "objects") {
+  objects <- Filter(Negate(is.null), objects)
+  if (!length(objects)) return(NULL)
+  axes <- lapply(objects, `[[`, "wavenumber")
+  shared <- axes[[1L]]
+  if (length(axes) > 1L) {
+    for (axis in axes[-1L]) shared <- shared[shared %in% axis]
+  }
+  if (!length(shared)) {
+    stop(label, " do not share any exact wavenumbers", call. = FALSE)
+  }
+  aligned <- lapply(objects, function(object) {
+    rows <- match(shared, object$wavenumber)
+    object$wavenumber <- shared
+    object$spectra <- object$spectra[rows, , drop = FALSE]
+    object
+  })
+  .lib_bind_same_axis(aligned, label = label)
 }
 
 .lib_filter_optional_type <- function(x, type) {
@@ -8194,7 +10762,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   table_fields <- c(
     "tests", "lambda_metrics", "oob_metrics", "oob_class_accuracy",
     "feature_importance", "training_parameters", "class_weights",
-    "class_metrics", "hierarchy_metrics", "fold_assignments"
+    "class_metrics", "hierarchy_metrics", "source_metrics", "node_support",
+    "fold_assignments"
   )
   out <- stats::setNames(vector("list", length(table_fields)), table_fields)
   for (algorithm in names(models)) {
@@ -8408,6 +10977,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_lambda_metrics = model_tables$lambda_metrics,
     model_class_metrics = model_tables$class_metrics,
     model_hierarchy_metrics = model_tables$hierarchy_metrics,
+    model_source_metrics = model_tables$source_metrics,
+    model_node_support = model_tables$node_support,
     model_fold_assignments = model_tables$fold_assignments,
     model_oob_metrics = model_tables$oob_metrics,
     model_oob_class_accuracy = model_tables$oob_class_accuracy,
@@ -8740,7 +11311,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   evidence_names <- intersect(
     c("split_manifest", "library_tests", "model_training_tests", "model_tests",
       "model_lambda_metrics", "model_class_metrics",
-      "model_hierarchy_metrics", "model_fold_assignments",
+      "model_hierarchy_metrics", "model_source_metrics",
+      "model_node_support", "model_fold_assignments",
       "model_oob_metrics", "model_oob_class_accuracy",
       "model_feature_importance", "model_training_parameters",
       "model_class_weights", "medoid_model_summary", "medoid_model_support",
@@ -9141,7 +11713,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   updated_models <- build$models
   algorithms <- intersect(
     c("logistic_regression", "hierarchical_logistic_regression",
-      "random_forest"),
+      "gated_hierarchical_logistic_regression", "random_forest"),
     names(updated_models)
   )
   for (algorithm in algorithms) {
@@ -9189,7 +11761,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           query <- if (length(component_types) == 1L) {
             query_parts[[1L]]
           } else {
-            .lib_bind_same_axis(query_parts, "combined model test spectra")
+            .lib_bind_shared_axis(query_parts, "combined model test spectra")
           }
           rm(query_parts)
           gc(verbose = FALSE)
@@ -9833,9 +12405,18 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       }
     )
   }
+  if (!is.null(build$models$gated_hierarchical_logistic_regression)) {
+    expected$gated_hierarchical_logistic_regression <- lapply(
+      build$medoids, function(types) {
+        out <- names(types)
+        if (all(c("ftir", "raman") %in% out)) out <- c(out, "both")
+        out
+      }
+    )
+  }
   problems <- character()
-  if (is.null(expected$logistic_regression)) {
-    problems <- c(problems, "logistic_regression missing")
+  if (!length(expected)) {
+    problems <- c(problems, "no supported model collection found")
   }
   for (algorithm in names(expected)) {
     for (recipe in names(expected[[algorithm]])) {
@@ -9846,9 +12427,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           problems <- c(problems, paste0(label, " missing"))
           next
         }
-        required <- c("model", "class_names", "class_num", "fill", "all_variables")
-        if (!all(required %in% names(model)) || !is_OpenSpecy(model$fill)) {
-          problems <- c(problems, paste0(label, " incomplete"))
+        if (identical(
+            algorithm, "gated_hierarchical_logistic_regression"
+        )) {
+          problems <- c(problems, .lib_gated_model_problems(model, label))
+        } else {
+          required <- c(
+            "model", "class_names", "class_num", "fill", "all_variables"
+          )
+          if (!all(required %in% names(model)) || !is_OpenSpecy(model$fill)) {
+            problems <- c(problems, paste0(label, " incomplete"))
+          }
         }
         if (algorithm %in% c(
             "logistic_regression", "hierarchical_logistic_regression"
@@ -9885,6 +12474,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!is.null(model$selected_lambda_converged)) {
     return(isTRUE(model$selected_lambda_converged))
   }
+  if (identical(model$model_type, "gated_hierarchical_logistic_regression") &&
+      length(model$gated_nodes)) {
+    return(all(vapply(model$gated_nodes, function(node) {
+      if (isTRUE(node$deterministic)) return(TRUE)
+      if (!is.null(node$selected_lambda_converged)) {
+        return(isTRUE(node$selected_lambda_converged))
+      }
+      error <- node$model$jerr
+      is.numeric(error) && length(error) == 1L && !is.na(error) && error == 0L
+    }, logical(1L))))
+  }
   error <- model$model$jerr
   is.numeric(error) && length(error) == 1L && !is.na(error) && error == 0L
 }
@@ -9893,7 +12493,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   c(
     "names", "class", "intensity_unit", "intensity_units",
     "derivative_order", "baseline", "spectra_type", "transformations",
-    "identification_range"
+    "identification_range", "identification_ranges",
+    "medoid_parent_signature"
   )
 }
 
@@ -9932,9 +12533,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     "coefficients", "class_names", "class_num", "observation_count", "fill",
     "fill_method", "variable_num", "all_variables", "variables_in",
     "selection_metric", "selection_rule", "selection_accuracy_tolerance",
+    "selection_policy", "probability_semantics", "model_schema",
+    "hierarchy_cols", "root_node_id", "gated_nodes", "gated_topology",
+    "gated_edges",
     "broad_deterministic", "broad_dimension_conversion", "branch_models",
     "hierarchy", "lambda_path_complete", "selected_lambda_converged",
-    "convergence_error"
+    "convergence_error", "training_elapsed_seconds"
   )
 }
 
@@ -9995,6 +12599,33 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       node
     })
   }
+  if (identical(out$model_type, "gated_hierarchical_logistic_regression") &&
+      length(out$gated_nodes)) {
+    out$gated_nodes <- lapply(out$gated_nodes, function(node) {
+      keep <- intersect(
+        c("model", "deterministic", "lambda_selected",
+          "dimension_conversion", "class_names", "lambda_path_complete",
+          "selected_lambda_converged"),
+        names(node)
+      )
+      node <- node[keep]
+      if (inherits(node$model, "glmnet")) {
+        node$model <- .lib_slim_glmnet_model(
+          node$model, node$lambda_selected
+        )
+      }
+      node
+    })
+    out$gated_topology <- data.table::as.data.table(out$gated_topology)[, .(
+      node_id, parent_id, incoming_label, depth, target_col, terminal
+    )]
+    out$gated_edges <- data.table::as.data.table(out$gated_edges)[, .(
+      node_id, label, child_node_id
+    )]
+    root <- out$gated_nodes[[out$root_node_id]]
+    out$model <- root$model
+    out$lambda_selected <- root$lambda_selected
+  }
   if (is_OpenSpecy(out$fill)) out$fill <- .lib_slim_reference_object(out$fill)
   out
 }
@@ -10054,6 +12685,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   models <- list(
     logistic_regression = list(),
     hierarchical_logistic_regression = list(),
+    gated_hierarchical_logistic_regression = list(),
     random_forest = list()
   )
   for (algorithm in names(models)) {
@@ -10559,14 +13191,15 @@ lib_clean_metadata <- function(x,
 }
 
 .pam_group_ids <- function(x, id_col, k, progress = FALSE,
-                           group_label = "group", ...) {
+                           group_label = "group", correlation_view = NULL,
+                           ...) {
   x <- as_OpenSpecy(x)
   ids <- .lib_ids(x, id_col)
   if (ncol(x$spectra) <= k) return(ids)
   if (ncol(x$spectra) > 3000L) {
     return(.pam_large_group_ids(
       x, id_col = id_col, k = k, progress = progress,
-      group_label = group_label, ...
+      group_label = group_label, correlation_view = correlation_view, ...
     ))
   }
 
@@ -10577,7 +13210,13 @@ lib_clean_metadata <- function(x,
       group_label, length(ids)
     ))
   }
-  cors <- cor_spec(x, x, compute = "optimized")
+  cors <- if (is.null(correlation_view)) {
+    cor_spec(x, x, compute = "optimized")
+  } else {
+    .lib_correlation_values(
+      correlation_view, ids, seq_along(ids), seq_along(ids)
+    )
+  }
   cors[is.na(cors)] <- 0
   cors <- pmax(pmin(cors, 1), -1)
   diag(cors) <- 1
@@ -10646,7 +13285,8 @@ lib_clean_metadata <- function(x,
 
 .pam_large_group_ids <- function(x, id_col, k, progress = FALSE,
                                  group_label = "group", samples = 5L,
-                                 sample_size = 1000L, ...) {
+                                 sample_size = 1000L,
+                                 correlation_view = NULL, ...) {
   ids <- .lib_ids(x, id_col)
   count <- length(ids)
   sample_size <- min(count, max(as.integer(sample_size), 2L * k + 1L))
@@ -10659,9 +13299,11 @@ lib_clean_metadata <- function(x,
     ))
   }
 
-  normalized <- .lib_prune_normalize(
-    x$spectra, x$wavenumber, c(Inf, Inf)
-  )
+  normalized <- if (is.null(correlation_view)) {
+    .lib_prune_normalize(x$spectra, x$wavenumber, c(Inf, Inf))
+  } else {
+    NULL
+  }
   seed_exists <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   if (seed_exists) old_seed <- get(".Random.seed", envir = .GlobalEnv)
   on.exit({
@@ -10680,12 +13322,18 @@ lib_clean_metadata <- function(x,
     sampled_object <- filter_spec(x, sampled)
     sampled_ids <- .pam_group_ids(
       sampled_object, id_col = id_col, k = k, progress = FALSE,
-      group_label = group_label, ...
+      group_label = group_label, correlation_view = correlation_view, ...
     )
     candidate_indices <- match(sampled_ids, ids)
-    correlations <- tcrossprod(
-      normalized, normalized[candidate_indices, , drop = FALSE]
-    )
+    correlations <- if (is.null(correlation_view)) {
+      tcrossprod(
+        normalized, normalized[candidate_indices, , drop = FALSE]
+      )
+    } else {
+      .lib_correlation_values(
+        correlation_view, ids, seq_along(ids), candidate_indices
+      )
+    }
     correlations[!is.finite(correlations)] <- -1
     correlations <- pmax(pmin(correlations, 1), -1)
     objective <- sum(1 - matrixStats::rowMaxs(correlations))

@@ -15,6 +15,8 @@ tiny_build_lib <- function() {
       label = c("nylon 6", "polyamides", "plastic", "missing",
                 "pet", "polyesters", "plastic", "missing"),
       material_class = rep(c("class_a", "class_b"), each = 4),
+      material_type = rep("plastic", 8),
+      material_group = rep("fixture polymer", 8),
       spectrum_type = rep("ftir", 8),
       intensity_units = rep("absorbance", 8)
     ),
@@ -235,6 +237,40 @@ test_that("reduce_lib() uses cluster PAM medoids and reports useful progress", {
   expect_error(reduce_lib(lib, progress = NA), "'progress'")
 })
 
+test_that("dense correlation views preserve medoid IDs for stable-ID subsets", {
+  old_options <- options(
+    OpenSpecy.correlation_cache = "dense",
+    OpenSpecy.correlation_cache_max_bytes = Inf
+  )
+  on.exit(options(old_options), add = TRUE)
+
+  lib <- tiny_build_lib()
+  ids <- as.character(lib$metadata$sample_name)
+  normalized <- OpenSpecy:::.lib_prune_normalize(
+    lib$spectra, lib$wavenumber, exclude = NULL
+  )
+  view <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids = ids, pools = rep("ftir", length(ids)),
+    wavenumber = lib$wavenumber, state = "medoid-test"
+  )
+
+  subset <- filter_spec(lib, c(8L, 6L, 5L, 4L, 2L, 1L))
+  legacy_ids <- reduce_lib(
+    subset, group_cols = "material_class", k = 2, min_n = 2,
+    return = "ids", progress = FALSE
+  )
+  dense_ids <- OpenSpecy:::.lib_reduce_lib(
+    subset, group_cols = "material_class", k = 2, min_n = 2,
+    return = "ids", progress = FALSE, correlation_view = view
+  )
+
+  expect_identical(dense_ids, legacy_ids)
+  stats <- OpenSpecy:::.lib_correlation_view_stats(view)
+  expect_equal(stats$dense_builds, 1L)
+  expect_equal(stats$dense_queries, 2L)
+  expect_equal(stats$bounded_queries, 0L)
+})
+
 test_that("oversized PAM groups use deterministic sampled correlation medoids", {
   set.seed(42)
   wn <- seq(800, 3200, length.out = 60)
@@ -361,6 +397,126 @@ test_that("release sanitizers retain runtime state and remove assessments", {
   )))
 })
 
+test_that("build source provenance is independent of the working directory", {
+  root_paths <- OpenSpecy:::.lib_build_source_paths()
+  expect_true(all(c("DESCRIPTION", "NAMESPACE") %in% basename(root_paths)))
+  expect_true(any(grepl("[/\\\\]R[/\\\\]", root_paths)))
+
+  old_dir <- setwd(tempdir())
+  other_paths <- tryCatch(
+    OpenSpecy:::.lib_build_source_paths(),
+    finally = setwd(old_dir)
+  )
+  expect_identical(other_paths, root_paths)
+  signatures <- OpenSpecy:::.lib_build_source_signatures()
+  expect_identical(nrow(signatures), length(other_paths))
+  expect_false(anyNA(signatures$checksum))
+  expect_true(all(nzchar(signatures$checksum)))
+})
+
+test_that("aggregate gated checkpoints require complete converged models", {
+  lib <- tiny_build_lib()
+  model <- list(
+    model = structure(list(jerr = 0L), class = "mock_model"),
+    model_type = "gated_hierarchical_logistic_regression",
+    class_names = c("class_a", "class_b"), class_num = 2L,
+    fill = lib, all_variables = lib$wavenumber,
+    model_schema = "OpenSpecy_gated_hierarchy_v1",
+    hierarchy_cols = c("material_type", "material_group"),
+    root_node_id = "root", gated_nodes = list(
+      root = list(
+        model = NULL, deterministic = TRUE, lambda_selected = NA_real_,
+        dimension_conversion = data.table::data.table(
+          factor_num = 1L, name = "plastic"
+        ),
+        class_names = "plastic", lambda_path_complete = TRUE,
+        selected_lambda_converged = TRUE
+      )
+    ),
+    gated_topology = data.table::data.table(
+      node_id = "root", parent_id = NA_character_,
+      incoming_label = NA_character_, depth = 0L,
+      target_col = "material_type", terminal = FALSE
+    ),
+    gated_edges = data.table::data.table(
+      node_id = character(), label = character(), child_node_id = character()
+    ),
+    training_elapsed_seconds = 1,
+    selected_lambda_converged = TRUE
+  )
+  medoids <- list(derivative = list(ftir = lib))
+  models <- list(gated_hierarchical_logistic_regression = list(
+    derivative = list(ftir = model)
+  ))
+
+  expect_length(
+    OpenSpecy:::.lib_gated_model_checkpoint_problems(models, medoids), 0L
+  )
+  release_signature <- OpenSpecy:::.lib_release_signature("assessment", models)
+  expect_identical(
+    OpenSpecy:::.lib_release_signature("assessment", models),
+    release_signature
+  )
+  no_runtime <- models
+  no_runtime$gated_hierarchical_logistic_regression$derivative$ftir$
+    training_elapsed_seconds <- NULL
+  expect_match(
+    OpenSpecy:::.lib_gated_model_checkpoint_problems(no_runtime, medoids),
+    "incomplete|invalid training runtime"
+  )
+  changed_runtime <- models
+  changed_runtime$gated_hierarchical_logistic_regression$derivative$ftir$
+    training_elapsed_seconds <- 2
+  expect_false(identical(
+    OpenSpecy:::.lib_release_signature("assessment", changed_runtime),
+    release_signature
+  ))
+  unconverged <- models
+  unconverged$gated_hierarchical_logistic_regression$derivative$ftir[[
+    "selected_lambda_converged"
+  ]] <- FALSE
+  expect_match(
+    OpenSpecy:::.lib_gated_model_checkpoint_problems(unconverged, medoids),
+    "selected lambda unconverged"
+  )
+  missing <- models
+  missing$gated_hierarchical_logistic_regression$derivative$ftir <- NULL
+  expect_match(
+    OpenSpecy:::.lib_gated_model_checkpoint_problems(missing, medoids),
+    "derivative/ftir missing"
+  )
+  malformed <- models
+  malformed$gated_hierarchical_logistic_regression$derivative$ftir$
+    gated_nodes <- list(root = 1)
+  expect_match(
+    OpenSpecy:::.lib_gated_model_checkpoint_problems(malformed, medoids),
+    "incomplete gated nodes"
+  )
+})
+
+test_that("aggregate model warnings are reconstructed from checkpoints", {
+  first <- list(value = 1)
+  second <- list(value = 2)
+  attr(first, "training_warnings") <- c("first warning", "second warning")
+  attr(second, "training_warnings") <- "third warning"
+  models <- list(
+    gated_hierarchical_logistic_regression = list(
+      derivative = list(ftir = first, raman = second)
+    )
+  )
+
+  warnings <- OpenSpecy:::.lib_collect_model_warnings(models)
+  expect_equal(nrow(warnings), 3L)
+  expect_setequal(
+    warnings$warning,
+    c("first warning", "second warning", "third warning")
+  )
+  expect_identical(
+    OpenSpecy:::.lib_collect_model_warnings(list()),
+    OpenSpecy:::.lib_warning_schema()
+  )
+})
+
 test_that("official builders can opt into host workers without changing defaults", {
   previous <- options("OpenSpecy.build_workers")
   on.exit(options(previous), add = TRUE)
@@ -371,6 +527,38 @@ test_that("official builders can opt into host workers without changing defaults
   expect_identical(OpenSpecy:::.lib_build_workers(), 8L)
   options(OpenSpecy.build_workers = -1L)
   expect_identical(OpenSpecy:::.lib_build_workers(), 1L)
+})
+
+test_that("official model workers are scoped and restored after errors", {
+  skip_on_cran()
+  skip_if_not_installed("doFuture")
+  skip_if_not_installed("doRNG")
+  skip_if_not_installed("future")
+  skip_if_not_installed("foreach")
+  previous_options <- options("OpenSpecy.build_workers")
+  previous_plan <- future::plan()
+  on.exit({
+    future::plan(previous_plan)
+    foreach::registerDoSEQ()
+    options(previous_options)
+  }, add = TRUE)
+  options(OpenSpecy.build_workers = 2L)
+  foreach::registerDoSEQ()
+  observed <- new.env(parent = emptyenv())
+
+  expect_error(
+    OpenSpecy:::.lib_with_model_workers({
+      observed$backend <- foreach::getDoParName()
+      observed$workers <- future::nbrOfWorkers()
+      stop("model fit stopped", call. = FALSE)
+    }),
+    "model fit stopped"
+  )
+
+  expect_identical(observed$backend, "doFuture")
+  expect_identical(observed$workers, 2L)
+  expect_identical(foreach::getDoParName(), "doSEQ")
+  expect_identical(future::nbrOfWorkers(), 1L)
 })
 
 test_that("build_model_lib() trains and deploys a balanced probability random forest", {
@@ -491,6 +679,52 @@ test_that("typed random forests do not repeat FTIR and Raman in a combined fit",
   )
 
   expect_named(result$models$random_forest$raw, c("ftir", "raman"))
+})
+
+test_that("combined logistic models use the exact FTIR and Raman axis intersection", {
+  ftir <- tiny_build_lib()
+  raman <- tiny_build_lib()
+  raman$metadata$spectrum_type <- "raman"
+  local_mocked_bindings(
+    train_spec_model = function(x, ...) {
+      list(
+        observation_count = ncol(x$spectra), class_num = 2L,
+        fill_replaced = 0L, lambda_selected = 0.1,
+        selection_metric = "mock",
+        training_wavenumber = x$wavenumber,
+        identification_ranges = attr(x, "identification_ranges", exact = TRUE)
+      )
+    },
+    .package = "OpenSpecy"
+  )
+
+  result <- OpenSpecy:::.lib_build_models(
+    libraries = list(),
+    medoids = list(derivative = list(ftir = ftir, raman = raman)),
+    report = function(...) NULL,
+    methods = "logistic_regression"
+  )$models$logistic_regression$derivative
+
+  expect_named(result, c("ftir", "raman", "both"))
+  expect_identical(result$both$training_wavenumber,
+                   result$ftir$training_wavenumber)
+  expect_gt(length(result$raman$training_wavenumber),
+            length(result$both$training_wavenumber))
+  expect_true(any(
+    result$raman$training_wavenumber > 2200 &
+      result$raman$training_wavenumber < 2420
+  ))
+  expect_false(any(
+    result$both$training_wavenumber > 2200 &
+      result$both$training_wavenumber < 2420
+  ))
+  expect_equal(
+    result$both$identification_ranges,
+    data.table::data.table(
+      minimum = c(800, 2420), maximum = c(2200, 3200)
+    )
+  )
+  expect_identical(result$both$observation_count, 16L)
 })
 
 test_that("build_lib() applies named recipes to merged sources", {
@@ -1229,6 +1463,92 @@ test_that("cross-class pruning closes internal conflicts before independent evid
   expect_false("generic" %in% first$removals$spectrum_id)
 })
 
+test_that("cross-class scans collect every reconstructed query block", {
+  normalized <- rbind(
+    suspect = c(1, 0, 0, 0),
+    reference_1 = c(1, 0, 0, 0),
+    reference_2 = c(1, 0, 0, 0),
+    tie_a = c(0, 1, 0, 0),
+    tie_b = c(0, 1, 0, 0),
+    distinct = c(0, 0, 1, 0)
+  )
+  args <- list(
+    classes = c("class_a", "class_b", "class_b", "class_c", "class_d",
+                "class_e"),
+    pools = rep("ftir", nrow(normalized)), normalized = normalized,
+    ids = rownames(normalized),
+    library_names = c("lib_1", "lib_2", "lib_3", "lib_4", "lib_5",
+                      "lib_6"),
+    threshold = 0.9, block_size = 2L
+  )
+  expected <- do.call(OpenSpecy:::.lib_prune_cross_class_conflicts, args)
+  correlation_values <- OpenSpecy:::.lib_correlation_values
+  query_calls <- 0L
+  collections <- logical()
+  local_mocked_bindings(
+    .lib_correlation_values = function(...) {
+      query_calls <<- query_calls + 1L
+      correlation_values(...)
+    },
+    .lib_compaction_gc = function(full = FALSE) {
+      collections <<- c(collections, isTRUE(full))
+      invisible(NULL)
+    },
+    .package = "OpenSpecy"
+  )
+
+  actual <- do.call(OpenSpecy:::.lib_prune_cross_class_conflicts, args)
+  expect_equal(actual, expected, tolerance = 0)
+  expect_gt(query_calls, 0L)
+  expect_identical(length(collections), query_calls)
+  expect_false(any(collections))
+})
+
+test_that("correlation validation collects every reconstructed query block", {
+  normalized <- rbind(
+    ftir_a = c(1, 0, 0, 0),
+    ftir_b = c(0, 1, 0, 0),
+    ftir_c = c(0, 0, 1, 0),
+    raman_a = c(1, 0, 0, 0),
+    raman_b = c(0, 1, 0, 0),
+    raman_c = c(0, 0, 1, 0)
+  )
+  ids <- rownames(normalized)
+  pools <- rep(c("ftir", "raman"), each = 3L)
+  classes <- rep(c("class_a", "class_b", "class_c"), 2L)
+  view <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids = ids, pools = pools, wavenumber = seq_len(ncol(normalized))
+  )
+  object <- as_OpenSpecy(
+    seq_len(ncol(normalized)), t(normalized),
+    metadata = data.table::data.table(
+      sample_name = ids, material_class = classes, spectrum_type = pools
+    )
+  )
+  correlation_values <- OpenSpecy:::.lib_correlation_values
+  query_calls <- 0L
+  collections <- logical()
+  local_mocked_bindings(
+    .lib_correlation_values = function(...) {
+      query_calls <<- query_calls + 1L
+      correlation_values(...)
+    },
+    .lib_compaction_gc = function(full = FALSE) {
+      collections <<- c(collections, isTRUE(full))
+      invisible(NULL)
+    },
+    .package = "OpenSpecy"
+  )
+
+  summary <- OpenSpecy:::.lib_correlation_validation_summary(
+    view, object, classes, threshold = 0.9, block_size = 2L
+  )
+  expect_s3_class(summary, "OpenSpecyCorrelationValidation")
+  expect_identical(query_calls, 4L)
+  expect_identical(length(collections), query_calls + 1L)
+  expect_false(any(collections))
+})
+
 test_that("internal cross-class majority removes the active high-degree spectrum", {
   normalized <- rbind(
     suspect = c(1, 0, 0, 0),
@@ -1372,6 +1692,105 @@ test_that("typed closure filters parents before medoid construction", {
   expect_true(any(closed$removals$correlation_view == "typed_full"))
   expect_length(closed$quarantine_parts, 1L)
   expect_true(check_OpenSpecy(closed$quarantine_parts[[1L]]))
+  expect_length(closed$correlation_validation_cache, 1L)
+
+  closed_parent <- closed$libraries$derivative$ftir
+  medoid_rows <- !duplicated(closed_parent$metadata$material_class)
+  medoid <- OpenSpecy:::.lib_restrict_model_range(
+    filter_spec(closed_parent, medoid_rows), "ftir"
+  )
+  prune_spec <- list(derivative = list(
+    cross_class = TRUE, cross_class_threshold = 0.9, min_n = 2
+  ))
+  bounded_validation <- OpenSpecy:::.lib_validate_medoid_parent_closure(
+    closed$libraries, list(derivative = list(ftir = medoid)),
+    prune_spec = prune_spec
+  )
+  cached_validation <- OpenSpecy:::.lib_validate_medoid_parent_closure(
+    closed$libraries, list(derivative = list(ftir = medoid)),
+    prune_spec = prune_spec,
+    correlation_cache = closed$correlation_validation_cache
+  )
+  expect_equal(cached_validation, bounded_validation, tolerance = 0)
+
+  stale <- closed$correlation_validation_cache
+  stale[[1L]]$numeric_key <- "stale"
+  expect_error(
+    OpenSpecy:::.lib_validate_medoid_parent_closure(
+      closed$libraries, list(derivative = list(ftir = medoid)),
+      prune_spec = prune_spec, correlation_cache = stale
+    ),
+    "Stale correlation validation cache"
+  )
+})
+
+test_that("medoid-parent validation bounds fallback blocks and cached hashes", {
+  wn <- seq(800, 3200, length.out = 60)
+  axis <- seq(-3, 3, length.out = length(wn))
+  spectra <- cbind(
+    a1 = dnorm(axis, mean = -1.1),
+    a2 = dnorm(axis, mean = -1),
+    a3 = dnorm(axis, mean = -0.9),
+    b1 = dnorm(axis, mean = 0.9),
+    b2 = dnorm(axis, mean = 1.1)
+  )
+  parent <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c("class_a", "class_a", "class_a", "class_b", "class_b"),
+      material_type = "plastic", spectrum_type = "ftir",
+      library_name = c("lib_1", "lib_2", "lib_3", "lib_1", "lib_2")
+    )
+  )
+  parent_model_range <- OpenSpecy:::.lib_restrict_model_range(parent, "ftir")
+  medoid <- filter_spec(
+    parent_model_range, c(TRUE, FALSE, FALSE, TRUE, FALSE)
+  )
+  libraries <- list(derivative = list(ftir = parent))
+  medoids <- list(derivative = list(ftir = medoid))
+  prune_spec <- list(derivative = list(
+    cross_class = TRUE, cross_class_threshold = 0.999999
+  ))
+  collections <- logical()
+  local_mocked_bindings(
+    .lib_compaction_gc = function(full = FALSE) {
+      collections <<- c(collections, isTRUE(full))
+      invisible(NULL)
+    },
+    .package = "OpenSpecy"
+  )
+
+  fallback <- OpenSpecy:::.lib_validate_medoid_parent_closure(
+    libraries, medoids, prune_spec = prune_spec, block_size = 2L
+  )
+  expect_equal(fallback$wrong_class_pairs_above_threshold, 0L)
+  expect_identical(
+    length(collections), as.integer(ceiling(ncol(parent$spectra) / 2) + 1L)
+  )
+  expect_false(any(collections))
+
+  parent_ids <- as.character(parent_model_range$metadata$sample_name)
+  cache <- stats::setNames(list(structure(list(
+    schema = "OpenSpecy_medoid_correlation_validation_v1",
+    view_key = "test",
+    numeric_key = OpenSpecy:::.lib_numeric_view_hash(
+      parent_model_range$spectra, parent_model_range$wavenumber,
+      parent_ids, state = "model_range"
+    ),
+    ids = parent_ids,
+    classes = as.character(parent_model_range$metadata$material_class),
+    wavenumber = parent_model_range$wavenumber,
+    threshold = 0.999999,
+    max_wrong_class_correlation = rep(-Inf, length(parent_ids)),
+    wrong_class_pairs_above_threshold = integer(length(parent_ids))
+  ), class = c("OpenSpecyCorrelationValidation", "list"))), "derivative\rftir")
+  collections <- logical()
+  cached <- OpenSpecy:::.lib_validate_medoid_parent_closure(
+    libraries, medoids, prune_spec = prune_spec, correlation_cache = cache
+  )
+  expect_equal(cached$wrong_class_pairs_above_threshold, 0L)
+  expect_identical(collections, FALSE)
 })
 
 test_that("cross-class pruning uses a strict threshold", {
@@ -1393,6 +1812,234 @@ test_that("cross-class pruning uses a strict threshold", {
 
   expect_length(exact$removed_rows, 0L)
   expect_identical(below$removed_rows, 1:2)
+})
+
+test_that("dense and compact views equal bounded pruning and survive masks", {
+  old_options <- options(
+    OpenSpecy.correlation_cache = "dense",
+    OpenSpecy.correlation_cache_max_bytes = Inf
+  )
+  on.exit(options(old_options), add = TRUE)
+  normalized <- rbind(
+    suspect = c(1, 0, 0, 0),
+    reference_a = c(1, 0, 0, 0),
+    reference_b = c(1, 0, 0, 0),
+    tie_a = c(0, 1, 0, 0),
+    tie_b = c(0, 1, 0, 0),
+    distinct = c(0, 0, 1, 0),
+    generic = c(0, 0, 1, 0)
+  )
+  ids <- rownames(normalized)
+  pools <- rep("ftir", length(ids))
+  classes <- c(
+    "class_a", "class_b", "class_b", "class_c", "class_d", "class_e",
+    "other plastic"
+  )
+  libraries <- c("lib_1", "lib_2", "lib_3", "lib_4", "lib_5", "lib_6",
+                 "lib_7")
+  dense <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids, pools, seq_len(ncol(normalized)), state = "test"
+  )
+  dense_result <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes, pools, dense, ids, libraries, threshold = 0.9,
+    block_size = 2L
+  )
+  bounded_result <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes, pools, normalized, ids, libraries, threshold = 0.9,
+    block_size = 2L
+  )
+  expect_identical(dense_result$removed_rows, bounded_result$removed_rows)
+  expect_equal(dense_result$removals, bounded_result$removals, tolerance = 0)
+  expect_equal(dense_result$conflicts, bounded_result$conflicts, tolerance = 0)
+  compact <- OpenSpecy:::.lib_compact_threshold_correlation_view(
+    dense, threshold = 0.9, block_size = 2L
+  )
+  compact_result <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes, pools, compact, ids, libraries, threshold = 0.9,
+    block_size = 2L
+  )
+  expect_identical(compact_result$removed_rows, bounded_result$removed_rows)
+  expect_equal(compact_result$removals, bounded_result$removals, tolerance = 0)
+  expect_equal(compact_result$conflicts, bounded_result$conflicts, tolerance = 0)
+  streamed_compact <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids, pools, seq_len(ncol(normalized)), state = "test",
+    block_size = 2L, compact_threshold = 0.9
+  )
+  streamed_result <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    classes, pools, streamed_compact, ids, libraries, threshold = 0.9,
+    block_size = 2L
+  )
+  expect_identical(streamed_result$removed_rows, bounded_result$removed_rows)
+  expect_equal(streamed_result$removals, bounded_result$removals, tolerance = 0)
+  expect_equal(streamed_result$conflicts, bounded_result$conflicts, tolerance = 0)
+  expect_true(all(vapply(
+    streamed_compact$correlations,
+    OpenSpecy:::.lib_is_threshold_correlation_pool,
+    logical(1L)
+  )))
+  expect_equal(
+    OpenSpecy:::.lib_correlation_view_stats(streamed_compact)$
+      minimum_retained_correlation,
+    0.9
+  )
+
+  keep <- c(1L, 2L, 4L, 5L, 6L, 7L)
+  relabeled <- classes[keep]
+  relabeled[relabeled == "other plastic"] <- "class_f"
+  dense_masked <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    relabeled, pools[keep], dense, ids[keep], libraries[keep],
+    threshold = 0.9, block_size = 3L
+  )
+  bounded_masked <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    relabeled, pools[keep], normalized[keep, , drop = FALSE], ids[keep],
+    libraries[keep], threshold = 0.9, block_size = 3L
+  )
+  expect_identical(dense_masked$removed_rows, bounded_masked$removed_rows)
+  expect_equal(dense_masked$removals, bounded_masked$removals, tolerance = 0)
+  expect_equal(dense_masked$conflicts, bounded_masked$conflicts, tolerance = 0)
+  compact_masked <- OpenSpecy:::.lib_prune_cross_class_conflicts(
+    relabeled, pools[keep], compact, ids[keep], libraries[keep],
+    threshold = 0.9, block_size = 3L
+  )
+  expect_identical(compact_masked$removed_rows, bounded_masked$removed_rows)
+  expect_equal(compact_masked$removals, bounded_masked$removals, tolerance = 0)
+  expect_equal(compact_masked$conflicts, bounded_masked$conflicts, tolerance = 0)
+  stats <- OpenSpecy:::.lib_correlation_view_stats(dense)
+  compact_stats <- OpenSpecy:::.lib_correlation_view_stats(compact)
+  expect_equal(stats$dense_builds, 1L)
+  expect_gt(stats$dense_queries, 1L)
+  expect_equal(stats$bounded_queries, 0L)
+  expect_gt(compact_stats$compacted_queries, 1L)
+})
+
+test_that("streamed compaction releases dense aliases between unequal pools", {
+  old_options <- options(
+    OpenSpecy.correlation_cache = "dense",
+    OpenSpecy.correlation_cache_max_bytes = Inf
+  )
+  on.exit(options(old_options), add = TRUE)
+  normalized <- rbind(
+    ftir_anchor = c(1, 0, 0),
+    ftir_above = c(0.91, sqrt(1 - 0.91^2), 0),
+    ftir_exact = c(0.9, sqrt(1 - 0.9^2), 0),
+    ftir_distinct = c(0, 0, 1),
+    raman_anchor = c(0, 1, 0),
+    raman_above = c(0, 0.95, sqrt(1 - 0.95^2)),
+    raman_distinct = c(1, 0, 0)
+  )
+  ids <- rownames(normalized)
+  pools <- c(rep("ftir", 4L), rep("raman", 3L))
+  observed <- list()
+  collections <- logical()
+  compact_pool <- OpenSpecy:::.lib_compact_threshold_correlation_pool
+  compact_gc <- OpenSpecy:::.lib_compaction_gc
+  local_mocked_bindings(
+    .lib_compact_threshold_correlation_pool = function(
+        dense, threshold, block_size = 128L) {
+      caller <- parent.frame()
+      has_result <- exists("result", envir = caller, inherits = FALSE)
+      observed[[length(observed) + 1L]] <<- list(
+        spectra = nrow(dense),
+        retained_result_binding = has_result,
+        result_aliases_dense = has_result &&
+          identical(get("result", envir = caller, inherits = FALSE), dense)
+      )
+      compact_pool(dense, threshold = threshold, block_size = block_size)
+    },
+    .lib_compaction_gc = function(full = FALSE) {
+      collections <<- c(collections, isTRUE(full))
+      compact_gc(full = full)
+    },
+    .package = "OpenSpecy"
+  )
+
+  view <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids, pools, seq_len(ncol(normalized)),
+    state = "unequal-pool-lifecycle", block_size = 2L,
+    compact_threshold = 0.9
+  )
+
+  expect_identical(
+    vapply(observed, `[[`, integer(1L), "spectra"),
+    c(4L, 3L)
+  )
+  expect_false(any(vapply(
+    observed, `[[`, logical(1L), "retained_result_binding"
+  )))
+  expect_false(any(vapply(
+    observed, `[[`, logical(1L), "result_aliases_dense"
+  )))
+  expect_equal(view$metrics$dense_builds, 2L)
+  # One collection after hashing, one after each dense product, and one after
+  # each single-block compaction bounds temporary Vcells across both pools.
+  # Small views avoid the fixed cost of a full collection; production views
+  # record and request it once either normalized or dense storage is material.
+  expect_identical(collections, rep(FALSE, 5L))
+  expect_false(any(view$preflight$full_boundary_gc))
+  expect_null(view$normalized)
+  expect_true(all(vapply(
+    view$correlations,
+    OpenSpecy:::.lib_is_threshold_correlation_pool,
+    logical(1L)
+  )))
+
+  for (pool in unique(pools)) {
+    rows <- which(pools == pool)
+    expected <- tcrossprod(normalized[rows, , drop = FALSE])
+    keep <- is.finite(expected) & expected > 0.9
+    diag(keep) <- FALSE
+    expected[!keep] <- -Inf
+    dimnames(expected) <- NULL
+    actual <- OpenSpecy:::.lib_correlation_values(
+      view, ids[rows], seq_along(rows), seq_along(rows)
+    )
+    expect_equal(actual, expected, tolerance = 0)
+  }
+})
+
+test_that("correlation view keys invalidate numeric views and guard fallback", {
+  normalized <- rbind(a = c(1, 0), b = c(0.9, sqrt(1 - 0.9^2)))
+  ids <- rownames(normalized)
+  pools <- rep("ftir", 2L)
+  old_options <- options(
+    OpenSpecy.correlation_cache = "dense",
+    OpenSpecy.correlation_cache_max_bytes = Inf
+  )
+  on.exit(options(old_options), add = TRUE)
+  first <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids, pools, c(1, 2), state = "test"
+  )
+  changed_axis <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids, pools, c(1, 3), state = "test"
+  )
+  changed_values <- normalized
+  changed_values[2, 2] <- changed_values[2, 2] + 1e-8
+  changed_numeric <- OpenSpecy:::.lib_new_correlation_view(
+    changed_values, ids, pools, c(1, 2), state = "test"
+  )
+  expect_false(identical(first$key, changed_axis$key))
+  expect_false(identical(first$key, changed_numeric$key))
+  expect_error(
+    OpenSpecy:::.lib_correlation_values(first, c("missing"), 1L, 1L),
+    "stale"
+  )
+
+  options(
+    OpenSpecy.correlation_cache = "auto",
+    OpenSpecy.correlation_cache_max_bytes = 1
+  )
+  fallback <- OpenSpecy:::.lib_new_correlation_view(
+    normalized, ids, pools, c(1, 2), state = "fallback"
+  )
+  fallback_values <- OpenSpecy:::.lib_correlation_values(
+    fallback, ids, 1:2, 1:2
+  )
+  expect_equal(fallback_values, tcrossprod(normalized), tolerance = 0)
+  fallback_stats <- OpenSpecy:::.lib_correlation_view_stats(fallback)
+  expect_equal(fallback_stats$dense_builds, 0L)
+  expect_equal(fallback_stats$bounded_queries, 1L)
+  expect_equal(fallback$preflight$matrix_bytes, 32)
+  expect_equal(fallback$preflight$mode, "bounded")
 })
 
 test_that("prune_lib() applies cross-class removal before generic reassignment", {
@@ -1650,6 +2297,163 @@ test_that("prune_lib() constrains generic reassignment and updates type", {
   )
   expect_equal(nrow(report$reassignments), 3L)
   expect_true(all(report$reassignments$reason == "nearest_eligible_class"))
+  expect_equal(nrow(report$generic_reassignment_audit), 3L)
+  expect_true(all(report$generic_reassignment_audit$action == "reassigned"))
+})
+
+test_that("generic reassignment audits no-eligible and no-finite candidates", {
+  wn <- seq(500, 3500, length.out = 80)
+  varying <- dnorm(seq(-3, 3, length.out = length(wn)))
+  spectra <- cbind(varying, rep(1, length(wn)), rep(1, length(wn)))
+  colnames(spectra) <- c("ftir_target", "ftir_generic", "raman_generic")
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c("polymer target", "other plastic", "other plastic"),
+      material_type = "plastic",
+      spectrum_type = c("ftir", "ftir", "raman")
+    )
+  )
+
+  report <- prune_lib(lib, min_n = 1, return = "report", progress = FALSE)
+  audit <- report$generic_reassignment_audit[order(spectrum_id)]
+
+  expect_identical(
+    audit$action,
+    c("retained_no_finite_candidate", "retained_no_eligible_candidate")
+  )
+  expect_identical(
+    audit$reason, c("no_finite_candidate", "no_eligible_candidate")
+  )
+  expect_true(all(is.na(audit$matched_id)))
+  expect_equal(nrow(report$reassignments), 0L)
+  expect_setequal(
+    report$object$metadata$sample_name,
+    c("ftir_target", "ftir_generic", "raman_generic")
+  )
+})
+
+test_that("official pruning reattaches resolved generic review audits", {
+  wn <- seq(500, 3500, length.out = 80)
+  target <- dnorm(seq(-3, 3, length.out = length(wn)))
+  spectra <- cbind(target, target * 0.99, target * 1.01, rev(target))
+  colnames(spectra) <- c(
+    "target_1", "target_2", "generic_match", "generic_no_candidate"
+  )
+  lib <- as_OpenSpecy(
+    wn, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      spectrum_identity = c("target identity 1", "target identity 2",
+                            "generic match identity",
+                            "generic no-candidate identity"),
+      material = c("target material", "target material", "other plastic",
+                   "other plastic"),
+      material_form = c(
+        NA_character_, NA_character_, "source paint descriptor",
+        "source composite descriptor"
+      ),
+      library_type = "fixture", library_name = "fixture",
+      spectrum_type = c("ftir", "ftir", "ftir", "raman"),
+      organization = "fixture", user_name = "fixture"
+    )
+  )
+  hierarchy <- data.table::data.table(
+    material = c("target material", "other plastic"),
+    material_class = c("polymer target", "other plastic"),
+    material_type = "plastic"
+  )
+  common_use <- data.table::data.table(
+    material_class = hierarchy$material_class, common_use = NA_character_,
+    consumer_mass_share = NA_real_, industrial_mass_share = NA_real_,
+    unclassified_mass_share = NA_real_, basis_year = NA_integer_,
+    geography = NA_character_, source_url = NA_character_,
+    retrieved_date = NA_character_, evidence_notes = NA_character_
+  )
+  tables <- list(
+    classes_reference = data.table::data.table(
+      spectrum_identity = lib$metadata$spectrum_identity,
+      material = lib$metadata$material
+    ),
+    classes_regex = data.table::data.table(
+      pattern = "unlikely_regex_token", material = "other material"
+    ),
+    material_hierarchy = hierarchy,
+    material_group_reference = data.table::data.table(
+      material_class = hierarchy$material_class,
+      material_type = hierarchy$material_type,
+      material_group = c("fixture polymer", "unresolved polymer")
+    ),
+    material_form_regex = data.table::data.table(
+      pattern = "\\bpaint\\b", material_form = "paint"
+    ),
+    common_use_reference = common_use,
+    metadata_drop = data.table::data.table(metadata_column = character())
+  )
+
+  captured <- NULL
+  local_mocked_bindings(
+    .lib_partition_reference_libraries = function(libraries, report = NULL) {
+      captured <<- if (is.environment(libraries)) {
+        libraries$libraries
+      } else {
+        libraries
+      }
+      stop("capture_after_pruning", call. = FALSE)
+    },
+    .package = "OpenSpecy"
+  )
+  expect_error(
+    suppressWarnings(OpenSpecy:::.lib_complete_reference_build(
+      list(raw = lib), tables = tables,
+      prune = list(raw = list(
+        min_n = 2L, cross_class = FALSE, progress = FALSE
+      )),
+      remove_other = TRUE, progress = FALSE, report = function(...) NULL
+    )),
+    "capture_after_pruning"
+  )
+
+  expect_true(check_OpenSpecy(captured$raw))
+  attached <- attr(captured$raw, "other_review_report", exact = TRUE)
+  recovered <- OpenSpecy:::.lib_recover_library_assessments(captured, tables)
+  expect_equal(
+    recovered$other_review[order(spectrum_id)],
+    attached[order(spectrum_id)], tolerance = 0
+  )
+
+  matched <- recovered$other_review[spectrum_id == "generic_match"]
+  expect_identical(matched$action, "reassigned")
+  expect_identical(matched$matched_id, "target_1")
+  expect_identical(matched$matched_material_class, "polymer target")
+  expect_identical(matched$matched_material_type, "plastic")
+  expect_identical(matched$original_material_form, "source paint descriptor")
+  expect_true(is.finite(matched$match_correlation))
+  expect_identical(matched$match_pool, "ftir_nir")
+  expect_identical(
+    captured$raw$metadata[
+      sample_name == "generic_match", material_form
+    ],
+    "paint"
+  )
+
+  unmatched <- recovered$other_review[
+    spectrum_id == "generic_no_candidate"
+  ]
+  expect_identical(unmatched$action, "retained_no_eligible_candidate")
+  expect_true("generic_no_candidate" %in% captured$raw$metadata$sample_name)
+  expect_true(is.na(unmatched$matched_id))
+  expect_true(is.na(unmatched$matched_material_class))
+  expect_true(is.na(unmatched$matched_material_type))
+  expect_identical(
+    unmatched$original_material_form, "source composite descriptor"
+  )
+  expect_true(is.na(unmatched$match_correlation))
+  expect_identical(unmatched$match_pool, "raman")
+  expect_true(is.na(captured$raw$metadata[
+    sample_name == "generic_no_candidate", material_form
+  ]))
 })
 
 test_that("prune_lib() preserves non-generic class labels and empty audits", {
@@ -1661,8 +2465,10 @@ test_that("prune_lib() preserves non-generic class labels and empty audits", {
   expect_equal(report$object$metadata$material_class,
                c("Polymer A", "Polymer A"))
   expect_s3_class(report$reassignments, "data.table")
+  expect_s3_class(report$generic_reassignment_audit, "data.table")
   expect_s3_class(report$removals, "data.table")
   expect_equal(nrow(report$reassignments), 0)
+  expect_equal(nrow(report$generic_reassignment_audit), 0)
   expect_equal(nrow(report$removals), 0)
   expect_equal(report$summary$reassigned, 0L)
   expect_equal(report$summary$removed, 0L)
@@ -1709,6 +2515,9 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   common_use <- data.table::fread(
     reference_workflow_data_path("common_use_reference.csv")
   )
+  material_groups <- data.table::fread(
+    reference_workflow_data_path("material_group_reference.csv")
+  )
 
   expect_false(anyNA(classes$spectrum_identity))
   expect_false(any(classes$spectrum_identity == ""))
@@ -1739,6 +2548,45 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
   expect_setequal(
     common_use$material_class, unique(hierarchy$material_class)
   )
+  expect_identical(anyDuplicated(material_groups$material_class), 0L)
+  expect_setequal(
+    material_groups$material_class, unique(hierarchy$material_class)
+  )
+  hierarchy_types <- unique(hierarchy[, .(material_class, material_type)])
+  expect_equal(
+    material_groups$material_type,
+    hierarchy_types$material_type[match(
+      material_groups$material_class, hierarchy_types$material_class
+    )]
+  )
+  expect_equal(
+    material_groups[material_class == "polyvinylalcohols", material_group],
+    "vinyl alcohol-acetate-acetal"
+  )
+  reviewed_group_routes <- c(
+    "poly(ethylene-propylene-diene) rubber" = "diene-elastomer",
+    "polyacrylonitrile-butadiene" = "diene-elastomer",
+    "polydienes" = "diene-elastomer",
+    "polyisobutylene-isoprene" = "diene-elastomer",
+    "polyolefins" = "olefinic",
+    "polycyanoacrylates" = "acrylic",
+    "polyhydroxy(meth)acrylates" = "acrylic",
+    "polystyrene-acrylonitrile" = "styrenic",
+    "polystyrene-maleic" = "styrenic",
+    "polyhydroxyalkanoates" = "ester-carbonate",
+    "polyhalodienes" = "specialty",
+    "polyhalostyrenes" = "specialty"
+  )
+  expect_identical(
+    stats::setNames(
+      material_groups$material_group[match(
+        names(reviewed_group_routes), material_groups$material_class
+      )],
+      names(reviewed_group_routes)
+    ),
+    reviewed_group_routes
+  )
+  expect_false("vinyl" %in% material_groups$material_group)
   expect_true(all(c("consumer", "industrial", "mixed") %in%
                     stats::na.omit(common_use$common_use)))
   expect_equal(hierarchy[material == "other", material_class], "other")
@@ -1769,6 +2617,24 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
       "r 5. black michelin tire fragment", "r 6. black bike tire fragment",
       "r 8. white bike tire fragment"
     ), material] == "styrene-butadiene"
+  ))
+  expect_equal(classes[spectrum_identity == "pva", material], "other plastic")
+  expect_equal(
+    hierarchy[material == "poly(4-vinyl phenol)", material_class],
+    "polystyrenes"
+  )
+  expect_equal(
+    hierarchy[material == "poly(4-vinylpyridine)", material_class],
+    "polyvinylpyridines"
+  )
+  expect_equal(
+    hierarchy[material == "poly(vinyl pyrrolidone)", material_class],
+    "polyvinylpyrrolidones"
+  )
+  expect_true(all(
+    hierarchy[material %in% c(
+      "poly(ethyleneketone)", "poly(propyleneketone)"
+    ), material_class] == "polyketones"
   ))
   expect_equal(
     classes[spectrum_identity == "poly(ethylene:propylene:diene)", material],
@@ -1820,7 +2686,8 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
     "n-butyl benzoate", "n-decyl methacrylate", "n-vinylformamide",
     "p-phenylenediamine", "p-vinylbenzyl chloride", "p-xylene",
     "propionic acid", "sec-butyl benzoate", "styrene",
-    "tamoxifen (lot #bcbt3163)"
+    "tamoxifen (lot #bcbt3163)", "acrylamide", "benzoic acid",
+    "benzoic acid (lot #058k0006)", "ethylene glycol", "phenol"
   )
   expect_true(all(
     classes[spectrum_identity %in% organic_recommendations, material] ==
@@ -2104,7 +2971,7 @@ test_that("reference class completion labels and caps unresolved other", {
   )
 })
 
-test_that("official other policy removes unresolved rows and retains broad classes", {
+test_that("official other policy retains generic rows for correlation reassignment", {
   lib <- tiny_build_lib()
   lib$metadata[, `:=`(
     spectrum_identity = c(NA_character_, paste0("identity_", 2:8)),
@@ -2124,8 +2991,8 @@ test_that("official other policy removes unresolved rows and retains broad class
   removed <- OpenSpecy:::.lib_apply_other_policy(
     list(raw = lib), remove_other = TRUE, report = NULL
   )
-  expect_identical(colnames(removed$libraries$raw$spectra), paste0("s", 2:8))
-  expect_identical(nrow(removed$libraries$raw$metadata), 7L)
+  expect_identical(colnames(removed$libraries$raw$spectra), paste0("s", 1:8))
+  expect_identical(nrow(removed$libraries$raw$metadata), 8L)
   expect_named(removed$review, names(OpenSpecy:::.lib_other_review_schema()))
   expect_named(removed$summary, names(OpenSpecy:::.lib_other_filter_schema()))
   expect_type(removed$review$source_row, "integer")
@@ -2134,10 +3001,10 @@ test_that("official other policy removes unresolved rows and retains broad class
                c("missing_spectrum_identity", rep("reviewed_broad_category", 2)))
   expect_equal(
     removed$review$action,
-    c("removed", rep("retained_reviewed_broad_category", 2))
+    rep("retained_for_correlation_reassignment", 3)
   )
   expect_equal(removed$summary[, .(candidates, removed, after)],
-               data.table::data.table(candidates = 3L, removed = 1L, after = 7L))
+               data.table::data.table(candidates = 3L, removed = 0L, after = 8L))
   expect_true(check_OpenSpecy(removed$libraries$raw))
 
   retained <- OpenSpecy:::.lib_apply_other_policy(
@@ -2145,10 +3012,49 @@ test_that("official other policy removes unresolved rows and retains broad class
   )
   expect_identical(ncol(retained$libraries$raw$spectra), 8L)
   expect_true(all(
-    retained$review$action == "retained_for_semisupervised_reassignment"
+    retained$review$action == "retained_for_correlation_reassignment"
   ))
   expect_identical(retained$summary$removed, 0L)
   expect_identical(formals(build_lib)$remove_other, TRUE)
+})
+
+test_that("generic review finalization distinguishes every no-op disposition", {
+  lib <- tiny_build_lib()
+  libraries <- list(
+    raw = filter_spec(lib, 1:2),
+    derivative = filter_spec(lib, 3:4)
+  )
+  review <- data.table::data.table(
+    artifact = c("raw", "derivative", "derivative", "derivative"),
+    spectrum_id = c("s1", "s2", "s3", "s4"),
+    action = "retained_for_correlation_reassignment"
+  )
+  attempted <- data.table::data.table(
+    artifact = "derivative", spectrum_id = "s3",
+    material_class = "other plastic", material_type = "plastic",
+    matched_id = NA_character_, correlation = NA_real_, pool = "ftir_nir",
+    action = "retained_no_finite_candidate"
+  )
+
+  finalized <- OpenSpecy:::.lib_finalize_other_review(
+    review, libraries, prune_targets = "derivative", attempted = attempted
+  )
+
+  expect_identical(
+    finalized$action,
+    c(
+      "retained_reassignment_not_attempted", "removed_before_reassignment",
+      "retained_no_finite_candidate", "reassignment_audit_missing"
+    )
+  )
+  expect_identical(finalized$match_pool[[3L]], "ftir_nir")
+  expect_error(
+    OpenSpecy:::.lib_finalize_other_review(
+      review, libraries, prune_targets = "derivative",
+      attempted = data.table::rbindlist(list(attempted, attempted))
+    ),
+    "duplicate artifact/spectrum"
+  )
 })
 
 test_that("source-library retention reports complete drops with a stage reason", {
@@ -2446,6 +3352,10 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
                          length.out = nrow(classes)),
     material_type = "plastic"
   ), file.path(workflow_data, "material_hierarchy.csv"))
+  data.table::fwrite(data.table::data.table(
+    material_class = c("polyclass_a", "polyclass_b"),
+    material_type = "plastic", material_group = "fixture polymer"
+  ), file.path(workflow_data, "material_group_reference.csv"))
   data.table::fwrite(data.table::data.table(sample_name = character()),
                      file.path(workflow_data, "known_bad_ids.csv"))
   data.table::fwrite(data.table::data.table(
@@ -2487,7 +3397,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_named(first$medoids, c("derivative", "nobaseline"))
   expect_named(
     first$models,
-    c("logistic_regression", "hierarchical_logistic_regression")
+    "gated_hierarchical_logistic_regression"
   )
   expect_true(all(vapply(first$libraries, function(recipe) {
     all(vapply(recipe, check_OpenSpecy, logical(1)))
@@ -2531,11 +3441,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     release_dir,
     c("raw.rds", "derivative.rds", "nobaseline.rds",
       "medoid_derivative.rds", "medoid_nobaseline.rds",
-      "model_derivative.rds", "model_nobaseline.rds",
-      "model_logistic_regression_derivative.rds",
-      "model_logistic_regression_nobaseline.rds",
-      "model_hierarchical_logistic_regression_derivative.rds",
-      "model_hierarchical_logistic_regression_nobaseline.rds",
+      "model_gated_hierarchical_logistic_regression_derivative.rds",
+      "model_gated_hierarchical_logistic_regression_nobaseline.rds",
       "assessments.rds", "quarantined_spectra.rds",
       "reference_library_build.rds")
   ))))
@@ -2583,10 +3490,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   }
   model_fields <- OpenSpecy:::.lib_runtime_model_fields()
   for (component in c(
-    "model_logistic_regression_derivative",
-    "model_logistic_regression_nobaseline",
-    "model_hierarchical_logistic_regression_derivative",
-    "model_hierarchical_logistic_regression_nobaseline"
+    "model_gated_hierarchical_logistic_regression_derivative",
+    "model_gated_hierarchical_logistic_regression_nobaseline"
   )) {
     artifact <- readRDS(file.path(release_dir, paste0(component, ".rds")))
     for (model in artifact) {
@@ -2594,7 +3499,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
       expect_false(any(c(
         "tests", "lambda_metrics", "oob_metrics", "oob_class_accuracy",
         "feature_importance", "training_parameters", "class_weights",
-        "class_metrics", "hierarchy_metrics", "fold_assignments",
+        "class_metrics", "hierarchy_metrics", "source_metrics",
+        "node_support", "fold_assignments",
         "support", "class_support"
       ) %in% names(model)))
       expect_null(attr(model, "training_warnings", exact = TRUE))
@@ -2608,7 +3514,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_named(resolved$medoids, c("derivative", "nobaseline"))
   expect_named(
     resolved$models,
-    c("logistic_regression", "hierarchical_logistic_regression")
+    "gated_hierarchical_logistic_regression"
   )
   expect_s3_class(resolved$quarantine, "OpenSpecyQuarantine")
   expect_identical(
@@ -3033,6 +3939,36 @@ test_that("medoid selection restores original missing values", {
   ))
 })
 
+test_that("medoid groups preserve library fallback source diversity", {
+  set.seed(844)
+  wavenumber <- seq(800, 1200, length.out = 40L)
+  spectra <- vapply(seq_len(102L), function(i) {
+    sin(wavenumber / (55 + i / 20)) +
+      cos(wavenumber / (80 + i / 30)) + i / 10000
+  }, numeric(length(wavenumber)))
+  colnames(spectra) <- paste0("fallback_", seq_len(ncol(spectra)))
+  x <- as_OpenSpecy(
+    wavenumber, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra), material_class = "polyvinyl esters",
+      spectrum_type = "ftir", organization = NA_character_,
+      library_name = rep(c("library_a", "library_b"), each = 51L)
+    )
+  )
+
+  medoid <- OpenSpecy:::.lib_build_single_medoid(
+    x, artifact = "derivative", type = "ftir",
+    report = NULL, progress = FALSE
+  )
+
+  expect_equal(ncol(medoid$spectra), 100L)
+  expect_equal(
+    medoid$metadata[, .N, by = library_name][order(library_name)]$N,
+    c(50L, 50L)
+  )
+  expect_false(".OpenSpecy_medoid_source" %in% names(medoid$metadata))
+})
+
 test_that("macro lambda metrics choose class-balanced accuracy", {
   outcome <- c(1L, 1L, 1L, 2L)
   predictions <- array(-1, dim = c(4, 2, 2))
@@ -3046,6 +3982,25 @@ test_that("macro lambda metrics choose class-balanced accuracy", {
   expect_true(all(metrics$log_loss >= 0))
   expect_true(all(metrics$brier_score >= 0 & metrics$brier_score <= 2))
   expect_identical(which(metrics$selected), 2L)
+})
+
+test_that("gated worst-source metrics require 25 observations", {
+  outcome <- rep(c(1L, 2L), length.out = 49L)
+  sources <- c(rep("under-supported", 24L), rep("supported", 25L))
+  predicted <- 3L - outcome
+  predicted[25:44] <- outcome[25:44]
+  predictions <- array(-10, dim = c(length(outcome), 2L, 1L))
+  predictions[cbind(seq_along(outcome), predicted, 1L)] <- 10
+
+  metrics <- OpenSpecy:::.lib_macro_lambda_metrics(
+    predictions, outcome, lambda = 0.1,
+    selection_rule = "guardrailed", source_groups = sources,
+    selection_policy = "gated"
+  )
+
+  expect_equal(metrics$worst_source_accuracy, 0.8)
+  expect_equal(metrics$supported_sources, 1L)
+  expect_equal(metrics$source_min_observations, 25L)
 })
 
 test_that("multinomial cross-validation links become probabilities", {
@@ -3073,7 +4028,104 @@ test_that("guardrailed lambda selection uses absolute one-point windows", {
   expect_equal(selected$accuracy_tolerance, rep(0.01, 3))
 })
 
-test_that("hierarchical logistic models compose normalized leaf probabilities", {
+test_that("gated lambda selection applies ordered one-point guardrails", {
+  metrics <- data.table::data.table(
+    lambda = c(1, 0.5, 0.1, 0.05),
+    overall_accuracy = c(0.900, 0.890, 0.895, 0.890),
+    minimum_class_recall = c(0.70, 0.80, 0.80, 0.80),
+    worst_source_accuracy = c(0.90, 0.70, 0.82, 0.81),
+    supported_sources = 6L,
+    macro_class_accuracy = c(0.90, 0.90, 0.75, 0.80),
+    log_loss = c(0.2, 0.2, 0.2, 0.2),
+    brier_score = c(0.1, 0.1, 0.1, 0.1)
+  )
+  selected <- OpenSpecy:::.lib_select_gated_lambda_metrics(
+    metrics, selection_rule = "guardrailed", accuracy_tolerance = 0.01
+  )
+  expect_equal(selected$overall_eligible, rep(TRUE, 4))
+  expect_equal(selected$minimum_class_eligible,
+               c(FALSE, TRUE, TRUE, TRUE))
+  expect_equal(selected$source_eligible, c(FALSE, FALSE, TRUE, TRUE))
+  expect_equal(selected$macro_eligible, c(FALSE, FALSE, FALSE, TRUE))
+  expect_identical(which(selected$selected), 4L)
+})
+
+test_that("source-component folds keep sources and stable identities together", {
+  source <- rep(paste0("source_", 1:7), each = 2)
+  labels <- rep(c("class_a", "class_b"), 7)
+  groups <- paste0("group_", seq_along(labels))
+  groups[[3L]] <- groups[[1L]]
+  labels[[3L]] <- labels[[1L]]
+  first <- OpenSpecy:::.lib_model_source_fold_assignment(
+    groups, labels, source, seed = 812L
+  )
+  second <- OpenSpecy:::.lib_model_source_fold_assignment(
+    groups, labels, source, seed = 812L
+  )
+  expect_identical(first$foldid, second$foldid)
+  expect_identical(first$fold_mode, "source_component_holdout")
+  audit <- data.table::data.table(
+    source, groups, component = first$source_component_id,
+    fold = first$foldid
+  )
+  expect_true(all(audit[, data.table::uniqueN(fold), by = source]$V1 == 1L))
+  expect_true(all(audit[, data.table::uniqueN(fold), by = groups]$V1 == 1L))
+  expect_true(all(audit[, data.table::uniqueN(fold), by = component]$V1 == 1L))
+})
+
+test_that("gated source eligibility counts organizations before fold components", {
+  skip_if_not_installed("glmnet")
+  wavenumber <- seq(800, 990, by = 10)
+  labels <- rep(c("class_a", "class_b"), 50L)
+  spectra <- vapply(labels, function(label) {
+    if (label == "class_a") sin(wavenumber / 100) else cos(wavenumber / 100)
+  }, numeric(length(wavenumber)))
+  colnames(spectra) <- paste0("source_gate_", seq_along(labels))
+  make_fixture <- function(organizations) {
+    as_OpenSpecy(
+      wavenumber, spectra,
+      metadata = data.table::data.table(
+        sample_name = colnames(spectra), material_class = labels,
+        material_type = "plastic",
+        material_group = ifelse(labels == "class_a", "group_a", "group_b"),
+        spectrum_type = "ftir", organization = organizations,
+        library_name = paste0("library_", seq_along(labels))
+      ),
+      attributes = list(intensity_unit = "absorbance")
+    )
+  }
+  fit <- function(organizations) suppressMessages(suppressWarnings(
+    train_spec_model(
+      make_fixture(organizations),
+      hierarchy_col = c("material_type", "material_group"),
+      min_n = 3L, nlambda = 3L
+    )
+  ))
+
+  five_sources <- fit(rep(paste0("organization_", 1:5), each = 20L))
+  five_group <- five_sources$node_support[
+    target_col == "material_group" & classes > 1L
+  ]
+  expect_true(five_group$source_eligible)
+  expect_equal(five_group$canonical_sources, 5L)
+  expect_equal(five_group$minimum_child_sources, 5L)
+  expect_equal(five_group$source_components, 1L)
+  expect_identical(
+    five_group$fold_mode, "identity_grouped_source_fold_unavailable"
+  )
+
+  two_sources <- fit(rep(paste0("organization_", 1:2), each = 50L))
+  two_group <- two_sources$node_support[
+    target_col == "material_group" & classes > 1L
+  ]
+  expect_false(two_group$source_eligible)
+  expect_equal(two_group$canonical_sources, 2L)
+  expect_identical(
+    two_group$fold_mode, "identity_grouped_undersupported_source"
+  )
+})
+
+test_that("gated hierarchical logistic models route without pooling probabilities", {
   skip_if_not_installed("glmnet")
   set.seed(8102)
   wavenumber <- seq(800, 1190, by = 10)
@@ -3082,6 +4134,11 @@ test_that("hierarchical logistic models compose normalized leaf probabilities", 
   broad <- ifelse(
     classes %in% c("polyethylene", "polyvinylalcohols"), "plastic",
     ifelse(classes == "cellulose", "natural", "not plastic")
+  )
+  groups <- data.table::fcase(
+    classes %in% c("polyethylene", "polyvinylalcohols"), "polymer test",
+    classes %in% c("organic matter", "mineral"), "non-polymer",
+    default = "cellulose"
   )
   prototypes <- list(
     polyethylene = sin(seq(0, pi, length.out = length(wavenumber))),
@@ -3098,28 +4155,95 @@ test_that("hierarchical logistic models compose normalized leaf probabilities", 
     wavenumber, spectra = spectra,
     metadata = data.table::data.table(
       sample_name = colnames(spectra), material_class = classes,
-      material_type = broad, spectrum_type = "ftir"
+      material_type = broad, material_group = groups, spectrum_type = "ftir"
     ),
     attributes = list(intensity_unit = "absorbance")
   )
 
-  model <- suppressMessages(suppressWarnings(train_spec_model(
-    x, hierarchy_col = "material_type", min_n = 3, nlambda = 4,
-    selection_rule = "guardrailed"
+  node_cache <- new.env(parent = emptyenv())
+  checkpoint_reads <- new.env(parent = emptyenv())
+  checkpoint_writes <- new.env(parent = emptyenv())
+  node_checkpoint <- function(run) {
+    force(run)
+    checkpoint_reads[[run]] <- character()
+    checkpoint_writes[[run]] <- character()
+    list(
+      get = function(node_id) {
+        checkpoint_reads[[run]] <- c(checkpoint_reads[[run]], node_id)
+        if (exists(node_id, envir = node_cache, inherits = FALSE)) {
+          get(node_id, envir = node_cache, inherits = FALSE)
+        } else {
+          NULL
+        }
+      },
+      put = function(node_id, value) {
+        checkpoint_writes[[run]] <- c(checkpoint_writes[[run]], node_id)
+        assign(node_id, value, envir = node_cache)
+        invisible(NULL)
+      }
+    )
+  }
+
+  model <- suppressMessages(suppressWarnings(OpenSpecy:::.lib_train_spec_model(
+    x, hierarchy_col = c("material_type", "material_group"),
+    min_n = 3, nlambda = 4,
+    selection_rule = "guardrailed",
+    node_checkpoint = node_checkpoint("first")
   )))
-  expect_identical(model$model_type, "hierarchical_logistic_regression")
-  expect_setequal(names(model$branch_models),
-                  c("ftir_natural", "ftir_not plastic", "ftir_plastic"))
-  expect_true(model$branch_models$ftir_natural$deterministic)
-  expect_equal(unique(model$lambda_metrics$accuracy_tolerance), 0.01)
-  expect_true(all(c("leaf", "broad") %in% model$hierarchy_metrics$scope))
+  expect_identical(model$model_type,
+                   "gated_hierarchical_logistic_regression")
+  expect_identical(model$model_schema, "OpenSpecy_gated_hierarchy_v1")
+  expect_identical(model$hierarchy_cols,
+                   c("material_type", "material_group"))
+  expect_true(length(model$gated_nodes) >= 6L)
+  expect_true(any(vapply(model$gated_nodes, function(node) {
+    isTRUE(node$deterministic)
+  }, logical(1L))))
+  non_deterministic <- names(model$gated_nodes)[!vapply(
+    model$gated_nodes, function(node) isTRUE(node$deterministic), logical(1L)
+  )]
+  expect_gt(length(non_deterministic), 0L)
+  expect_setequal(checkpoint_reads$first, non_deterministic)
+  expect_setequal(checkpoint_writes$first, non_deterministic)
+
+  cached_model <- suppressMessages(suppressWarnings(
+    OpenSpecy:::.lib_train_spec_model(
+      x, hierarchy_col = c("material_type", "material_group"),
+      min_n = 3, nlambda = 4, selection_rule = "guardrailed",
+      node_checkpoint = node_checkpoint("second")
+    )
+  ))
+  expect_setequal(checkpoint_reads$second, non_deterministic)
+  expect_length(checkpoint_writes$second, 0L)
+  expect_identical(names(cached_model$gated_nodes), names(model$gated_nodes))
+  expect_identical(cached_model$root_node_id, model$root_node_id)
+  expect_identical(cached_model$tests$terminal_node,
+                   model$tests$terminal_node)
+  expect_true(all(c("gate:material_type", "gate:material_group",
+                     "routed_leaf") %in% model$hierarchy_metrics$scope))
   expect_false(any(model$fold_assignments[,
     data.table::uniqueN(fold), by = group_id]$V1 > 1L, na.rm = TRUE))
 
   ranked <- suppressWarnings(match_spec(x, model, top_n = 5L))
+  cached_ranked <- suppressWarnings(match_spec(x, cached_model, top_n = 5L))
+  expect_equal(cached_ranked, ranked, tolerance = 0)
   expect_equal(ranked[, sum(value), by = x]$V1, rep(1, ncol(x$spectra)),
                tolerance = 1e-10)
   expect_setequal(ranked$name, paste0("ftir_", unique(classes)))
+  expect_true(all(c(
+    "routed_material_type", "material_type_probability",
+    "routed_material_group", "material_group_probability", "terminal_node"
+  ) %in% names(ranked)))
+  expect_setequal(unique(ranked$routed_material_type), unique(broad))
+  expect_setequal(unique(ranked$routed_material_group), unique(groups))
+  expect_false(any(grepl(
+    "^(ftir|raman|nir)_", ranked$routed_material_type, ignore.case = TRUE
+  )))
+  expect_false(any(grepl(
+    "^(ftir|raman|nir)_", ranked$routed_material_group, ignore.case = TRUE
+  )))
+  expect_setequal(model$hierarchy$material_type, unique(broad))
+  expect_setequal(model$hierarchy$material_group, unique(groups))
 
   slim <- OpenSpecy:::.lib_slim_model(model)
   expect_equal(
@@ -3136,16 +4260,156 @@ test_that("hierarchical logistic models compose normalized leaf probabilities", 
   incomplete$metadata$material_type[[1L]] <- NA_character_
   expect_error(
     train_spec_model(
-      incomplete, hierarchy_col = "material_type", min_n = 3, nlambda = 3
+      incomplete,
+      hierarchy_col = c("material_type", "material_group"),
+      min_n = 3, nlambda = 3
     ),
     "without 'material_type'"
   )
   expect_error(
     train_spec_model(
-      x, hierarchy_col = "material_type", min_n = 3,
+      x, hierarchy_col = c("material_type", "material_group"), min_n = 3,
       method = "random_forest"
     ),
     "supports logistic regression only"
+  )
+  expect_error(
+    train_spec_model(
+      x, hierarchy_col = c("material_type", "material_class"),
+      min_n = 3, nlambda = 3
+    ),
+    "cannot include 'class_col' or 'type_col'"
+  )
+})
+
+test_that("downstream rebuild signatures cover actual libraries and medoids", {
+  parent <- tiny_build_lib()
+  parent$metadata$organization <- NA_character_
+  parent$metadata$library_name <- rep(c("source_a", "source_b"), each = 4)
+  libraries <- list(
+    derivative = list(ftir = parent),
+    nobaseline = list(ftir = parent)
+  )
+  medoids <- OpenSpecy:::.lib_build_medoids(
+    libraries, report = function(...) NULL, progress = FALSE
+  )
+
+  signature <- OpenSpecy:::.lib_rebuild_checkpoint_signature(
+    libraries, medoids, input_signature = "fixture"
+  )
+  expect_identical(
+    OpenSpecy:::.lib_rebuild_checkpoint_signature(
+      libraries, medoids, input_signature = "fixture"
+    ),
+    signature
+  )
+
+  changed_library <- libraries
+  changed_library$derivative$ftir$spectra[1L, 1L] <-
+    changed_library$derivative$ftir$spectra[1L, 1L] + 1e-8
+  expect_false(identical(
+    OpenSpecy:::.lib_rebuild_checkpoint_signature(
+      changed_library, medoids, input_signature = "fixture"
+    ),
+    signature
+  ))
+
+  changed_medoid <- medoids
+  changed_medoid$derivative$ftir$metadata$material_class[[1L]] <-
+    "changed class"
+  expect_false(identical(
+    OpenSpecy:::.lib_rebuild_checkpoint_signature(
+      libraries, changed_medoid, input_signature = "fixture"
+    ),
+    signature
+  ))
+})
+
+test_that("supplied medoids require current parent and source provenance", {
+  parent <- tiny_build_lib()
+  parent$metadata$organization <- NA_character_
+  parent$metadata$library_name <- rep(c("source_a", "source_b"), each = 4)
+  libraries <- list(
+    derivative = list(ftir = parent),
+    nobaseline = list(ftir = parent)
+  )
+  medoids <- OpenSpecy:::.lib_build_medoids(
+    libraries, report = function(...) NULL, progress = FALSE
+  )
+
+  expect_length(
+    OpenSpecy:::.lib_supplied_medoid_problems(libraries, medoids), 0L
+  )
+  expect_true(nzchar(attr(
+    medoids$derivative$ftir, "medoid_parent_signature", exact = TRUE
+  )))
+  expect_identical(
+    attr(
+      OpenSpecy:::.lib_slim_reference_object(medoids$derivative$ftir),
+      "medoid_parent_signature", exact = TRUE
+    ),
+    attr(
+      medoids$derivative$ftir, "medoid_parent_signature", exact = TRUE
+    )
+  )
+
+  legacy <- medoids
+  attr(legacy$derivative$ftir, "medoid_parent_signature") <- NULL
+  expect_match(
+    OpenSpecy:::.lib_supplied_medoid_problems(libraries, legacy),
+    "stale parent/source provenance"
+  )
+
+  changed_source <- libraries
+  changed_source$derivative$ftir$metadata$library_name[[1L]] <- "source_c"
+  expect_match(
+    OpenSpecy:::.lib_supplied_medoid_problems(changed_source, medoids),
+    "stale parent/source provenance"
+  )
+
+  changed_values <- medoids
+  changed_values$derivative$ftir$spectra[1L, 1L] <-
+    changed_values$derivative$ftir$spectra[1L, 1L] + 1e-8
+  expect_match(
+    OpenSpecy:::.lib_supplied_medoid_problems(libraries, changed_values),
+    "unchanged parent subset"
+  )
+
+  one_library <- libraries["derivative"]
+  stale_prebuilt <- medoids["derivative"]
+  attr(
+    stale_prebuilt$derivative$ftir, "medoid_parent_signature"
+  ) <- NULL
+  rebuilt_prebuilt <- OpenSpecy:::.lib_build_medoids(
+    one_library, report = function(...) NULL, progress = FALSE,
+    prebuilt = stale_prebuilt
+  )
+  expect_length(
+    OpenSpecy:::.lib_supplied_medoid_problems(
+      one_library, rebuilt_prebuilt
+    ),
+    0L
+  )
+
+  writes <- character()
+  stale_cached <- stale_prebuilt$derivative$ftir
+  checkpoint <- list(
+    get = function(stage) stale_cached,
+    put = function(stage, value) {
+      writes <<- c(writes, stage)
+      invisible(value)
+    }
+  )
+  rebuilt_cached <- OpenSpecy:::.lib_build_medoids(
+    one_library, report = function(...) NULL, checkpoints = checkpoint,
+    progress = FALSE
+  )
+  expect_identical(writes, "medoid_derivative_ftir")
+  expect_length(
+    OpenSpecy:::.lib_supplied_medoid_problems(
+      one_library, rebuilt_cached
+    ),
+    0L
   )
 })
 
@@ -3178,7 +4442,12 @@ test_that("rebuild_lib_artifacts reuses completed libraries downstream", {
   expect_named(first, c("libraries", "medoids", "models", "assessments"))
   expect_true(anyNA(first$medoids$derivative$ftir$spectra))
   expect_true(
-    first$models$logistic_regression$derivative$ftir$fill_replaced > 0L
+    first$models$gated_hierarchical_logistic_regression$
+      derivative$ftir$fill_replaced > 0L
+  )
+  expect_true(
+    is.finite(first$models$gated_hierarchical_logistic_regression$
+      derivative$ftir$training_elapsed_seconds)
   )
   expect_named(first$assessments,
                c("cleanup", "ref_lib", "medoid", "model", "functionality"))
@@ -3254,11 +4523,29 @@ test_that("identification ranges retain partial spectra and drop empty ones", {
 
   restricted <- OpenSpecy:::.lib_restrict_model_range(object, "ftir")
   expect_equal(range(restricted$wavenumber), c(802, 3196))
+  expect_false(any(
+    restricted$wavenumber > 2200 & restricted$wavenumber < 2420
+  ))
+  expect_equal(
+    attr(restricted, "identification_ranges"),
+    data.table::data.table(
+      minimum = c(800, 2420), maximum = c(2200, 3200)
+    )
+  )
   expect_identical(colnames(restricted$spectra), c("complete", "partial"))
   expect_identical(
     attr(restricted, "identification_dropped_ids"), "outside_only"
   )
   expect_true(anyNA(restricted$spectra[, "partial"]))
+
+  raman <- OpenSpecy:::.lib_restrict_model_range(object, "raman")
+  expect_true(any(
+    raman$wavenumber > 2200 & raman$wavenumber < 2420
+  ))
+  expect_equal(
+    attr(raman, "identification_ranges"),
+    data.table::data.table(minimum = 800, maximum = 3200)
+  )
 })
 
 test_that("reference regex table contains only genuinely variable rules", {

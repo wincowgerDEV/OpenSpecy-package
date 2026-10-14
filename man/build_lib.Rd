@@ -245,14 +245,15 @@ and retrieves missing artifacts with \code{get_lib()}.}
 versioned release files may be reused.}
 
 \item{remove_other}{logical; in the official end-to-end workflow, whether
-spectra with blank \code{spectrum_identity} or the unresolved literal
-\code{"other"} class are removed before quality control, medoid selection,
-and model fitting. Reviewed broad \code{"other plastic"} and
-\code{"other material"} categories remain in the reference libraries and
-are eligible for \code{prune_lib()}'s constrained nearest-class
-reassignment. Removed and reviewed rows remain visible in
-\code{assessments$cleanup$summary}. Source-only composable builds do not
-apply the official filter.}
+spectra without a stable \code{spectrum_identity} or any generic review
+label are removed before quality control, medoid selection, and model
+fitting. Named generic manufactured
+materials and reviewed \code{"other plastic"}/\code{"other material"}
+categories remain eligible for \code{prune_lib()}'s constrained
+nearest-class correlation reassignment. A generic row without a finite
+eligible candidate is retained and audited. Removed and reviewed rows remain
+visible in \code{assessments$cleanup$summary}. Source-only composable builds
+do not apply the official filter.}
 
 \item{seed}{random seed used before model training.}
 
@@ -344,15 +345,23 @@ logistic regression or inverse-frequency case sampling for random forest.}
 backward-compatible default) or \code{"random_forest"}. The latter requires
 the suggested \pkg{ranger} package.}
 
-\item{hierarchy_col}{optional metadata column defining the broad parent of
-each \code{class_col} value. Supplying it trains a hierarchical logistic
-model; \code{NULL} retains the flat model. Hierarchical random forests are
-not supported.}
+\item{hierarchy_col}{\code{NULL}, or ordered unique metadata column names
+defining the gates above each \code{class_col} leaf. For example,
+\code{c("material_type", "material_group")} trains a strict top-1
+type-to-group-to-class logistic tree. Routed gate labels are the exact
+metadata values from those columns; \code{type_col} prefixes terminal class
+labels only. \code{NULL} retains the flat model.
+Hierarchical random forests are not supported.}
 
-\item{selection_rule}{logistic lambda-selection policy. \code{"guardrailed"}
-protects maximum overall and macro accuracy within fixed absolute 0.01
-windows before minimizing log loss; \code{"macro"} and \code{"overall"}
-reproduce single-metric selection policies.}
+\item{selection_rule}{logistic lambda-selection policy. At source-eligible
+gated nodes, \code{"guardrailed"} applies node-local absolute 0.01 windows
+to maximum overall accuracy, minimum class recall, worst-source accuracy,
+and macro accuracy in that order, then minimizes log loss and Brier score and
+prefers the largest lambda. Worst-source accuracy uses organizations (or
+library-name fallback) with at least 25 node observations. Nodes below the documented spectrum/source
+thresholds use identity-grouped folds and the historical overall/macro/loss
+guardrail.
+\code{"macro"} and \code{"overall"} reproduce single-metric policies.}
 
 \item{nearest}{logical; if \code{TRUE}, \code{assess_lib()} compares each
 spectrum with its highest-correlation neighbor and reports the fraction where
@@ -369,9 +378,13 @@ In composable mode, \code{build_lib()} returns a named list of
 \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
 Official libraries and medoids are nested by recipe and then
 \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
-recipe, and spectrum type. FTIR and Raman medoids/models use
-800--3200 while the NIR interval is derived from finite coverage within
-4000--12000. Assessments use five ordered process lists:
+recipe, and spectrum type. New official fits are stored under
+\code{gated_hierarchical_logistic_regression}; loaders and prediction keep
+accepting saved flat and pooled hierarchical artifacts. FTIR medoids/models
+use 800--2200 and 2420--3200, excluding the atmospheric CO2 interval to
+match the standard particle-analysis input axis. Raman uses 800--3200,
+while the NIR interval is derived from finite coverage within 4000--12000.
+Assessments use five ordered process lists:
 \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 \code{functionality}, with no more than ten nonempty review tables in total.
 Every spectrum receives a derived \code{library_name}: populated
@@ -394,14 +407,21 @@ objects by recipe/type, a long conflict table, and build provenance for
 spectra excluded by cross-class closure.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
-object unless \code{return} requests a table, report, or ids.
+object unless \code{return} requests a table, report, or ids. A
+\code{prune_lib(return = "report")} result includes
+\code{generic_reassignment_audit}, with one row for every generic spectrum
+considered and an explicit reassigned, no-eligible-candidate, or
+no-finite-candidate action.
 \code{make_lib_lookup_template()} returns a data.table unless \code{path} is
 supplied, in which case it writes the csv and invisibly returns the table.
 \code{train_spec_model()} and \code{build_model_lib()} return a list suitable
 for AI classification with
 \code{\link{match_spec}()} and one tidy \code{tests} table instead of
 separate accuracy/confusion summaries. It also contains typed
-\code{lambda_metrics} and \code{support} tables. Random-forest results also
+\code{lambda_metrics} and \code{support} tables. Gated models additionally
+retain their schema, ordered hierarchy columns, node topology/edges,
+node-local models, routed diagnostics, and conditional-probability semantics.
+Random-forest results also
 contain out-of-bag metrics and feature importance. \code{assess_lib()}
 returns a data.table summary.
 }
@@ -476,9 +496,12 @@ tails are trimmed and reassessed, failed corrections are removed, and
 spectra with running signal-to-noise below two are removed before pruning.
 Full artifacts are then partitioned into Raman (200--4000), FTIR
 (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-After pruning and class reassignment, the official workflow derives
-\code{material_form} from the curated form-regex CSV and all atomic metadata
-values, then joins evidence-backed \code{common_use} by final material class.
+After pruning and class reassignment, the official workflow joins the
+complete \code{material_group_reference.csv} crosswalk so every final
+\code{material_class} has exactly one \code{material_type} and
+\code{material_group} route. It then derives \code{material_form} from the
+curated form-regex CSV and all atomic metadata values and joins
+evidence-backed \code{common_use} by final material class.
 Existing form values take precedence when uniquely standardized; conflicting
 form categories remain missing and are audited. Common use may be
 \code{"consumer"}, \code{"industrial"}, \code{"mixed"}, or missing;
@@ -490,26 +513,40 @@ are retained, and the remainder are stably ordered from the fewest to the
 most missing values. Spectra, metadata rows, identifiers, axes, and object
 attributes are unchanged.
 Official class completion temporarily assigns unresolved identities to
-\code{"other"}. By default, spectra with a blank identity or that unresolved
-literal class are removed before quality control and retained in the
-\code{other_review} assessment table. Reviewed \code{"other plastic"} and
-\code{"other material"} rows stay in the reference library and enter
-\code{prune_lib()}'s nearest-class semisupervised pathway.
+\code{"other"}. By default, spectra without a stable identity or any generic
+review label are removed before quality control and retained in the
+\code{other_review} assessment table. Named generic paint, varnish, rubber,
+latex, resin, and unresolved
+composite spectra remain eligible for correlation reassignment, as do
+reviewed \code{"other plastic"} and \code{"other material"} rows. Curated
+named monomers and small organic molecules instead map directly to
+\code{"organic matter"}/\code{"not plastic"} before correlation pruning.
 When requested, \code{prune_lib()} first resolves high-correlation conflicts
 between different reviewed classes within each source library. It repeatedly
 removes the spectrum with the most active wrong-class neighbors, recalculates
 after each round, and removes both endpoints of an adjacent maximum-score
 tie. It then resolves between-library conflicts by the number of distinct
 independent libraries supporting the opposing class. Generic and
-unclassified labels do not participate. Official builds repeat closure on
-the rounded typed and model-range views before deriving medoids, and retain
-excluded spectra plus conflict provenance in
-\code{quarantined_spectra.rds}. Pruning then reassigns generic classes by nearest same-technique
-correlation: \code{"other"} may use any established class,
+unclassified labels do not participate. Each immutable numeric/type view is
+normalized once and, when memory permits, receives one dense double
+correlation matrix keyed by stable identifiers, wavenumbers, processing
+state, range, and spectral content. Conflict closure, relabeling/removal
+queries, generic reassignment, and medoid checks index that matrix. After
+arbitrary-score consumers finish, a full-range view is losslessly compacted
+to its exact directed greater-than-threshold edges before a changed range is
+allocated; lower-threshold reuse is rejected. Bounded blocks remain the
+lower-memory fallback. Official builds repeat closure on the rounded typed and
+model-range views before deriving medoids, and retain excluded spectra plus
+conflict provenance in \code{quarantined_spectra.rds}. Pruning then
+reassigns generic classes by nearest same-technique correlation:
+\code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and
 \code{"other material"} requires \code{"organic matter"} or
-\code{"mineral"}. The matched material type and a correlation audit are
-retained. Once those labels are resolved, each class/spectrum-type group with
+\code{"mineral"}. The matched identifier, class, type, score, and candidate
+pool are audited while the original identity and form are retained. A
+generic row with no finite eligible candidate is retained with a no-match
+audit rather than deleted. Once those labels are resolved, each
+class/spectrum-type group with
 fewer than \code{min_n} spectra is reassigned as a whole to its
 most-correlated established class in the same technique pool and material
 type. A group is removed only when no eligible correlated destination
@@ -538,20 +575,34 @@ relative spectra whose missing values are temporarily replaced by each
 spectrum's finite mean. Groups of at most 3,000 spectra use exact PAM;
 oversized groups use five deterministic 1,000-spectrum PAM samples and keep
 the candidate set with the best full-group correlation-distance objective.
-Official medoids are then selected from the original object so their genuine
-missing values are preserved.
+Official medoids group by material class and the same canonical source used
+by model validation (organization, falling back to library name). They are
+then selected from the original object so their genuine missing values and
+metadata are preserved.
 
 \code{train_spec_model()} trains either OpenSpecy's multinomial logistic
 regression model (\code{method = "logistic_regression"}) or an experimental
 probability random forest (\code{method = "random_forest"}). Logistic
 regression uses inverse class weights and stratified cross-validation to
-select a lambda from grouped out-of-fold predictions. The default
-guardrailed rule keeps candidates within one absolute percentage point of
-the maximum overall accuracy, then within one point of the best eligible
-macro accuracy, minimizes multiclass log loss, and prefers the largest
-lambda on ties. The historical macro-only and overall-only rules remain
-available. Supplying \code{hierarchy_col} trains a broad root followed by
-conditional class models and combines their probabilities along each path.
+select a lambda from grouped out-of-fold predictions. At a source-eligible
+gated node, the default guardrail keeps candidates within one absolute
+percentage point of the maximum overall accuracy, then successively within
+one point of the best eligible minimum class recall, worst-source accuracy,
+and macro accuracy, before minimizing multiclass log loss and Brier score and
+preferring the largest lambda on ties. Source-held-out folds and this
+expanded policy require at least 100 node spectra and five organizations,
+with at least 25 spectra and three organizations per child. Connected source
+components then determine whether at least three leakage-safe held-out folds
+are feasible. Other nodes fall back to identity-grouped folds and the
+historical overall/macro/loss guardrail. Organization is the canonical
+source (with library name used only when organization is absent), and
+worst-source accuracy includes only such sources represented by at least 25
+observations at that node. The macro-only and overall-only rules remain
+available. Supplying
+ordered \code{hierarchy_col} names trains a strict gated tree: each node
+chooses its top class, only that child is evaluated, and the terminal model
+returns conditional leaf probabilities. Gate probabilities are retained as
+diagnostics but are never multiplied, averaged, or otherwise pooled.
 Random
 forest uses inverse-frequency balanced case sampling and out-of-bag
 predictions. This improves minority-class representation in each bootstrap
