@@ -96,6 +96,8 @@ message("  Processed sources: ", length(metadatafiles))
 message("  Raw source: ", source_file)
 message("  Output root: ", output_dir)
 message("  Checkpoint reuse: disabled (clean full rebuild)")
+message("  Cross-class 0.9 closure: disabled")
+message("  Classification model: flat guardrailed logistic regression")
 message("  High-throughput workers: ", build_workers)
 
 reference_library_build <- build_lib(
@@ -104,6 +106,11 @@ reference_library_build <- build_lib(
   previous_library_dir = "system",
   reuse = FALSE,
   remove_other = TRUE,
+  prune = list(
+    derivative = list(cross_class = FALSE),
+    nobaseline = list(cross_class = FALSE)
+  ),
+  model_method = "logistic_regression",
   progress = TRUE
 )
 

@@ -37,6 +37,7 @@ build_lib(
   previous_library_dir = "system",
   reuse = TRUE,
   remove_other = TRUE,
+  model_method = c("gated_hierarchical_logistic_regression", "logistic_regression"),
   seed = 123,
   holdout = 0.1,
   ...
@@ -222,7 +223,11 @@ output library and append assessment summaries to its metadata.}
 
 \item{prune}{\code{NULL}, or a named list mapping recipe names to argument
 lists for \code{\link{prune_lib}()}. Selected recipes are pruned independently
-after processing and assessment. \code{NULL} preserves unpruned outputs.}
+after processing and assessment. \code{NULL} preserves unpruned source-only
+outputs; the official end-to-end workflow interprets \code{NULL} as its
+derivative/no-baseline cross-class pruning default. Supply explicit recipe
+lists with \code{cross_class = FALSE} to retain ordinary pruning and generic
+reassignment without cross-class conflict removal or closure.}
 
 \item{progress}{logical; whether \code{build_lib()} reports named processing
 stages and elapsed time, or \code{reduce_lib()} reports group sizes and
@@ -254,6 +259,12 @@ nearest-class correlation reassignment. A generic row without a finite
 eligible candidate is retained and audited. Removed and reviewed rows remain
 visible in \code{assessments$cleanup$summary}. Source-only composable builds
 do not apply the official filter.}
+
+\item{model_method}{classifier artifact fitted by the official end-to-end
+workflow. \code{"gated_hierarchical_logistic_regression"} preserves the
+strict type-to-group-to-class default; \code{"logistic_regression"} fits one
+flat guardrailed material-class model. Source-only composable builds do not
+fit a model.}
 
 \item{seed}{random seed used before model training.}
 
@@ -379,8 +390,8 @@ In composable mode, \code{build_lib()} returns a named list of
 Official libraries and medoids are nested by recipe and then
 \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
 recipe, and spectrum type. New official fits are stored under
-\code{gated_hierarchical_logistic_regression}; loaders and prediction keep
-accepting saved flat and pooled hierarchical artifacts. FTIR medoids/models
+the selected \code{model_method}; loaders and prediction keep accepting saved
+flat and pooled hierarchical artifacts. FTIR medoids/models
 use 800--2200 and 2420--3200, excluding the atmospheric CO2 interval to
 match the standard particle-analysis input axis. Raman uses 800--3200,
 while the NIR interval is derived from finite coverage within 4000--12000.

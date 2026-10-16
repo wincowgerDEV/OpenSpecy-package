@@ -492,6 +492,44 @@ test_that("aggregate gated checkpoints require complete converged models", {
     OpenSpecy:::.lib_gated_model_checkpoint_problems(malformed, medoids),
     "incomplete gated nodes"
   )
+
+  flat_model <- list(
+    model = structure(list(jerr = 0L), class = "mock_model"),
+    model_type = "logistic_regression",
+    class_names = c("class_a", "class_b"), class_num = 2L,
+    fill = lib, all_variables = lib$wavenumber,
+    training_elapsed_seconds = 1,
+    selected_lambda_converged = TRUE
+  )
+  flat_models <- list(logistic_regression = list(
+    derivative = list(ftir = flat_model)
+  ))
+  expect_length(
+    OpenSpecy:::.lib_flat_model_checkpoint_problems(flat_models, medoids), 0L
+  )
+  expect_length(
+    OpenSpecy:::.lib_official_model_checkpoint_problems(
+      flat_models, medoids, "logistic_regression"
+    ),
+    0L
+  )
+  expect_identical(
+    OpenSpecy:::.lib_official_model_checkpoint_key("logistic_regression"),
+    "models_flat_logistic_v1"
+  )
+  expect_match(
+    OpenSpecy:::.lib_official_model_checkpoint_problems(
+      models, medoids, "logistic_regression"
+    ),
+    "does not match requested method"
+  )
+})
+
+test_that("build_lib validates the official model method", {
+  expect_error(
+    build_lib(tiny_build_lib(), model_method = "random_forest"),
+    "'arg' should be one of"
+  )
 })
 
 test_that("aggregate model warnings are reconstructed from checkpoints", {
@@ -3540,11 +3578,21 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
     lib, output_dir = output_dir,
     previous_library_dir = NULL, dedupe = FALSE, signal_noise = FALSE,
     progress = FALSE, reuse = FALSE,
+    model_method = "logistic_regression",
     prune = fixture_prune,
     recipes = list(raw = list(), derivative = list(), nobaseline = list())
   ))
   expect_named(rebuilt$assessments,
                c("cleanup", "ref_lib", "medoid", "model", "functionality"))
+  expect_named(rebuilt$models, "logistic_regression")
+  flat_release_dir <- attr(rebuilt, "output_dir")
+  expect_false(identical(flat_release_dir, release_dir))
+  expect_true(all(file.exists(file.path(
+    flat_release_dir,
+    c("model_logistic_regression_derivative.rds",
+      "model_logistic_regression_nobaseline.rds",
+      "model_derivative.rds", "model_nobaseline.rds")
+  ))))
 })
 
 test_that("source-local reference splits prevent self-match leakage", {

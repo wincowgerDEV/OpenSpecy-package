@@ -406,10 +406,12 @@ the original range-restricted object, so published medoids retain their
 original `NA` positions. Groups with more than 3,000 spectra use five deterministic
 1,000-spectrum PAM samples; each candidate set is scored against the complete
 group with the same correlation distance, avoiding a full oversized
-dissimilarity matrix. `models` is algorithm-first, then recipe and type. A new
-official build fits only `gated_hierarchical_logistic_regression` from the
-derivative/nobaseline medoids and fills restored gaps with the finite mean at
-each wavenumber across training medoids. Saved flat logistic, pooled
+dissimilarity matrix. `models` is algorithm-first, then recipe and type. By
+default, a new official build fits only
+`gated_hierarchical_logistic_regression` from the derivative/nobaseline
+medoids. Set `model_method = "logistic_regression"` to fit the flat
+guardrailed classifier instead. Both choices fill restored gaps with the finite
+mean at each wavenumber across training medoids. Saved flat logistic, pooled
 `hierarchical_logistic_regression`, and random-forest artifacts remain loadable
 and predict with their historical semantics, so prior comparisons do not
 require refitting every model.
@@ -493,9 +495,19 @@ reference_library_build <- build_lib(
   files,
   output_dir = output_dir,
   previous_library_dir = "system",
-  remove_other = TRUE
+  remove_other = TRUE,
+  prune = list(
+    derivative = list(cross_class = FALSE),
+    nobaseline = list(cross_class = FALSE)
+  ),
+  model_method = "logistic_regression"
 )
 ```
+
+This maintenance configuration preserves within-class pruning and generic
+reassignment but disables the cross-class correlation closure that otherwise
+removes conflicts strictly above 0.9. Omitting `prune` retains the official
+cross-class default; omitting `model_method` retains the gated model default.
 
 After upstream libraries have already completed, rebuild only the downstream
 artifacts into a new explicit output location:

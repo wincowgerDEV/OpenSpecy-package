@@ -1,5 +1,10 @@
 # OpenSpecy 2.0.3
 
+- Official `build_lib()` runs can now select a reproducible flat
+  `logistic_regression` artifact with `model_method`; the gated hierarchy
+  remains the compatibility default. The maintained reference rebuild driver
+  now fits the flat model and explicitly disables cross-class 0.9 closure while
+  retaining within-class pruning and generic reassignment.
 - The landing-page timeline now includes Win Cowger's 2026 TOPSCINET Top 2%
   Scientist badge and links to the corresponding scientist profile.
 - `train_spec_model()` and `build_model_lib()` now accept ordered hierarchy

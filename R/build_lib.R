@@ -284,7 +284,11 @@
 #' output library and append assessment summaries to its metadata.
 #' @param prune \code{NULL}, or a named list mapping recipe names to argument
 #' lists for \code{\link{prune_lib}()}. Selected recipes are pruned independently
-#' after processing and assessment. \code{NULL} preserves unpruned outputs.
+#' after processing and assessment. \code{NULL} preserves unpruned source-only
+#' outputs; the official end-to-end workflow interprets \code{NULL} as its
+#' derivative/no-baseline cross-class pruning default. Supply explicit recipe
+#' lists with \code{cross_class = FALSE} to retain ordinary pruning and generic
+#' reassignment without cross-class conflict removal or closure.
 #' @param progress logical; whether \code{build_lib()} reports named processing
 #' stages and elapsed time, or \code{reduce_lib()} reports group sizes and
 #' correlation/PAM timings.
@@ -310,6 +314,11 @@
 #' eligible candidate is retained and audited. Removed and reviewed rows remain
 #' visible in \code{assessments$cleanup$summary}. Source-only composable builds
 #' do not apply the official filter.
+#' @param model_method classifier artifact fitted by the official end-to-end
+#' workflow. \code{"gated_hierarchical_logistic_regression"} preserves the
+#' strict type-to-group-to-class default; \code{"logistic_regression"} fits one
+#' flat guardrailed material-class model. Source-only composable builds do not
+#' fit a model.
 #' @param seed fixed seed for the grouped old/new assessment split.
 #' @param holdout fraction of stable spectrum groups reserved for assessment.
 #' @param group_cols metadata columns defining groups for reduction.
@@ -381,8 +390,8 @@
 #' Official libraries and medoids are nested by recipe and then
 #' \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
 #' recipe, and spectrum type. New official fits are stored under
-#' \code{gated_hierarchical_logistic_regression}; loaders and prediction keep
-#' accepting saved flat and pooled hierarchical artifacts. FTIR medoids/models
+#' the selected \code{model_method}; loaders and prediction keep accepting saved
+#' flat and pooled hierarchical artifacts. FTIR medoids/models
 #' use 800--2200 and 2420--3200, excluding the atmospheric CO2 interval to
 #' match the standard particle-analysis input axis. Raman uses 800--3200,
 #' while the NIR interval is derived from finite coverage within 4000--12000.
@@ -517,6 +526,10 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       workflow_data = NULL,
                       output_dir = NULL, previous_library_dir = "system",
                       reuse = TRUE, remove_other = TRUE,
+                      model_method = c(
+                        "gated_hierarchical_logistic_regression",
+                        "logistic_regression"
+                      ),
                       seed = 123, holdout = 0.1,
                       ...) {
   if (missing(x)) {
@@ -536,6 +549,7 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       is.na(remove_other)) {
     stop("'remove_other' must be TRUE or FALSE", call. = FALSE)
   }
+  model_method <- match.arg(model_method)
 
   if (!official_mode) {
     return(.lib_build_core(
@@ -567,6 +581,7 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     progress = progress, workflow_data = workflow_data,
     output_dir = output_dir, previous_library_dir = previous_library_dir,
     reuse = reuse, remove_other = remove_other,
+    model_method = model_method,
     seed = seed, holdout = holdout, ...
   )
 }
@@ -7074,6 +7089,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                  restrict_range_args, signal_noise, assess,
                                  prune, progress, workflow_data, output_dir,
                                  previous_library_dir, reuse, remove_other,
+                                 model_method,
                                  seed, holdout,
                                  ...) {
   if (!is.character(output_dir) || length(output_dir) != 1L ||
@@ -7131,7 +7147,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess, prune = prune,
-      remove_other = remove_other, seed = seed, holdout = holdout
+      remove_other = remove_other, model_method = model_method,
+      seed = seed, holdout = holdout
     )
   )
   # Keep completed libraries, medoids, and production models reusable when
@@ -7150,7 +7167,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess, prune = prune,
-      remove_other = remove_other
+      remove_other = remove_other, model_method = model_method
     ),
     component_version = "reference-artifacts-v16-routed-oof-provenance"
   )
@@ -7270,9 +7287,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   medoids <- finalized$medoids
   local_assessments$metadata_finalization <- finalized$assessment
 
-  models <- checkpoints$get("models_gated_hierarchy_v1")
+  model_checkpoint <- .lib_official_model_checkpoint_key(model_method)
+  models <- checkpoints$get(model_checkpoint)
   model_problems <- if (is.null(models)) character() else
-    .lib_gated_model_checkpoint_problems(models, medoids)
+    .lib_official_model_checkpoint_problems(models, medoids, model_method)
   if (length(model_problems)) {
     report(paste0(
       "discarding incomplete aggregate model checkpoint: ",
@@ -7286,19 +7304,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_result <- .lib_with_model_workers(
       .lib_build_models(
         libraries, medoids, report = report, checkpoints = checkpoints,
-        methods = "gated_hierarchical_logistic_regression"
+        methods = model_method
       )
     )
     models <- model_result$models
     model_warnings <- model_result$warnings
-    model_problems <- .lib_gated_model_checkpoint_problems(models, medoids)
+    model_problems <- .lib_official_model_checkpoint_problems(
+      models, medoids, model_method
+    )
     if (length(model_problems)) {
       stop(
-        "Official gated model build is incomplete: ",
+        "Official ", model_method, " model build is incomplete: ",
         paste(model_problems, collapse = "; "), call. = FALSE
       )
     }
-    checkpoints$put("models_gated_hierarchy_v1", models)
+    checkpoints$put(model_checkpoint, models)
   }
 
   build <- list(
@@ -7314,7 +7334,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   assessment_key <- digest::digest(
     list(
       artifact_signature, prior_signature, seed = seed, holdout = holdout,
-      assessment_version = "gated-hierarchy-v20-accuracy-comparison"
+      model_method = model_method,
+      assessment_version = "selected-model-v21-accuracy-comparison"
     ),
     algo = "sha256"
   )
@@ -7331,7 +7352,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!is.null(cached_assessments)) {
     build$assessments <- cached_assessments
     validated_models <- checkpoints$get(
-      "validated_models_hierarchy_v2", key = assessment_key
+      paste0("validated_models_", model_method, "_v1"),
+      key = assessment_key
     )
     if (!is.null(validated_models)) build$models <- validated_models
   } else if (!is.null(previous_library_dir)) {
@@ -7345,7 +7367,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     if (!is.null(comparison$models)) {
       build$models <- comparison$models
       checkpoints$put(
-        "validated_models_hierarchy_v2", build$models, key = assessment_key
+        paste0("validated_models_", model_method, "_v1"),
+        build$models, key = assessment_key
       )
       comparison$models <- NULL
     }
@@ -10451,6 +10474,75 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     }
   }
   unique(problems)
+}
+
+.lib_official_model_checkpoint_key <- function(model_method) {
+  switch(
+    model_method,
+    gated_hierarchical_logistic_regression = "models_gated_hierarchy_v1",
+    logistic_regression = "models_flat_logistic_v1",
+    stop("Unsupported official model method: ", model_method, call. = FALSE)
+  )
+}
+
+.lib_flat_model_checkpoint_problems <- function(models, medoids) {
+  algorithm <- "logistic_regression"
+  collection <- models[[algorithm]]
+  if (is.null(collection)) return(paste0(algorithm, " missing"))
+  recipes <- intersect(c("derivative", "nobaseline"), names(medoids))
+  if (!length(recipes)) return("flat model source recipes missing")
+  problems <- character()
+  for (recipe in recipes) {
+    expected <- names(medoids[[recipe]])
+    if (all(c("ftir", "raman") %in% expected)) {
+      expected <- c(expected, "both")
+    }
+    for (type in expected) {
+      label <- paste(algorithm, recipe, type, sep = "/")
+      model <- collection[[recipe]][[type]]
+      if (is.null(model)) {
+        problems <- c(problems, paste0(label, " missing"))
+        next
+      }
+      required <- c(
+        "model", "model_type", "class_names", "class_num", "fill",
+        "all_variables", "training_elapsed_seconds"
+      )
+      if (!all(required %in% names(model)) || !is_OpenSpecy(model$fill) ||
+          !identical(model$model_type, algorithm)) {
+        problems <- c(problems, paste0(label, " incomplete"))
+      }
+      if (length(model$training_elapsed_seconds) != 1L ||
+          !is.finite(model$training_elapsed_seconds) ||
+          model$training_elapsed_seconds < 0) {
+        problems <- c(problems, paste0(label, " invalid training runtime"))
+      }
+      converged <- tryCatch(
+        .lib_selected_lambda_converged(model), error = function(...) FALSE
+      )
+      if (!isTRUE(converged)) {
+        problems <- c(problems, paste0(label, " selected lambda unconverged"))
+      }
+    }
+  }
+  unique(problems)
+}
+
+.lib_official_model_checkpoint_problems <- function(models, medoids,
+                                                     model_method) {
+  if (!identical(names(models), model_method)) {
+    return(paste0(
+      "model collection does not match requested method ", model_method
+    ))
+  }
+  switch(
+    model_method,
+    gated_hierarchical_logistic_regression =
+      .lib_gated_model_checkpoint_problems(models, medoids),
+    logistic_regression =
+      .lib_flat_model_checkpoint_problems(models, medoids),
+    stop("Unsupported official model method: ", model_method, call. = FALSE)
+  )
 }
 
 .lib_collect_model_warnings <- function(models) {
