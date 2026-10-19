@@ -31,10 +31,15 @@ defaults, or an earlier run.
 
 1. Read the active plan, `workflows/OpenSpecy_reference_library.R`, relevant
    `build_lib()` source/tests, and `.specify/memory/build-lib-diagram.html`.
+   Apply `openspecy-ingest-reference-datasets` for raw local inputs and require
+   its exact manifest-selected `CleanedOS_raw.rds` list, validation report,
+   source failures, hashes, and maintainer review before freezing the run.
    Apply `openspecy-curate-class-reference` when lookup/taxonomy data change.
 2. Inventory the newest authorized local inputs without remote synchronization.
    Parse the driver and confirm exactly one production `build_lib()` call with
    the frozen contract.
+   Do not launch while an admitted dataset or class mapping is still being
+   added/reviewed, or while the maintainer has deferred the full rebuild.
 3. If package code changed, run the focused build-library tests, configured
    documentation generation when triggered, one final full package test, and
    `-HostedAppStatic`. Reuse still-valid evidence instead of repeating it.

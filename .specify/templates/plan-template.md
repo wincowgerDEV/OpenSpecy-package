@@ -31,6 +31,7 @@
 - **OpenSpecy contract**: [How `wavenumber`, `spectra`, `metadata`, identifiers, and `attr()` metadata are preserved or intentionally changed.]
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
+- **Reference intake**: [For raw spectra: ignored manifest/folder/cleaner/output paths; active-transfer write locks; declared license versus maintainer use basis; type/unit/plot/check_OpenSpecy pre-save gate; large-source chunk/hash policy; post-save class curation; or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
 - **Official-build contract**: [For an official rebuild: source/code/artifact hashes and freeze boundary, output target, per-artifact pruning/reassignment policy, cross-class enabled/disabled plus threshold/operator, model/hierarchy/selection method, seed/holdout, signature/reuse policy, and legacy comparator; or N/A.]
 - **Frozen validation**: [Pinned input/truth/artifact/control hashes, compatibility gate, representative probe, restartable unit, invalidation boundary, and no-tuning rule; or N/A.]
@@ -72,6 +73,7 @@
 - `devtools::check()` or CI/R CMD check trigger or N/A:
 - Benchmarks:
 - Reference-library/long workflow staging:
+- Reference intake: [Per-dataset raw/clean counts and hashes; FTIR/Raman type; intensity/transmission semantics; approved diagnostic; warning-free re-read check; source failures; class coverage after save; or N/A.]
 - Spectrum disposition accounting: [Retained and reassigned counts; quarantine containing every removed spectrum with stable ID/source/stage/rule/reason and threshold/comparison evidence when relevant; source-ingestion failures; balance boundary; or N/A.]
 - Frozen holdout evidence: [Exclusions, warnings, resource bounds, paired metrics/uncertainty, and class/particle confusion; or N/A.]
 - Long-stage budget and telemetry: [Representative dimensions, expected time/memory, progress/checkpoints, and abort/restart threshold; or N/A.]

@@ -414,8 +414,9 @@ release directories instead store global build and model diagnostics only in
 data, scientific attributes, and prediction state. The companion
 \code{reference_library_build.rds} is a lightweight release index. The
 companion \code{quarantined_spectra.rds} stores valid \code{OpenSpecy}
-objects by recipe/type, a long conflict table, and build provenance for
-spectra excluded by cross-class closure.
+objects by recipe/type/axis, a complete removal ledger, a long conflict
+table, source failures, and build provenance for every post-ingestion
+exclusion.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids. A
@@ -547,8 +548,12 @@ arbitrary-score consumers finish, a full-range view is losslessly compacted
 to its exact directed greater-than-threshold edges before a changed range is
 allocated; lower-threshold reuse is rejected. Bounded blocks remain the
 lower-memory fallback. Official builds repeat closure on the rounded typed and
-model-range views before deriving medoids, and retain excluded spectra plus
-conflict provenance in \code{quarantined_spectra.rds}. Pruning then
+model-range views before deriving medoids. Every successfully ingested
+spectrum later excluded is retained as a valid \code{OpenSpecy} object in
+\code{quarantined_spectra.rds}, with a disposition ledger naming its source,
+artifact, stage, rule, reason, and available comparison evidence. Source
+records that cannot be ingested are reported separately from quarantine.
+Pruning then
 reassigns generic classes by nearest same-technique correlation:
 \code{"other"} may use any established class,
 \code{"other plastic"} requires a plastic candidate, and

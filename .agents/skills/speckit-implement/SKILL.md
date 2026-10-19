@@ -58,7 +58,19 @@ are not required.
     checkpoint, isolate the scaling or memory issue, verify the replacement, and
     then restart. Compare rebuilt artifacts against available legacy identifiers,
     wavenumber axes, metadata shape, warnings, and representative `OpenSpecy`
-    joins or matches before marking the work complete. Balance retained,
+    joins or matches before marking the work complete.
+    For new measured or physically simulated reference datasets, apply
+    `openspecy-ingest-reference-datasets` before class curation or rebuilding.
+    Keep `rawrefdata/` ignored and active transfer folders read-only; require
+    one folder/cleaner and exact `Processed/CleanedOS_raw.rds` output per
+    dataset. Before promotion, verify source-derived FTIR/Raman type, faithful
+    intensity units and transmission mode, explicit diagnostic-plot approval,
+    warning-free `check_OpenSpecy()`, provenance/license distinction, and a
+    serialization recheck. Preclean massive sources out of core (QMe14S uses
+    6 cm^-1 and cross-chunk content hashes). Update class tables only after the
+    saved object passes, and do not launch the production build until the
+    maintainer reviews and freezes data plus mappings.
+    Balance retained,
     reassigned, and removed dispositions. Preserve every removed successfully
     ingested spectrum in quarantine with its stable ID, source, removal stage,
     rule, reason, and relevant threshold/comparison evidence; an empty

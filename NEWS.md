@@ -1,5 +1,16 @@
 # OpenSpecy 2.0.3
 
+- Official reference builds now preserve every successfully ingested spectrum
+  removed by source exclusion/deduplication, class completion, quality gates,
+  pruning, type/range partitioning, or final support closure in a validated v2
+  quarantine bundle. The bundle includes full `OpenSpecy` payloads, a balanced
+  removal ledger with source/stage/rule/reason evidence, conflict records, and
+  separate source-failure records plus CSV review exports.
+- The maintained reference driver can now admit exact locally cleaned
+  `rawrefdata/<dataset>/Processed/CleanedOS_raw.rds` files through an ignored
+  manifest. Intake rechecks FTIR/Raman type, intensity semantics, transmission
+  mode, diagnostic-plot approval, `check_OpenSpecy()`, provenance, and hashes;
+  chunked hash deduplication supports 6 cm^-1 precleaning of very large inputs.
 - Official `build_lib()` runs can now select a reproducible flat
   `logistic_regression` artifact with `model_method`; the gated hierarchy
   remains the compatibility default. The maintained reference rebuild driver

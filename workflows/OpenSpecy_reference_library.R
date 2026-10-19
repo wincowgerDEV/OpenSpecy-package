@@ -3,13 +3,13 @@
 # build_lib() owns source discovery, curated metadata joins, class completion,
 # pruning, one-off filters, medoid/model creation, resumable checkpoints,
 # complete legacy comparisons, assessments, and versioned output promotion.
-# Maintainer paths for the current package source and official full rebuild.
+# Paths can be overridden without editing this production driver.
 
 library(fs)
 
-package_dir <- paste0(
-  "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
-  "OpenSpecy-package")
+package_dir <- Sys.getenv(
+  "OPENSPECY_PACKAGE_DIR", unset = normalizePath(getwd(), mustWork = FALSE)
+)
 
 setwd(package_dir)
 
@@ -22,10 +22,7 @@ processed_dir <- data_dir
 
 output_dir <- Sys.getenv(
   "OPENSPECY_REFERENCE_OUTPUT_DIR",
-  unset = paste0(
-    "C:\\Users\\winco\\OneDrive\\Documents\\OpenSpecy_offline\\",
-    "reference-library-build-2.0.0"
-  )
+  unset = file.path(dirname(package_dir), "reference-library-build-2.0.0")
 )
 
 if (!requireNamespace("devtools", quietly = TRUE)) {
@@ -37,6 +34,12 @@ if (!file_exists(file.path(package_dir, "DESCRIPTION"))) {
        call. = FALSE)
 }
 devtools::load_all(package_dir)
+intake_helpers <- file.path(package_dir, "workflows", "reference_intake.R")
+if (!file_exists(intake_helpers)) {
+  stop("Reference intake helpers do not exist: ", intake_helpers,
+       call. = FALSE)
+}
+sys.source(intake_helpers, envir = environment())
 
 build_workers <- min(8L, parallelly::availableCores(omit = 1L))
 options(
@@ -81,6 +84,45 @@ if (nzchar(processed_files_env)) {
   ])
 }
 
+rawrefdata_dir <- Sys.getenv(
+  "OPENSPECY_RAWREFDATA_DIR", unset = file.path(package_dir, "rawrefdata")
+)
+intake_manifest <- Sys.getenv(
+  "OPENSPECY_REFERENCE_INTAKE_MANIFEST",
+  unset = file.path(rawrefdata_dir, "datasets.csv")
+)
+intake <- list(
+  files = character(), validation = data.table::data.table(),
+  source_failures = data.table::data.table()
+)
+if (file_exists(intake_manifest)) {
+  intake <- reference_collect_admitted_inputs(
+    rawrefdata_dir = rawrefdata_dir,
+    manifest_path = intake_manifest,
+    run_cleaners = identical(
+      tolower(Sys.getenv("OPENSPECY_REFERENCE_RUN_CLEANERS", unset = "false")),
+      "true"
+    )
+  )
+  metadatafiles <- sort(unique(c(metadatafiles, intake$files)))
+}
+intake_review_dir <- file.path(output_dir, "review")
+dir_create(intake_review_dir, recurse = TRUE)
+data.table::fwrite(
+  intake$validation,
+  file.path(intake_review_dir, "reference_intake_validation.csv")
+)
+data.table::fwrite(
+  intake$source_failures,
+  file.path(intake_review_dir, "reference_intake_source_failures.csv")
+)
+if (nrow(intake$validation) && any(!intake$validation$valid)) {
+  stop("Admitted reference inputs failed validation: ",
+       paste(intake$validation[
+         valid == FALSE, paste0(slug, " (", problems, ")")
+       ], collapse = "; "), call. = FALSE)
+}
+
 source_file <- file.path(data_dir, "library_raw.rds")
 if (!file_exists(source_file)) {
   stop("Raw source library does not exist: ", source_file, call. = FALSE)
@@ -93,6 +135,7 @@ files <- unique(c(metadatafiles, source_file))
 
 message("OpenSpecy reference-library full rebuild")
 message("  Processed sources: ", length(metadatafiles))
+message("  Manifest-admitted sources: ", length(intake$files))
 message("  Raw source: ", source_file)
 message("  Output root: ", output_dir)
 message("  Checkpoint reuse: disabled (clean full rebuild)")

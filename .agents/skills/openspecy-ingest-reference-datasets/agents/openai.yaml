@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ingest Reference Datasets"
+  short_description: "Validate and stage OpenSpecy reference inputs"
+  default_prompt: "Use $openspecy-ingest-reference-datasets to clean, validate, and stage local spectral datasets for the OpenSpecy reference library."

@@ -1,23 +1,3 @@
-# File-backed particle analysis for a large H5 map.
-#
-# Set OPENSPECY_PARTICLE_SOURCE to an H5, ENVI .hdr, .dat, or .img source.
-# Set OPENSPECY_PARTICLE_OUTPUT to a durable output directory if desired; the
-# default is a temporary directory so this workflow never writes beside or over
-# the authoritative source.
-
-source_file <- Sys.getenv("OPENSPECY_PARTICLE_SOURCE", unset = "")
-if (!nzchar(source_file) || !file.exists(source_file)) {
-  stop("Set OPENSPECY_PARTICLE_SOURCE to a readable H5 or ENVI source.")
-}
-
-output_dir <- Sys.getenv(
-  "OPENSPECY_PARTICLE_OUTPUT",
-  unset = file.path(tempdir(), "openspecy-particle-analysis")
-)
-cache_dir <- Sys.getenv(
-  "OPENSPECY_PARTICLE_CACHE",
-  unset = file.path(tempdir(), "openspecy-filespec-cache")
-)
 
 # These are the current scientific decision thresholds. They are also drawn on
 # the returned S/N and maximum-correlation histograms.
@@ -29,7 +9,7 @@ get_lib("medoid_derivative")
 lib <- load_lib("medoid_derivative")
 lib <- lib$raman
 
-wd = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest"
+wd = "C:\\Users\\winco\\OneDrive\\Documents\\Dust/"
 source_file = "C:\\Users\\winco\\OneDrive\\Documents\\EWG\\SilverTest\\EWG_0.2umFilter_10-100-1000-10000.h5"
 map <- open_specs(source_file, cache_dir = wd)
 print(map)

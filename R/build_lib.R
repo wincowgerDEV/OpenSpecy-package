@@ -112,8 +112,12 @@
 #' to its exact directed greater-than-threshold edges before a changed range is
 #' allocated; lower-threshold reuse is rejected. Bounded blocks remain the
 #' lower-memory fallback. Official builds repeat closure on the rounded typed and
-#' model-range views before deriving medoids, and retain excluded spectra plus
-#' conflict provenance in \code{quarantined_spectra.rds}. Pruning then
+#' model-range views before deriving medoids. Every successfully ingested
+#' spectrum later excluded is retained as a valid \code{OpenSpecy} object in
+#' \code{quarantined_spectra.rds}, with a disposition ledger naming its source,
+#' artifact, stage, rule, reason, and available comparison evidence. Source
+#' records that cannot be ingested are reported separately from quarantine.
+#' Pruning then
 #' reassigns generic classes by nearest same-technique correlation:
 #' \code{"other"} may use any established class,
 #' \code{"other plastic"} requires a plastic candidate, and
@@ -414,8 +418,9 @@
 #' data, scientific attributes, and prediction state. The companion
 #' \code{reference_library_build.rds} is a lightweight release index. The
 #' companion \code{quarantined_spectra.rds} stores valid \code{OpenSpecy}
-#' objects by recipe/type, a long conflict table, and build provenance for
-#' spectra excluded by cross-class closure.
+#' objects by recipe/type/axis, a complete removal ledger, a long conflict
+#' table, source failures, and build provenance for every post-ingestion
+#' exclusion.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 #' object unless \code{return} requests a table, report, or ids. A
@@ -909,9 +914,18 @@ rebuild_lib_artifacts <- function(x, output_dir,
       NA_character_
     }
   )
+  quarantine_parts <- list()
 
   if (!is.null(exclude_ids)) {
     before <- ncol(lib$spectra)
+    excluded <- .lib_excluded_mask(lib, exclude_ids, id_col = id_col)
+    quarantine_parts <- c(
+      quarantine_parts,
+      .lib_quarantine_typed_capture(
+        lib, excluded, artifact = "source", stage = "source_exclusion",
+        rule = "exclude_ids", reason = "excluded_identifier"
+      )
+    )
     lib <- .lib_filter_excluded(lib, exclude_ids, id_col = id_col)
     build_stage_report <- data.table::rbindlist(list(
       build_stage_report,
@@ -936,14 +950,50 @@ rebuild_lib_artifacts <- function(x, output_dir,
     existing <- .lib_dedupe_existing_ids(
       lib,
       id_col = id_col,
-      duplicate = dedupe_duplicate
+      duplicate = "none"
     )
-    lib <- if (is.null(existing)) {
-      dedupe_spec(lib, id_col = id_col, ...)
+    identified <- if (is.null(existing)) {
+      dedupe_spec(
+        lib, id_col = id_col, duplicate = "none",
+        scale = hash_scale, algo = hash_algo
+      )
     } else {
       existing
     }
+    ids <- as.character(.lib_ids(identified, id_col))
+    duplicate_remove <- rep(FALSE, length(ids))
+    if (dedupe_duplicate == "first") duplicate_remove <- duplicated(ids)
+    if (dedupe_duplicate == "remove_all") {
+      duplicate_remove <- duplicated(ids) | duplicated(ids, fromLast = TRUE)
+    }
+    quarantine_parts <- c(
+      quarantine_parts,
+      .lib_quarantine_typed_capture(
+        identified, duplicate_remove, artifact = "source",
+        stage = "source_deduplication", rule = "content_hash",
+        reason = if (dedupe_duplicate == "remove_all") {
+          "duplicate_content_remove_all"
+        } else {
+          "duplicate_content"
+        },
+        evidence = list(duplicate_hash = ids)
+      )
+    )
+    lib <- if (any(duplicate_remove)) {
+      filter_spec(identified, !duplicate_remove)
+    } else {
+      identified
+    }
     if (!is.null(exclude_ids)) {
+      excluded <- .lib_excluded_mask(lib, exclude_ids, id_col = id_col)
+      quarantine_parts <- c(
+        quarantine_parts,
+        .lib_quarantine_typed_capture(
+          lib, excluded, artifact = "source",
+          stage = "post_hash_exclusion", rule = "exclude_ids",
+          reason = "excluded_generated_identifier"
+        )
+      )
       lib <- .lib_filter_excluded(lib, exclude_ids, id_col = id_col)
     }
     build_stage_report <- data.table::rbindlist(list(
@@ -1025,9 +1075,20 @@ rebuild_lib_artifacts <- function(x, output_dir,
         stop("Each selected 'prune' recipe must contain a named argument list",
              call. = FALSE)
       }
-      prune_args$return <- "object"
+      prune_args$return <- "report"
       if (is.null(prune_args$progress)) prune_args$progress <- progress
-      out <- do.call(prune_lib, c(list(out), prune_args))
+      pruned <- do.call(prune_lib, c(list(out), prune_args))
+      if (nrow(pruned$removals)) {
+        min_n <- if (is.null(prune_args$min_n)) 10L else
+          as.integer(prune_args$min_n)
+        quarantine_parts <<- c(
+          quarantine_parts,
+          .lib_typed_quarantine_parts(
+            out, pruned$removals, recipe_name, min_n
+          )
+        )
+      }
+      out <- pruned$object
     }
 
     if (length(lookup_reports) > 0L) {
@@ -1066,6 +1127,7 @@ rebuild_lib_artifacts <- function(x, output_dir,
     apply_recipe(recipes[[i]], names(recipes)[[i]], i)
   })
   names(out) <- names(recipes)
+  attr(out, "quarantine_parts") <- quarantine_parts
   report("complete")
   out
 }
@@ -1372,6 +1434,7 @@ predict_class_reference <- function(metadata, regex_reference,
   generic_labels <- c("other", "other plastic", "other material")
   reviews <- list()
   summaries <- list()
+  quarantine_parts <- list()
   value <- function(metadata, column) {
     if (column %in% names(metadata)) as.character(metadata[[column]]) else
       rep(NA_character_, nrow(metadata))
@@ -1449,6 +1512,14 @@ predict_class_reference <- function(metadata, regex_reference,
         stop("Removing blank identities and unresolved classes would remove every ",
              "spectrum from ", artifact, call. = FALSE)
       }
+      quarantine_parts <- c(
+        quarantine_parts,
+        .lib_quarantine_typed_capture(
+          object, remove, artifact = artifact, stage = "class_completion",
+          rule = "remove_unidentified_nongeneric",
+          reason = "missing_spectrum_identity"
+        )
+      )
       object <- filter_spec(object, !remove)
     }
     summary <- data.table::data.table(
@@ -1494,7 +1565,8 @@ predict_class_reference <- function(metadata, regex_reference,
       data.table::rbindlist(summaries, fill = TRUE)
     } else {
       .lib_other_filter_schema()
-    }
+    },
+    quarantine_parts = quarantine_parts
   )
 }
 
@@ -7169,7 +7241,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other, model_method = model_method
     ),
-    component_version = "reference-artifacts-v16-routed-oof-provenance"
+    component_version = "reference-artifacts-v17-complete-quarantine"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -7194,7 +7266,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess
     ),
-    component_version = "core-libraries-v2-library-name"
+    component_version = "core-libraries-v3-quarantine-provenance"
   )
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = artifact_signature, reuse = reuse, report = report
@@ -7431,6 +7503,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   report("resolving completed libraries and upstream assessments")
   input <- .lib_resolve_rebuild_input(x)
   libraries <- .lib_drop_typed_range_flats(input$libraries, report = report)
+  rebuild_quarantine_parts <- attr(
+    libraries, "quarantine_parts", exact = TRUE
+  )
+  attr(libraries, "quarantine_parts") <- NULL
   completed <- input$assessments
   quarantine <- input$quarantine
   signature <- .lib_rebuild_checkpoint_signature(
@@ -7440,6 +7516,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = signature, reuse = reuse, report = report
   )
+  if (length(rebuild_quarantine_parts)) {
+    prior_parts <- if (is.null(quarantine)) list() else {
+      .lib_validate_quarantine(quarantine)
+      unname(quarantine$spectra)
+    }
+    quarantine <- .lib_quarantine_bundle(
+      c(prior_parts, rebuild_quarantine_parts),
+      conflicts = if (is.null(input$quarantine)) NULL else
+        input$quarantine$conflicts,
+      source_failures = if (is.null(input$quarantine)) NULL else
+        input$quarantine$source_failures,
+      build_signature = signature,
+      thresholds = if (is.null(input$quarantine)) numeric() else
+        input$quarantine$manifest$thresholds
+    )
+  }
 
   medoids <- checkpoints$get("medoids")
   if (!is.null(medoids)) {
@@ -8326,7 +8418,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }
   paths <- c(
     file.path(root, "DESCRIPTION"), file.path(root, "NAMESPACE"), r_files,
-    file.path(root, "workflows", "OpenSpecy_reference_library.R")
+    file.path(root, "workflows", "OpenSpecy_reference_library.R"),
+    file.path(root, "workflows", "reference_intake.R")
   )
   sort(unique(normalizePath(paths[file.exists(paths)], mustWork = TRUE)))
 }
@@ -8589,6 +8682,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_write_quarantine_review <- function(quarantine, output_dir) {
+  .lib_validate_quarantine(quarantine)
   review_dir <- file.path(output_dir, "review")
   .lib_atomic_saveRDS(
     quarantine, file.path(review_dir, "quarantined_spectra.rds")
@@ -8610,8 +8704,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     metadata, file.path(review_dir, "quarantined_spectra_metadata.csv")
   )
   .lib_atomic_fwrite(
+    quarantine$removals,
+    file.path(review_dir, "quarantined_spectra_removals.csv")
+  )
+  .lib_atomic_fwrite(
     quarantine$conflicts,
     file.path(review_dir, "quarantined_spectra_conflicts.csv")
+  )
+  .lib_atomic_fwrite(
+    quarantine$source_failures,
+    file.path(review_dir, "quarantined_source_failures.csv")
   )
   invisible(review_dir)
 }
@@ -8694,6 +8796,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_complete_reference_build <- function(libraries, tables, prune,
                                            remove_other, progress, report) {
+  quarantine_parts <- attr(libraries, "quarantine_parts", exact = TRUE)
+  if (is.null(quarantine_parts)) quarantine_parts <- list()
+  attr(libraries, "quarantine_parts") <- NULL
   retention_stages <- data.table::rbindlist(lapply(
     libraries,
     function(object) attr(object, "library_retention_stages", exact = TRUE)
@@ -8759,6 +8864,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   libraries <- other_policy$libraries
   other_policy$libraries <- NULL
+  quarantine_parts <- c(quarantine_parts, other_policy$quarantine_parts)
+  other_policy$quarantine_parts <- NULL
   retention_stages <- data.table::rbindlist(list(
     retention_stages,
     .lib_library_stage_counts(libraries, stage = "post_other")
@@ -8790,6 +8897,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )
   libraries <- quality$libraries
   quality$libraries <- NULL
+  quarantine_parts <- c(quarantine_parts, quality$quarantine_parts)
+  quality$quarantine_parts <- NULL
   rm(quality_store)
   gc(verbose = FALSE)
   retention_stages <- data.table::rbindlist(list(
@@ -8810,7 +8919,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   prune_generic_reassignment_rows <- list()
   prune_removal_rows <- list()
   prune_conflict_rows <- list()
-  quarantine_parts <- list()
   prune_targets <- intersect(names(prune_spec), names(libraries))
   library_order <- names(libraries)
   prune_paths <- character()
@@ -8839,12 +8947,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         pruned$cross_class_conflicts
       )[, artifact := name][]
     }
-    if (nrow(pruned$cross_class_removals)) {
+    if (nrow(pruned$removals)) {
       min_n <- if (is.null(args$min_n)) 10L else as.integer(args$min_n)
       quarantine_parts <- c(
         quarantine_parts,
         .lib_typed_quarantine_parts(
-          library, pruned$cross_class_removals, name, min_n
+          library, pruned$removals, name, min_n
         )
       )
     }
@@ -9014,6 +9122,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       quality$assessment <- data.table::rbindlist(
         list(quality$assessment, flat_rows), fill = TRUE
       )
+      quarantine_parts <- c(
+        quarantine_parts,
+        .lib_quarantine_typed_capture(
+          libraries[[name]], flat, artifact = name,
+          stage = "post_transform", rule = "flat_spectrum",
+          reason = "post_transform_flat_spectrum",
+          evidence = list(observed_range = finite_range, threshold = 0)
+        )
+      )
       libraries[[name]] <- filter_spec(libraries[[name]], !flat)
     }
   }
@@ -9047,6 +9164,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   rm(libraries)
   gc(verbose = FALSE, full = TRUE)
   libraries <- .lib_partition_reference_libraries(partition_store, report)
+  quarantine_parts <- c(
+    quarantine_parts,
+    attr(libraries, "quarantine_parts", exact = TRUE)
+  )
+  attr(libraries, "quarantine_parts") <- NULL
+  range_flat_rows <- attr(libraries, "range_flat_drops", exact = TRUE)
+  if (is.null(range_flat_rows)) range_flat_rows <- .lib_quality_schema()
+  attr(libraries, "range_flat_drops") <- NULL
   rm(partition_store)
   gc(verbose = FALSE, full = TRUE)
   closure <- .lib_close_typed_reference_libraries(
@@ -9081,11 +9206,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         args$cross_class_threshold
     }), use.names = FALSE)
   )
-  range_flat_rows <- data.table::rbindlist(lapply(names(libraries), function(recipe) {
-    data.table::rbindlist(lapply(libraries[[recipe]], function(object) {
-      attr(object, "range_flat_drops", exact = TRUE)
-    }), fill = TRUE)
-  }), fill = TRUE)
   if (nrow(range_flat_rows)) {
     quality$assessment <- data.table::rbindlist(
       list(quality$assessment, range_flat_rows), fill = TRUE
@@ -9202,6 +9322,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                            max_crop = 0.2,
                                            snr_threshold = 2) {
   assessment <- list()
+  quarantine_parts <- list()
   detached <- is.environment(libraries)
   store <- if (detached) libraries else NULL
   recipe_names <- if (detached) names(store$libraries) else names(libraries)
@@ -9301,6 +9422,29 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       stop("Quality control removed every spectrum from ", recipe,
            call. = FALSE)
     }
+    removal_reason <- vapply(seq_along(remove), function(i) {
+      reasons <- c(
+        if (failed_co2[[i]]) "co2_postcondition_failed",
+        if (failed_tail[[i]]) "high_tail_correction_failed",
+        if (low_snr[[i]]) {
+          if (is.finite(snr[[i]])) "running_snr_below_threshold" else
+            "running_snr_unavailable"
+        }
+      )
+      paste(reasons, collapse = "; ")
+    }, character(1L))
+    quarantine_parts <- c(
+      quarantine_parts,
+      .lib_quarantine_typed_capture(
+        x, remove, artifact = recipe, stage = "quality_control",
+        rule = "processed_spectrum_quality",
+        reason = removal_reason,
+        evidence = list(
+          co2_ratio = co2_after, tail_ratio = tail_after,
+          signal_to_noise = as.numeric(snr)
+        )
+      )
+    )
     x <- filter_spec(x, !remove)
     x$metadata$sn <- snr[!remove]
     attr(x, "quality_control_report") <- data.table::rbindlist(
@@ -9317,7 +9461,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   rows <- data.table::rbindlist(assessment, fill = TRUE)
   if (!nrow(rows)) rows <- .lib_quality_schema()
   if (detached) libraries <- store$libraries
-  list(libraries = libraries, assessment = rows)
+  list(
+    libraries = libraries, assessment = rows,
+    quarantine_parts = quarantine_parts
+  )
 }
 
 .lib_trim_high_tail_matrix <- function(wavenumber, spectra,
@@ -9416,6 +9563,12 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                          reason, report = NULL) {
   flat <- .lib_flat_spectrum_mask(x)
   if (!any(flat)) return(x)
+  quarantined <- .lib_quarantine_capture(
+    x, flat, artifact = artifact, stage = "range_restriction",
+    rule = "flat_spectrum", reason = reason,
+    spectrum_type = spectrum_type,
+    evidence = list(observed_range = 0, threshold = 0)
+  )
   support <- attr(x, "identification_support", exact = TRUE)
   metadata <- x$metadata[flat, , drop = FALSE]
   rows <- data.table::data.table(
@@ -9442,6 +9595,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     ))
   }
   attr(x, "range_flat_drops") <- rows
+  attr(x, "range_flat_quarantine") <- quarantined
   if (!is.null(report)) report(sprintf(
     "discarded flat spectra after range restriction (%s/%s; removed=%d)",
     artifact, spectrum_type, nrow(rows)
@@ -9450,6 +9604,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_drop_typed_range_flats <- function(libraries, report = NULL) {
+  quarantine_parts <- list()
   for (recipe in names(libraries)) {
     for (type in names(libraries[[recipe]])) {
       libraries[[recipe]][[type]] <- .lib_drop_range_flat_spectra(
@@ -9457,8 +9612,15 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         spectrum_type = type, reason = "post_partition_flat_spectrum",
         report = report
       )
+      quarantined <- attr(
+        libraries[[recipe]][[type]], "range_flat_quarantine", exact = TRUE
+      )
+      if (!is.null(quarantined)) {
+        quarantine_parts[[length(quarantine_parts) + 1L]] <- quarantined
+      }
     }
   }
+  attr(libraries, "quarantine_parts") <- quarantine_parts
   libraries
 }
 
@@ -9468,11 +9630,29 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   source <- if (stored) NULL else libraries
   recipes <- if (stored) names(libraries$libraries) else names(source)
   out_all <- stats::setNames(vector("list", length(recipes)), recipes)
+  quarantine_parts <- list()
+  range_flat_rows <- list()
   for (recipe in recipes) {
     x <- if (stored) libraries$libraries[[recipe]] else source[[recipe]]
     if (stored) {
       libraries$libraries[[recipe]] <- NULL
       gc(verbose = FALSE, full = TRUE)
+    }
+    source_type <- if ("spectrum_type" %in% names(x$metadata)) {
+      tolower(as.character(x$metadata$spectrum_type))
+    } else {
+      rep("unknown", nrow(x$metadata))
+    }
+    unsupported <- is.na(source_type) | !source_type %in% names(ranges)
+    if (any(unsupported)) {
+      quarantine_parts <- c(
+        quarantine_parts,
+        .lib_quarantine_typed_capture(
+          x, unsupported, artifact = recipe, stage = "type_partition",
+          rule = "supported_spectrum_type",
+          reason = "unsupported_spectrum_type"
+        )
+      )
     }
     out <- lapply(names(ranges), function(type) {
       subset <- .lib_filter_optional_type(x, type)
@@ -9480,7 +9660,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       limits <- ranges[[type]]
       inside <- subset$wavenumber >= limits[1L] &
         subset$wavenumber <= limits[2L]
-      if (sum(inside) < 2L) return(NULL)
+      if (sum(inside) < 2L) {
+        quarantine_parts[[length(quarantine_parts) + 1L]] <<-
+          .lib_quarantine_capture(
+            subset, seq_len(ncol(subset$spectra)), artifact = recipe,
+            stage = "type_partition", rule = "minimum_type_range",
+            reason = "insufficient_type_range", spectrum_type = type,
+            evidence = list(observed_wavenumbers = sum(inside), threshold = 2)
+          )
+        return(NULL)
+      }
       subset <- restrict_range(
         subset, min = limits[1L], max = limits[2L], make_rel = FALSE
       )
@@ -9489,6 +9678,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         subset, artifact = recipe, spectrum_type = type,
         reason = "post_partition_flat_spectrum", report = report
       )
+      quarantined <- attr(subset, "range_flat_quarantine", exact = TRUE)
+      if (!is.null(quarantined)) {
+        quarantine_parts[[length(quarantine_parts) + 1L]] <<- quarantined
+      }
+      dropped <- attr(subset, "range_flat_drops", exact = TRUE)
+      if (!is.null(dropped) && nrow(dropped)) {
+        range_flat_rows[[length(range_flat_rows) + 1L]] <<- dropped
+      }
       if (!is.null(report)) report(sprintf(
         "partitioned %s/%s (spectra=%d; range=%g-%g; wavenumbers=%d)",
         recipe, type, ncol(subset$spectra), limits[1L], limits[2L],
@@ -9501,17 +9698,159 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     rm(x, out)
     gc(verbose = FALSE, full = TRUE)
   }
+  attr(out_all, "quarantine_parts") <- quarantine_parts
+  attr(out_all, "range_flat_drops") <- data.table::rbindlist(
+    range_flat_rows, fill = TRUE
+  )
   out_all
+}
+
+.lib_quarantine_ledger_schema <- function() {
+  data.table::data.table(
+    quarantine_object = character(), quarantine_key = character(),
+    quarantine_status = character(), quarantine_source = character(),
+    quarantine_artifact = character(), quarantine_recipe = character(),
+    quarantine_stage = character(), quarantine_phase = character(),
+    quarantine_rule = character(), quarantine_reason = character(),
+    quarantine_spectrum_type = character(),
+    quarantine_original_id = character(), quarantine_source_row = integer(),
+    sample_name = character()
+  )
+}
+
+.lib_source_failure_schema <- function() {
+  data.table::data.table(
+    source = character(), stage = character(), reason = character(),
+    error = character()
+  )
+}
+
+.lib_quarantine_capture <- function(x, rows, artifact, stage, rule, reason,
+                                    spectrum_type = NULL, evidence = list()) {
+  if (!is_OpenSpecy(x) || !length(rows)) return(NULL)
+  positions <- if (is.logical(rows)) which(rows) else as.integer(rows)
+  positions <- unique(positions[!is.na(positions) & positions >= 1L &
+                                positions <= ncol(x$spectra)])
+  if (!length(positions)) return(NULL)
+  mask <- rep(FALSE, ncol(x$spectra))
+  mask[positions] <- TRUE
+  out <- filter_spec(x, mask)
+  ids <- as.character(.lib_ids(x, "sample_name"))
+  ids[is.na(ids) | !nzchar(ids)] <- colnames(x$spectra)[
+    is.na(ids) | !nzchar(ids)
+  ]
+  ids[is.na(ids) | !nzchar(ids)] <- paste0("source_row_", seq_along(ids))[
+    is.na(ids) | !nzchar(ids)
+  ]
+  occurrence <- ave(seq_along(ids), ids, FUN = seq_along)
+  select_value <- function(value, default = NA_character_) {
+    if (is.null(value) || !length(value)) value <- default
+    if (length(value) == 1L) return(rep(value, length(positions)))
+    if (length(value) == ncol(x$spectra)) return(value[positions])
+    if (length(value) == length(positions)) return(value)
+    stop("Quarantine evidence is not aligned with removed spectra",
+         call. = FALSE)
+  }
+  source <- rep(NA_character_, nrow(x$metadata))
+  for (column in c("library_name", "organization", "user_name", "citation")) {
+    if (!column %in% names(x$metadata)) next
+    candidate <- as.character(x$metadata[[column]])
+    fill <- is.na(source) | !nzchar(trimws(source))
+    usable <- !is.na(candidate) & nzchar(trimws(candidate))
+    source[fill & usable] <- candidate[fill & usable]
+  }
+  source[is.na(source) | !nzchar(trimws(source))] <- "(unknown_source)"
+  type <- if (is.null(spectrum_type)) {
+    if ("spectrum_type" %in% names(x$metadata)) {
+      as.character(x$metadata$spectrum_type)
+    } else {
+      rep("unknown", nrow(x$metadata))
+    }
+  } else {
+    select_value(spectrum_type, "unknown")
+  }
+  if (length(type) == ncol(x$spectra)) type <- type[positions]
+  type <- tolower(as.character(type))
+  type[is.na(type) | !nzchar(trimws(type))] <- "unknown"
+  reason <- as.character(select_value(reason, "unspecified_removal"))
+  payload_ids <- make.unique(
+    paste0(ids[positions], "__q", occurrence[positions]), sep = "__"
+  )
+  colnames(out$spectra) <- payload_ids
+  out$metadata$col_id <- payload_ids
+  out$metadata[, `:=`(
+    quarantine_status = "excluded",
+    quarantine_source = source[positions],
+    quarantine_artifact = as.character(artifact),
+    quarantine_recipe = as.character(artifact),
+    quarantine_stage = as.character(stage),
+    quarantine_phase = as.character(stage),
+    quarantine_rule = as.character(rule),
+    quarantine_reason = reason,
+    quarantine_spectrum_type = type,
+    quarantine_original_id = ids[positions],
+    quarantine_source_row = as.integer(positions),
+    quarantine_key = paste(
+      artifact, stage, type, ids[positions], occurrence[positions], sep = "/"
+    )
+  )]
+  if (length(evidence)) {
+    if (is.null(names(evidence)) || any(!nzchar(names(evidence)))) {
+      stop("Quarantine evidence must be a named list", call. = FALSE)
+    }
+    for (column in names(evidence)) {
+      out$metadata[[column]] <- select_value(evidence[[column]])
+    }
+  }
+  out
+}
+
+.lib_quarantine_typed_capture <- function(x, rows, artifact, stage, rule,
+                                          reason, evidence = list()) {
+  if (!is_OpenSpecy(x) || !length(rows)) return(list())
+  positions <- if (is.logical(rows)) which(rows) else as.integer(rows)
+  positions <- unique(positions[!is.na(positions) & positions >= 1L &
+                                positions <= ncol(x$spectra)])
+  if (!length(positions)) return(list())
+  types <- if ("spectrum_type" %in% names(x$metadata)) {
+    tolower(as.character(x$metadata$spectrum_type))
+  } else {
+    rep("unknown", nrow(x$metadata))
+  }
+  types[is.na(types) | !nzchar(trimws(types))] <- "unknown"
+  groups <- split(positions, types[positions])
+  out <- lapply(names(groups), function(type) {
+    .lib_quarantine_capture(
+      x, groups[[type]], artifact = artifact, stage = stage, rule = rule,
+      reason = reason, spectrum_type = type, evidence = evidence
+    )
+  })
+  names(out) <- paste(artifact, stage, names(groups), sep = "/")
+  Filter(Negate(is.null), out)
 }
 
 .lib_quarantine_part <- function(x, removals, artifact, spectrum_type, min_n) {
   if (!is_OpenSpecy(x) || !nrow(removals)) return(NULL)
+  removals <- data.table::as.data.table(data.table::copy(removals))
+  defaults <- list(
+    quarantine_status = "excluded", phase = "pruning",
+    reason = "prune_lib_removal", component_id = NA_character_,
+    correlation_view = NA_character_, threshold = NA_real_,
+    decision_round = NA_integer_, active_degree = NA_integer_,
+    correlation = NA_real_, matched_class = NA_character_,
+    matched_library = NA_character_, class_n_before = NA_integer_,
+    review_status = NA_character_
+  )
+  for (column in names(defaults)) {
+    if (!column %in% names(removals)) {
+      removals[, (column) := defaults[[column]]]
+    }
+  }
   ids <- as.character(.lib_ids(x, "sample_name"))
   removal_ids <- unique(as.character(removals$spectrum_id))
   keep <- ids %in% removal_ids
   keep[is.na(keep)] <- FALSE
   if (!any(keep)) return(NULL)
-  out <- filter_spec(x, keep)
   max_or_na <- function(value) {
     value <- value[is.finite(value)]
     if (length(value)) max(value) else NA_real_
@@ -9539,15 +9878,24 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     class_n_before = as.integer(max_or_na(class_n_before)),
     review_status = collapse_values(review_status)
   ), by = spectrum_id]
-  out_ids <- as.character(.lib_ids(out, "sample_name"))
+  out <- .lib_quarantine_capture(
+    x, keep, artifact = artifact,
+    stage = if (length(unique(removals$phase)) == 1L) {
+      unique(removals$phase)
+    } else {
+      "pruning"
+    },
+    rule = "prune_lib", reason = "prune_lib_removal",
+    spectrum_type = spectrum_type
+  )
+  out_ids <- as.character(out$metadata$quarantine_original_id)
   summary <- summary[match(out_ids, spectrum_id)]
   added <- setdiff(names(summary), "spectrum_id")
   added_values <- summary[, added, with = FALSE]
   out$metadata[, (added) := added_values]
   out$metadata[, `:=`(
-    quarantine_recipe = artifact,
-    quarantine_spectrum_type = spectrum_type,
-    quarantine_key = paste(artifact, spectrum_type, out_ids, sep = "/"),
+    quarantine_stage = quarantine_phase,
+    quarantine_rule = "prune_lib",
     min_n = as.integer(min_n)
   )]
   out
@@ -9564,10 +9912,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     ids <- as.character(.lib_ids(object, "sample_name"))
     rows <- removals[spectrum_id %in% ids]
     if (!nrow(rows)) return(NULL)
-    limits <- .lib_type_ranges()[[type]]
-    object <- restrict_range(
-      object, min = limits[[1L]], max = limits[[2L]], make_rel = FALSE
-    )
     .lib_quarantine_part(object, rows, artifact, type, min_n)
   })
   names(out) <- paste(artifact, types, sep = "/")
@@ -9575,45 +9919,154 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_quarantine_bundle <- function(parts = list(), conflicts = NULL,
+                                   source_failures = NULL,
                                    build_signature = NA_character_,
                                    thresholds = numeric()) {
   parts <- Filter(Negate(is.null), parts)
+  parts <- lapply(parts, function(object) {
+    source <- if ("quarantine_source" %in% names(object$metadata)) {
+      as.character(object$metadata$quarantine_source)
+    } else {
+      rep(NA_character_, nrow(object$metadata))
+    }
+    for (column in c("library_name", "organization", "user_name", "citation")) {
+      if (!column %in% names(object$metadata)) next
+      candidate <- as.character(object$metadata[[column]])
+      fill <- is.na(source) | !nzchar(trimws(source))
+      usable <- !is.na(candidate) & nzchar(trimws(candidate))
+      source[fill & usable] <- candidate[fill & usable]
+    }
+    source[is.na(source) | !nzchar(trimws(source))] <- "(unknown_source)"
+    object$metadata$quarantine_source <- source
+    object
+  })
   spectra <- list()
   if (length(parts)) {
-    keys <- vapply(parts, function(object) {
+    bases <- vapply(parts, function(object) {
       paste(
         unique(as.character(object$metadata$quarantine_recipe))[[1L]],
         unique(as.character(object$metadata$quarantine_spectrum_type))[[1L]],
         sep = "/"
       )
     }, character(1L))
-    grouped <- split(parts, keys)
-    spectra <- lapply(names(grouped), function(key) {
-      out <- .lib_bind_same_axis(grouped[[key]], paste("quarantine", key))
-      ids <- as.character(.lib_ids(out, "sample_name"))
-      if (anyDuplicated(ids)) {
-        stop("Quarantine bundle contains duplicate composite IDs for ", key,
-             call. = FALSE)
+    axes <- vapply(parts, function(object) {
+      digest::digest(as.numeric(object$wavenumber), algo = "xxhash64")
+    }, character(1L))
+    grouped <- split(parts, paste(bases, axes, sep = "\r"))
+    group_bases <- vapply(grouped, function(objects) {
+      paste(
+        unique(as.character(objects[[1L]]$metadata$quarantine_recipe))[[1L]],
+        unique(as.character(
+          objects[[1L]]$metadata$quarantine_spectrum_type
+        ))[[1L]], sep = "/"
+      )
+    }, character(1L))
+    labels <- group_bases
+    repeated <- duplicated(group_bases) | duplicated(group_bases, fromLast = TRUE)
+    labels[repeated] <- paste0(
+      group_bases[repeated], "/axis-",
+      substr(sub(".*\r", "", names(grouped)[repeated]), 1L, 12L)
+    )
+    spectra <- lapply(seq_along(grouped), function(i) {
+      out <- .lib_bind_same_axis(
+        grouped[[i]], paste("quarantine", labels[[i]])
+      )
+      if (anyDuplicated(out$metadata$quarantine_key)) {
+        stop("Quarantine bundle contains duplicate disposition keys for ",
+             labels[[i]], call. = FALSE)
       }
       out
     })
-    names(spectra) <- names(grouped)
+    names(spectra) <- labels
   }
+  removals <- data.table::rbindlist(lapply(names(spectra), function(name) {
+    out <- data.table::copy(spectra[[name]]$metadata)
+    out[, quarantine_object := name]
+    out
+  }), fill = TRUE)
+  if (!nrow(removals)) removals <- .lib_quarantine_ledger_schema()
   if (is.null(conflicts) || !nrow(conflicts)) {
     conflicts <- .lib_prune_conflict_edge_schema()
   } else {
     conflicts <- data.table::as.data.table(data.table::copy(conflicts))
   }
-  structure(list(
+  if (is.null(source_failures) || !nrow(source_failures)) {
+    source_failures <- .lib_source_failure_schema()
+  } else {
+    source_failures <- data.table::as.data.table(
+      data.table::copy(source_failures)
+    )
+  }
+  reasons <- if (nrow(removals)) {
+    removals[, .(spectra = .N), by = .(
+      quarantine_stage, quarantine_rule, quarantine_reason
+    )][order(quarantine_stage, quarantine_rule, quarantine_reason)]
+  } else {
+    data.table::data.table(
+      quarantine_stage = character(), quarantine_rule = character(),
+      quarantine_reason = character(), spectra = integer()
+    )
+  }
+  out <- structure(list(
     spectra = spectra,
+    removals = removals,
     conflicts = conflicts,
+    source_failures = source_failures,
     manifest = list(
-      schema = "OpenSpecy_quarantined_spectra_v1",
+      schema = "OpenSpecy_quarantined_spectra_v2",
       build_signature = as.character(build_signature),
       thresholds = sort(unique(as.numeric(thresholds))),
-      source_hashes = as.character(build_signature)
+      source_hashes = as.character(build_signature),
+      removed_spectra = as.integer(nrow(removals)),
+      removal_reasons = reasons
     )
   ), class = c("OpenSpecyQuarantine", "list"))
+  .lib_validate_quarantine(out)
+  out
+}
+
+.lib_validate_quarantine <- function(x) {
+  if (!inherits(x, "OpenSpecyQuarantine") ||
+      !all(c("spectra", "removals", "conflicts", "source_failures",
+             "manifest") %in% names(x))) {
+    stop("Quarantine must use the OpenSpecy quarantine v2 contract",
+         call. = FALSE)
+  }
+  valid <- vapply(x$spectra, function(object) {
+    is_OpenSpecy(object) && isTRUE(suppressWarnings(check_OpenSpecy(object)))
+  }, logical(1L))
+  if (length(valid) && any(!valid)) {
+    stop("Every quarantine payload must be a valid OpenSpecy object",
+         call. = FALSE)
+  }
+  total <- sum(vapply(x$spectra, function(object) {
+    ncol(object$spectra)
+  }, integer(1L)))
+  removals <- data.table::as.data.table(x$removals)
+  required <- c(
+    "quarantine_key", "quarantine_source", "quarantine_artifact",
+    "quarantine_stage", "quarantine_rule", "quarantine_reason"
+  )
+  .lib_require_cols(removals, required, "quarantine removal ledger")
+  if (nrow(removals) != total || anyDuplicated(removals$quarantine_key)) {
+    stop("Quarantine payload and removal ledger do not balance", call. = FALSE)
+  }
+  for (column in required) {
+    value <- as.character(removals[[column]])
+    if (any(is.na(value) | !nzchar(trimws(value)))) {
+      bad <- which(is.na(value) | !nzchar(trimws(value)))
+      labels <- unique(as.character(removals$quarantine_object[bad]))
+      stop(
+        "Quarantine removal ledger has blank ", column, " in: ",
+        paste(head(labels, 10L), collapse = ", "), call. = FALSE
+      )
+    }
+  }
+  if (!identical(x$manifest$schema, "OpenSpecy_quarantined_spectra_v2") ||
+      !identical(as.integer(x$manifest$removed_spectra), as.integer(total))) {
+    stop("Quarantine manifest does not balance with its payload", call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 .lib_close_typed_reference_libraries <- function(libraries, prune_spec,
@@ -9648,13 +10101,34 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       supported_ids <- as.character(.lib_ids(model_supported, "sample_name"))
       unsupported <- !parent_ids %in% supported_ids
       if (any(unsupported)) {
+        flat_rows <- attr(
+          model_supported, "range_flat_drops", exact = TRUE
+        )
+        flat_ids <- if (!is.null(flat_rows) && nrow(flat_rows)) {
+          as.character(flat_rows$spectrum_id)
+        } else {
+          character()
+        }
+        support_reason <- ifelse(
+          parent_ids %in% flat_ids,
+          "pre_medoid_model_range_flat_spectrum",
+          "below_model_range_observed_support"
+        )
         support_i <- support_i + 1L
         support_rows[[support_i]] <- data.table::data.table(
           artifact = artifact, spectrum_id = parent_ids[unsupported],
           spectrum_type = type, check = "identification_support",
           action = "drop", before_value = NA_real_, after_value = NA_real_,
           threshold = 0.1, removed = TRUE,
-          reason = "below_model_range_observed_support"
+          reason = support_reason[unsupported]
+        )
+        part_i <- part_i + 1L
+        quarantine_parts[[part_i]] <- .lib_quarantine_capture(
+          parent, unsupported, artifact = artifact,
+          stage = "identification_support",
+          rule = "model_range_support", reason = support_reason,
+          spectrum_type = type,
+          evidence = list(threshold = 0.1)
         )
         parent <- filter_spec(parent, !unsupported)
       }
@@ -12839,6 +13313,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     model_artifacts
   )
   if (!is.null(quarantine)) {
+    .lib_validate_quarantine(quarantine)
     quarantine$manifest$release_signature <- signature
     artifacts[["quarantined_spectra"]] <- quarantine
   }
@@ -13243,7 +13718,7 @@ lib_clean_metadata <- function(x,
   colnames(x$spectra)
 }
 
-.lib_filter_excluded <- function(x, exclude_ids, id_col = "sample_name") {
+.lib_excluded_mask <- function(x, exclude_ids, id_col = "sample_name") {
   exclude_ids <- as.character(exclude_ids)
   metadata_cols <- intersect(
     c(id_col, paste0(id_col, "_old"), "col_id"),
@@ -13255,7 +13730,11 @@ lib_clean_metadata <- function(x,
       as.character(x$metadata[[col]]) %in% exclude_ids
   }
   spectra_hit <- colnames(x$spectra) %in% exclude_ids
-  keep <- !(metadata_hit | spectra_hit)
+  metadata_hit | spectra_hit
+}
+
+.lib_filter_excluded <- function(x, exclude_ids, id_col = "sample_name") {
+  keep <- !.lib_excluded_mask(x, exclude_ids, id_col = id_col)
   if (!all(keep)) x <- filter_spec(x, keep)
   x
 }

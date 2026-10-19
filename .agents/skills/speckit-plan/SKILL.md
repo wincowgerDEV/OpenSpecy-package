@@ -75,6 +75,12 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   output, signatures/reuse, spectrum dispositions, a quarantine containing
   every removed ingested spectrum plus stage/rule/reason provenance, and legacy
   comparison.
+- Raw reference-dataset plans must apply
+  `openspecy-ingest-reference-datasets` and name the ignored manifest,
+  folder/cleaner/output contract, active-transfer write locks, declared-license
+  versus maintainer-use fields, type/unit/plot/`check_OpenSpecy()` pre-save
+  gate, large-source chunk/hash policy, post-save class curation, and explicit
+  maintainer review before a production build.
 - Frozen positive-control or holdout plans must pin inputs, truth, artifacts,
   and output-determining controls; name compatibility/probe gates, restartable
   checkpoints, invalidation boundaries, and the no-tuning rule.

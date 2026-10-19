@@ -1,16 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.12.0 -> 3.13.0
+Version change: 3.13.0 -> 3.14.0
 Modified principles/sections:
-- IX. Proportional Evidence and Efficient Execution: require final handoffs to state output-determining policy rather than relying on logs or artifact names
-- Reference Library and External Workflow Verification: require an explicit build contract, complete quarantine provenance for every removal, balanced spectrum dispositions, and frozen holdout discipline
-- Bundled Shiny Application Boundary: require one owner and a tested transition contract for user-facing analysis actions
+- Reference Library and External Workflow Verification: add local raw-dataset intake, pre-save scientific gates, transfer-safe boundaries, license provenance, large-source precleaning, and post-save class curation
+- Development Workflow and Quality Gates: route raw reference intake through its dedicated skill before rebuild/curation
+- Governance: block unvalidated or provenance-ambiguous cleaned reference inputs
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md, AGENTS.md, shared speckit-plan/implement skills, openspecy-develop-shiny-app, and new openspecy-rebuild-reference-library skill: synchronized
+- .specify/templates/plan-template.md, AGENTS.md, shared speckit-plan/implement skills, openspecy-rebuild-reference-library, openspecy-curate-class-reference, and new openspecy-ingest-reference-datasets skill: synchronized
 Follow-up TODOs:
 - None
 -->
@@ -398,6 +398,36 @@ functions and small curated data files. Large source data and generated library
 artifacts SHOULD remain external to the package unless a feature plan explicitly
 scopes them into `inst/`, package data, or release artifacts.
 
+Raw reference-library downloads, dataset-specific cleaners, diagnostics, and
+cleaned objects MUST remain in ignored `rawrefdata/`. Intake MUST use a local
+manifest and one independent dataset folder plus one root cleaner per dataset;
+the only admitted output path is
+`<dataset>/Processed/CleanedOS_raw.rds`. The version-controlled workflow MUST
+select exact admitted manifest entries rather than recursively executing or
+ingesting arbitrary legacy files. A directory known to be receiving an active
+transfer MUST remain a no-create/no-modify/no-rename/no-delete boundary until
+the maintainer releases it; unrelated intake work MAY continue elsewhere.
+
+Before `CleanedOS_raw.rds` is promoted, every spectrum MUST have a
+source-verified lowercase `ftir` or `raman` type and faithful intensity units;
+transmittance MUST remain labeled `transmittance` with transmission mode rather
+than being relabeled absorbance. The candidate MUST pass `check_OpenSpecy()`
+without warnings, preserve aligned IDs/axis/metadata/attributes and release
+provenance, produce a deterministic full-range diagnostic plot that receives
+explicit human approval, and pass the same checks after temporary serialization
+and re-read. Source-declared licensing MUST be recorded separately from a
+maintainer use assumption. An unclear source grant MUST remain marked
+`not_source_verified`; a noncommercial/fair-use or CC-BY-NC-like assumption MUST
+NOT be represented as a publisher-issued license.
+
+Sources too large for safe in-memory cleaning MUST be conformed, deduplicated,
+and checkpointed out of core before constructing the final `OpenSpecy` object.
+The QMe14S intake uses a fixed 6 cm^-1 axis and a stable cross-chunk content-hash
+ledger unless a later approved plan changes that policy. Exact and regex class
+references MUST be curated only from identities in a saved, validated cleaned
+object: exact mappings precede narrow regex fallbacks, terminal numeric file
+extensions are normalized, and duplicate keys or regex clashes block admission.
+
 Changes that can affect official library identifiers, wavenumber axes, metadata
 joins, filtering, range restriction, reduction, model libraries, or artifact
 shape MUST include compatibility evidence against the current or legacy library
@@ -696,6 +726,10 @@ Before implementation is complete:
   quarantine, balance spectrum dispositions, and restate effective policy in
   the handoff. Frozen positive-control work MUST preserve its predeclared hashes,
   compatibility gate, probe, checkpoint, and no-tuning boundary.
+- Raw measured or physically simulated reference datasets MUST first use
+  `openspecy-ingest-reference-datasets`; class tables remain unchanged until a
+  validated `CleanedOS_raw.rds` exists, and the production rebuild remains
+  deferred until the maintainer reviews and freezes admitted data and mappings.
 - Production-scale stages MUST have a representative kernel benchmark, an
   expected time/memory envelope, progress at meaningful boundaries, and a safe
   checkpoint/abort decision when observed scaling materially misses the plan.
@@ -788,7 +822,11 @@ updating that diagram in the same change.
 They MUST also block an official reference-library release whose quarantine
 omits any successfully ingested spectrum that was later removed, lacks its
 stage/rule/reason provenance, or does not balance against the removal ledger.
+They MUST also block admission of a cleaned reference dataset that lacks the
+type/unit/plot/serialization/`check_OpenSpecy()` gate, writes into an active
+transfer boundary, curates classes before a validated output exists, or records
+a maintainer license assumption as though it were source-declared terms.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.13.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-19
+**Version**: 3.14.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-19

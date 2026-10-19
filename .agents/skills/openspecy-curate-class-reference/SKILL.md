@@ -12,6 +12,10 @@ reviewable.
 
 1. Read the active Spec Kit plan and the reference-library workflow before
    editing lookup data.
+   For a new raw dataset, first apply `openspecy-ingest-reference-datasets`.
+   Do not infer mappings from download names or edit either class CSV until the
+   exact `Processed/CleanedOS_raw.rds` exists and has passed technique, units,
+   diagnostic-plot, serialization, and warning-free `check_OpenSpecy()` gates.
 2. Treat `workflows/data/classes_reference.csv` as the authoritative exact
    lookup. Require unique, normalized `spectrum_identity` keys. Never place
    regex syntax in this file.

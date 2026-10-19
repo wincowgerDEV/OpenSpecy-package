@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 Use `.specify/memory/constitution.md` as durable project memory and the active
 concise feature plan as the implementation brief. Default Spec Kit workflow:
-the active plan is `specs/050-session-informed-workflow-governance/plan.md`;
+the active plan is `specs/051-reference-dataset-ingestion/plan.md`;
 create or update one `plan.md` under `specs/<feature>/`; keep it under 100
 nonblank lines and target 1,500 words, with goals, requirements, technical
 decisions, package surfaces, a short work checklist, verification, and open
@@ -31,6 +31,15 @@ failures in the same broad stage, isolate a focused reproducer before rerunning.
 Network tests must
 guard the actual download host. Keep long-running tests manual or GitHub Actions
 guarded. For reference-library or other long-running external workflows, run
+raw dataset intake through `openspecy-ingest-reference-datasets`: keep
+`rawrefdata/` ignored, never write within a directory receiving an active
+transfer, use one folder/cleaner and exact `Processed/CleanedOS_raw.rds` output
+per dataset, distinguish source-declared licenses from maintainer use
+assumptions, and require verified FTIR/Raman type, faithful intensity units and
+transmission mode, an approved diagnostic plot, warning-free
+`check_OpenSpecy()`, and a serialization recheck before saving. Preclean massive
+sources out of core (QMe14S at 6 cm^-1 with cross-chunk hash deduplication), and
+curate class tables only after the validated cleaned object exists. Then run
 subset probes and staged temp-output/logged rebuilds before a full run; define
 representative kernel dimensions, expected time/memory, progress boundaries,
 checkpoint behavior, and a stop/restart threshold before production scale; compare

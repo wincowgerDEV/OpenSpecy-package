@@ -1684,7 +1684,14 @@ test_that("quarantine bundles retain spectra and review metadata", {
   restored <- readRDS(file.path(output, "review", "quarantined_spectra.rds"))
 
   expect_s3_class(restored, "OpenSpecyQuarantine")
-  expect_named(restored, c("spectra", "conflicts", "manifest"))
+  expect_named(
+    restored,
+    c("spectra", "removals", "conflicts", "source_failures", "manifest")
+  )
+  expect_identical(
+    restored$manifest$schema, "OpenSpecy_quarantined_spectra_v2"
+  )
+  expect_identical(restored$manifest$removed_spectra, 1L)
   expect_true(check_OpenSpecy(restored$spectra[["derivative/ftir"]]))
   expect_equal(
     restored$spectra[["derivative/ftir"]]$metadata$quarantine_reason,
@@ -1693,8 +1700,53 @@ test_that("quarantine bundles retain spectra and review metadata", {
   expect_true(all(file.exists(file.path(
     output, "review",
     c("quarantined_spectra_metadata.csv",
-      "quarantined_spectra_conflicts.csv")
+      "quarantined_spectra_removals.csv",
+      "quarantined_spectra_conflicts.csv",
+      "quarantined_source_failures.csv")
   ))))
+})
+
+test_that("quarantine captures duplicate removals with unique payload IDs", {
+  lib <- tiny_build_lib()
+  duplicate <- filter_spec(lib, c(1L, 1L, 2L))
+  duplicate$metadata$sample_name <- c("same", "same", "other")
+  colnames(duplicate$spectra) <- duplicate$metadata$sample_name
+  duplicate$metadata$col_id <- colnames(duplicate$spectra)
+
+  parts <- OpenSpecy:::.lib_quarantine_typed_capture(
+    duplicate, c(TRUE, TRUE, FALSE), artifact = "source",
+    stage = "source_deduplication", rule = "content_hash",
+    reason = "duplicate_content_remove_all"
+  )
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(parts)
+
+  expect_true(OpenSpecy:::.lib_validate_quarantine(bundle))
+  expect_identical(bundle$manifest$removed_spectra, 2L)
+  expect_identical(anyDuplicated(bundle$removals$quarantine_key), 0L)
+  expect_identical(
+    unique(bundle$removals$quarantine_original_id), "same"
+  )
+  expect_identical(
+    anyDuplicated(colnames(bundle$spectra[["source/ftir"]]$spectra)), 0L
+  )
+})
+
+test_that("build_lib records source deduplication in quarantine", {
+  lib <- tiny_build_lib()
+  lib$spectra[, 2L] <- lib$spectra[, 1L]
+  built <- build_lib(
+    lib, recipes = list(raw = list()), res = 100,
+    dedupe = TRUE, signal_noise = FALSE, progress = FALSE
+  )
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(
+    attr(built, "quarantine_parts", exact = TRUE)
+  )
+
+  expect_identical(ncol(built$raw$spectra), 7L)
+  expect_identical(bundle$manifest$removed_spectra, 1L)
+  expect_identical(bundle$removals$quarantine_stage,
+                   "source_deduplication")
+  expect_identical(bundle$removals$quarantine_rule, "content_hash")
 })
 
 test_that("typed closure filters parents before medoid construction", {
@@ -3056,6 +3108,26 @@ test_that("official other policy retains generic rows for correlation reassignme
   expect_identical(formals(build_lib)$remove_other, TRUE)
 })
 
+test_that("official other policy quarantines unidentified nongeneric rows", {
+  lib <- tiny_build_lib()
+  lib$metadata[, `:=`(
+    spectrum_identity = c(NA_character_, paste0("identity_", 2:8)),
+    material = rep("polyamide", 8), material_class = rep("polyamides", 8),
+    material_type = rep("plastic", 8), library_name = source
+  )]
+
+  result <- OpenSpecy:::.lib_apply_other_policy(
+    list(raw = lib), remove_other = TRUE, report = NULL
+  )
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(result$quarantine_parts)
+
+  expect_identical(ncol(result$libraries$raw$spectra), 7L)
+  expect_identical(bundle$manifest$removed_spectra, 1L)
+  expect_identical(bundle$removals$quarantine_stage, "class_completion")
+  expect_identical(bundle$removals$quarantine_reason,
+                   "missing_spectrum_identity")
+})
+
 test_that("generic review finalization distinguishes every no-op disposition", {
   lib <- tiny_build_lib()
   libraries <- list(
@@ -3487,7 +3559,12 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   quarantine <- readRDS(file.path(release_dir, "quarantined_spectra.rds"))
   expect_s3_class(quarantine, "OpenSpecyQuarantine")
   expect_identical(quarantine$manifest$schema,
-                   "OpenSpecy_quarantined_spectra_v1")
+                   "OpenSpecy_quarantined_spectra_v2")
+  expect_identical(
+    quarantine$manifest$removed_spectra,
+    as.integer(nrow(quarantine$removals))
+  )
+  expect_true(OpenSpecy:::.lib_validate_quarantine(quarantine))
   release_index <- readRDS(file.path(release_dir, "reference_library_build.rds"))
   expect_identical(
     release_index$schema, "OpenSpecy_reference_build_index_v1"
@@ -3557,7 +3634,7 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   expect_s3_class(resolved$quarantine, "OpenSpecyQuarantine")
   expect_identical(
     resolved$quarantine$manifest$schema,
-    "OpenSpecy_quarantined_spectra_v1"
+    "OpenSpecy_quarantined_spectra_v2"
   )
 
   second <- suppressWarnings(build_lib(
