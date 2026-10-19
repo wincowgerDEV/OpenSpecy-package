@@ -32,6 +32,8 @@
 - **Generated artifacts**: [Whether documentation generation is needed; required configured tool version; no direct generated-file edits.]
 - **External resources**: [Network hosts, large files, offline guards, or N/A.]
 - **Reference workflow compatibility**: [For library/large workflow changes, old/new artifact comparison plan or N/A.]
+- **Official-build contract**: [For an official rebuild: source/code/artifact hashes and freeze boundary, output target, per-artifact pruning/reassignment policy, cross-class enabled/disabled plus threshold/operator, model/hierarchy/selection method, seed/holdout, signature/reuse policy, and legacy comparator; or N/A.]
+- **Frozen validation**: [Pinned input/truth/artifact/control hashes, compatibility gate, representative probe, restartable unit, invalidation boundary, and no-tuning rule; or N/A.]
 - **Performance and observability**: [For long or production-scale stages, name representative kernel dimensions, expected runtime/memory, progress boundaries, checkpoint/reuse behavior, and the condition that stops a materially over-budget run; or N/A.]
 - **Bundled Shiny app**: [impact on `inst/`; canonical final `OpenSpecy` or explicitly planned compact `Specs` reactive feeding visible/exported results through bounded accessors; owner/child gating; substantive adjacent guidance for non-obvious scientific/processing inputs; contextual downloads/progress; assets/size; headless and browser tests; or N/A.]
 - **Pipeline diagram**: [`.specify/memory/pipeline-diagram.html` box(es)/decision(s) this plan changes, and whether the diagram is updated in this plan; or N/A if the analysis pipeline is untouched.]
@@ -70,6 +72,8 @@
 - `devtools::check()` or CI/R CMD check trigger or N/A:
 - Benchmarks:
 - Reference-library/long workflow staging:
+- Spectrum disposition accounting: [Retained and reassigned counts; quarantine containing every removed spectrum with stable ID/source/stage/rule/reason and threshold/comparison evidence when relevant; source-ingestion failures; balance boundary; or N/A.]
+- Frozen holdout evidence: [Exclusions, warnings, resource bounds, paired metrics/uncertainty, and class/particle confusion; or N/A.]
 - Long-stage budget and telemetry: [Representative dimensions, expected time/memory, progress/checkpoints, and abort/restart threshold; or N/A.]
 - Shiny affected states or N/A: [Only changed no-upload/processed/identified/batch/quantification/muted/download/progress/visual states; asset inventory when assets change.]
 - Shinylive/WebAssembly impact: [Always state changed/unchanged/N/A; fast hosted-source gate for shared inputs; matching-artifact and full-rebuild triggers or explicit proportional deferral.]

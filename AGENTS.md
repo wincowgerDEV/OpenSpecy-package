@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 Use `.specify/memory/constitution.md` as durable project memory and the active
 concise feature plan as the implementation brief. Default Spec Kit workflow:
-the active plan is `specs/049-flat-reference-library-rebuild/plan.md`;
+the active plan is `specs/050-session-informed-workflow-governance/plan.md`;
 create or update one `plan.md` under `specs/<feature>/`; keep it under 100
 nonblank lines and target 1,500 words, with goals, requirements, technical
 decisions, package surfaces, a short work checklist, verification, and open
@@ -36,7 +36,17 @@ representative kernel dimensions, expected time/memory, progress boundaries,
 checkpoint behavior, and a stop/restart threshold before production scale; compare
 rebuilt artifacts against available legacy IDs, wavenumber axes, metadata
 counts/names, warnings, and representative `OpenSpecy` joins or matches before
-claiming completion. The Shiny application may be bundled in this repository
+claiming completion. Apply `openspecy-rebuild-reference-library` for official
+rebuilds: persist and freeze the exact source/code/artifact hashes, pruning and
+reassignment policy, cross-class enablement plus threshold/operator, model
+method, signature/reuse policy, budgets, and output target; balance retained, reassigned, ordinary
+removals, cross-class removals, and other exclusions; preserve every removed
+ingested spectrum in quarantine with its stable ID, source, removal stage, rule,
+and reason; and restate those settings in the handoff. Frozen holdout work must
+pin inputs, truth, artifacts, and output-determining controls, return through
+compatibility/probe gates after
+any invalidating change, and never tune a candidate on the same holdout. The
+Shiny application may be bundled in this repository
 under `inst/`; when porting from `wincowgerDEV/OpenSpecy-shiny`, keep app code
 there, compress/downsample images, remove orphaned/duplicate/raw/generated
 assets, report package-size impact, test helpers/server modules headlessly where
@@ -48,6 +58,9 @@ canonical final spectral reactive (`OpenSpecy`, or a plan-approved compact
 preserve native downloads; and verify affected no-upload/processed/identified
 states with genuine files plus console/screenshot review. Routine app iteration
 does not require R CMD check unless explicitly requested or release-facing.
+When an analysis action changes, define one owner and explicit no-input, dirty,
+running, current, and error/retry transitions; CSS and browser bridges may
+reflect that state but must not compete to determine it.
 Treat `.specify/memory/pipeline-diagram.html` as the canonical map of that
 pipeline: do not deviate from it outside an explicit plan naming the diagram
 component changed, and update the diagram in the same change.

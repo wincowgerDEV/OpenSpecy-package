@@ -44,21 +44,35 @@ are not required.
 10. If routine app work exceeds 30 minutes, reveals a higher change class, or
     the same broad gate fails twice, stop broad reruns, isolate a focused
     reproducer, and tell the user what expanded before continuing.
-11. For reference-library or other long-running external workflows, run a small
-   representative probe first, then isolated expensive stages with logs and
-   temporary outputs before the full workflow. Benchmark the highest-risk
-   kernel at representative dimensions and do not continue a materially
-   over-budget stage merely because it remains active. Stop at a safe
-   checkpoint, isolate the scaling or memory issue, verify the replacement, and
-   then restart. Compare rebuilt artifacts against available legacy identifiers,
-   wavenumber axes, metadata shape, warnings, and representative `OpenSpecy`
-   joins or matches before marking the work complete.
+11. For official reference-library rebuilds, apply
+    `openspecy-rebuild-reference-library`. Freeze the build contract before
+    production, including exact source/code/artifact hashes and freeze boundary,
+    pruning/reassignment, cross-class threshold/operator and enablement,
+    model/hierarchy method,
+    output, signature/reuse, budgets, and legacy comparator. For other
+    long-running external workflows, run a small representative probe first,
+    then isolated expensive stages with logs and temporary outputs before the
+    full workflow. Benchmark the highest-risk
+    kernel at representative dimensions and do not continue a materially
+    over-budget stage merely because it remains active. Stop at a safe
+    checkpoint, isolate the scaling or memory issue, verify the replacement, and
+    then restart. Compare rebuilt artifacts against available legacy identifiers,
+    wavenumber axes, metadata shape, warnings, and representative `OpenSpecy`
+    joins or matches before marking the work complete. Balance retained,
+    reassigned, and removed dispositions. Preserve every removed successfully
+    ingested spectrum in quarantine with its stable ID, source, removal stage,
+    rule, reason, and relevant threshold/comparison evidence; an empty
+    quarantine is valid only when nothing was removed. Frozen holdouts must keep
+    pinned inputs/truth/artifacts/controls, return through compatibility and
+    probe gates after invalidation, and must not tune the evaluated candidate.
 12. For bundled Shiny app work, apply `openspecy-develop-shiny-app`. Keep one
    final processed spectral reactive (`OpenSpecy`, or a plan-approved compact
    `Specs` map with bounded conversion) behind plots, summaries, identification,
    quantification, metadata, and downloads; gate child inputs behind their owner
    controls; preserve native downloads; and verify the affected app-state matrix
-   with focused tests plus a manual or CI-guarded browser smoke when relevant.
+    with focused tests plus a manual or CI-guarded browser smoke when relevant.
+    If a user-facing action changes, define one state owner and test no-input,
+    dirty, running, current, and error/retry transitions as applicable.
 13. For hosted Shinylive/WebAssembly work, treat the bundled `inst/` app and
     package source as canonical, fix and verify the "Build and deploy wasm R
     package repository" workflow when affected, keep the app on a hardcoded

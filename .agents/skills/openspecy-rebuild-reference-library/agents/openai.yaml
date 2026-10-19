@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenSpecy Reference Rebuild"
+  short_description: "Stage and audit official reference-library rebuilds"
+  default_prompt: "Use $openspecy-rebuild-reference-library to stage and audit an official OpenSpecy reference-library rebuild."

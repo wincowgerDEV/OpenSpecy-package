@@ -68,6 +68,19 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   the clean-rebuild tier only for dependency/image/driver/pin or release-facing
   triggers.
 - A short work checklist with exact paths.
+- Official reference rebuilds must declare the build contract: source/code/
+  artifact hashes and freeze boundary, per-artifact pruning and reassignment,
+  exact cross-class threshold and operator plus enablement,
+  model/hierarchy/selection method, seed/holdout,
+  output, signatures/reuse, spectrum dispositions, a quarantine containing
+  every removed ingested spectrum plus stage/rule/reason provenance, and legacy
+  comparison.
+- Frozen positive-control or holdout plans must pin inputs, truth, artifacts,
+  and output-determining controls; name compatibility/probe gates, restartable
+  checkpoints, invalidation boundaries, and the no-tuning rule.
+- App plans that change a user-facing analysis action must identify the single
+  state owner and the affected no-input, dirty, running, current, and
+  error/retry transitions.
 - Verification commands and any manual or CI-guarded checks.
 - Reusable evidence whose covered files, dependencies, inputs, and contracts
   have not changed; do not schedule an expensive gate again without naming its

@@ -1,15 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.11.0 -> 3.12.0
-Modified principles:
-- VI. Benchmark-Governed Performance Work: require production-scale budgets, telemetry, and complexity-aware stop/restart decisions
-- IX. Proportional Evidence and Efficient Execution: require evidence-backed checklist reconciliation, process ownership, and workspace cleanup before handoff
+Version change: 3.12.0 -> 3.13.0
+Modified principles/sections:
+- IX. Proportional Evidence and Efficient Execution: require final handoffs to state output-determining policy rather than relying on logs or artifact names
+- Reference Library and External Workflow Verification: require an explicit build contract, complete quarantine provenance for every removal, balanced spectrum dispositions, and frozen holdout discipline
+- Bundled Shiny Application Boundary: require one owner and a tested transition contract for user-facing analysis actions
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md, AGENTS.md, and shared speckit-implement skill: synchronized long-run and closure guidance
+- .specify/templates/plan-template.md, AGENTS.md, shared speckit-plan/implement skills, openspecy-develop-shiny-app, and new openspecy-rebuild-reference-library skill: synchronized
 Follow-up TODOs:
 - None
 -->
@@ -305,6 +306,10 @@ current evidence: completed work is checked, while incomplete or deferred work
 remains unchecked with its blocker, owner, and required gate stated. A task
 MUST NOT be described as complete while a user-requested long-running process
 is still active unless the user explicitly accepts that partial handoff.
+For output-determining policy choices, the handoff MUST state the effective
+setting, threshold and comparison operator where relevant, and enabled/disabled
+status directly; it MUST NOT require the maintainer to infer policy from a log,
+artifact filename, empty output, or implementation default.
 Agents MUST inspect processes they launched, repository status, and working
 directories before handoff; stop or record owned processes and remove completed
 scratch scripts, logs, and generated diagnostics. Temporary work MUST use an
@@ -402,6 +407,42 @@ count/name deltas, important warnings, and at least one representative
 `OpenSpecy` operation such as `c_spec()` or matching across old and new
 artifacts.
 
+Before an official rebuild or artifact comparison begins, its build contract
+MUST record the exact source inventory and fingerprints, output target,
+per-artifact pruning and reassignment policies, model method and hierarchy,
+selection policy, random seed and holdout where used, checkpoint signature and
+reuse policy, and the legacy artifact used for comparison. Cross-class
+correlation policy MUST state whether it is enabled, its numeric threshold, and
+whether the comparison is strict or inclusive. Every output-determining field
+MUST participate in the build or evidence signature and remain machine-readable
+in the saved release evidence.
+
+Official assessments MUST reconcile every input spectrum through named
+dispositions that are mutually exclusive within each declared balance boundary,
+including retained, reassigned, and removed. Reassignment MUST preserve its
+source identity and reason; it is not a removal. Every successfully ingested
+spectrum that is later removed--whether by cleanup, range, duplicate, quality,
+threshold, cross-class conflict/closure, whole-source, or downstream policy--
+MUST be preserved in the quarantine artifact with its stable identifier,
+source, removal stage, rule, and human-readable reason. Threshold or similarity
+removals MUST also retain the relevant cutoff, operator, comparison identity,
+and observed value when available. A source record that cannot be ingested as a
+valid spectrum MUST still be recorded as a source failure with its reason, but
+it is not falsely represented as a quarantined spectrum.
+
+Quarantine is the complete removal archive, not only cross-class conflict
+evidence. Counts in its reason ledger MUST equal the number of quarantined
+spectra at each declared balance boundary, without double-counting a spectrum
+removed once. An empty quarantine is valid only when no successfully ingested
+spectrum was removed. The handoff MUST summarize removals by stage and reason
+and reconcile retained plus removed spectra to the corresponding stage input.
+
+At production launch, the source files, lookup data, package code, and settings
+consumed by the run MUST be treated as frozen. Parallel work MAY continue only
+on surfaces excluded from that run contract. Promotion or comparison MUST
+verify the launched hashes; a changed consumed input invalidates the candidate
+unless the exact launched source snapshot remains recorded and reproducible.
+
 Long-running external workflows SHOULD be verified in stages before a full
 rerun: first a small representative or subset probe, then isolated expensive
 stages with logs and temporary outputs, and only then the full workflow. Full
@@ -411,6 +452,17 @@ Successful intermediate artifacts MAY be reused for diagnosis and comparison,
 but each expensive stage MUST expose dimensions, elapsed time, and checkpoint
 state sufficient to distinguish progress from a hang. Temporary diagnostics
 and generated outputs MUST be cleaned up or clearly reported before handoff.
+
+Frozen positive-control or external holdout validation MUST pin input, truth,
+artifact, and output-determining setting hashes before the full run. It MUST use
+a representative probe and restartable per-unit checkpoints. Once holdout
+evaluation starts, its outcomes MUST NOT be used to tune the same candidate. If
+implementation, artifact content, eligibility, truth, or an output-determining
+setting changes, downstream evidence is invalid and the workflow MUST return
+through its declared compatibility and probe gates before rerunning the full
+comparison. Reports MUST include exclusions, warnings, runtime/memory bounds,
+paired metrics with uncertainty when a paired comparator exists, and
+decision-relevant class or particle confusion rather than macro accuracy alone.
 
 ## Bundled Shiny Application Boundary
 
@@ -447,6 +499,16 @@ invalidate analysis, start network or reference-library work, or display the
 analysis overlay. Long-running feedback MUST come from explicit analysis phases
 in one accessible central display with actual elapsed time and staged progress;
 brief reactive flushes and configuration-only changes MUST remain quiet.
+
+Each user-facing action that commits analysis, preview, or download state MUST
+have one explicit owner for its visibility, label, enabled state, dirty/current
+status, running status, and error/retry behavior. The contract MUST distinguish
+no-input, dirty, running, current, and failed states using committed input/run
+revisions or an equivalent single state model. R observers, CSS, and browser
+bridges MUST NOT independently compete to decide the same state; hosted bridges
+may acknowledge mounting or decorate the authoritative app state. Tests MUST
+exercise the affected transitions from input arrival through success, a new
+invalidating change, and failure/retry when applicable.
 
 Contextual downloads MUST preserve the native Shiny download binding, expose a
 clear current label, validate nonempty server output, and be browser-tested with
@@ -628,6 +690,12 @@ Before implementation is complete:
 - Official reference-library or other long-running external workflow changes
   MUST use staged subset/temp-output verification and report compatibility
   counts against available legacy artifacts before being treated as complete.
+- Official reference-library rebuilds MUST use the
+  `openspecy-rebuild-reference-library` workflow, persist the explicit build
+  contract, preserve every removed spectrum plus its removal reason in
+  quarantine, balance spectrum dispositions, and restate effective policy in
+  the handoff. Frozen positive-control work MUST preserve its predeclared hashes,
+  compatibility gate, probe, checkpoint, and no-tuning boundary.
 - Production-scale stages MUST have a representative kernel benchmark, an
   expected time/memory envelope, progress at meaningful boundaries, and a safe
   checkpoint/abort decision when observed scaling materially misses the plan.
@@ -717,7 +785,10 @@ exception.
 They MUST also block plans that change an app analysis pipeline stage, branch,
 or function without naming the affected `pipeline-diagram.html` component and
 updating that diagram in the same change.
+They MUST also block an official reference-library release whose quarantine
+omits any successfully ingested spectrum that was later removed, lacks its
+stage/rule/reason provenance, or does not balance against the removal ledger.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.12.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-09-01
+**Version**: 3.13.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-19

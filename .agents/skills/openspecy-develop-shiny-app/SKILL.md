@@ -17,7 +17,11 @@ for integration and verification procedure.
    cross-cutting reactive pipeline or ownership question requires it.
 2. Map each changed user action through its owner control, dependent inputs,
    canonical reactive data, plots/tables, identification or quantification,
-   metadata, and downloads. Resolve divergent consumers before editing.
+   metadata, and downloads. When an action's visibility, label, enabled state,
+   dirty/current state, running state, or retry behavior changes, write its
+   no-input -> dirty -> running -> current and error/retry transitions before
+   editing and identify the one reactive/helper that owns them. Resolve
+   divergent consumers before editing.
    Cross-check the mapped flow against `.specify/memory/pipeline-diagram.html`
    and update the diagram in the same change when a stage, branch, or function
    call moves (Constitution Principle X).
@@ -44,6 +48,11 @@ for integration and verification procedure.
 - Branch on every owner toggle before reading child inputs. Disabled, hidden,
   or otherwise muted child controls must not invalidate analysis, run network
   work, or show the busy overlay.
+- Give every user-facing analysis action one authoritative state owner. Derive
+  visibility, label, enabled, dirty/current, running, and error/retry behavior
+  from the same committed input/run revisions (or equivalent state object).
+  CSS and browser JavaScript may render or acknowledge that state, including
+  hosted file mounting, but must not independently decide analysis state.
 - Treat dynamically rendered inputs as temporarily absent. Use explicit
   defaults or `req()` only after the owning state makes the input relevant.
 - Qualify collision-prone UI functions such as `bs4Dash::box`; parse all three
@@ -82,6 +91,9 @@ Cover the states affected by the change:
    analysis result and explicit progress overlay unchanged.
 6. Long-running work: one accessible central phase message, monotonic staged
    progress, elapsed time, completion reset, and no severe console/server error.
+7. Changed action state: no input -> input/setting dirty -> running -> current
+   or hidden, then a new invalidating change -> dirty; include failure -> retry
+   when the action can fail.
 
 ## Verification
 
