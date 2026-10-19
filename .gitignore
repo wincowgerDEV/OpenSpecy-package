@@ -26,7 +26,7 @@ vignettes/*.pdf
 inst/doc
 doc/
 Meta/
-
+rawrefdata/
 # Shiny app
 inst/OpenSpecy-shiny-main/
 
