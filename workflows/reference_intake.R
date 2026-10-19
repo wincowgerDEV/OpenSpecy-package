@@ -177,20 +177,71 @@ reference_validate_cleaned_object <- function(object, manifest_row,
   )
 }
 
-reference_write_diagnostic_plot <- function(object, path, sample_n = 24L) {
+reference_write_diagnostic_plot <- function(object, path, sample_n = 24L,
+                                            envelope_n = 512L) {
   stopifnot(is_OpenSpecy(object), isTRUE(check_OpenSpecy(object)))
   sample_n <- max(1L, min(as.integer(sample_n), ncol(object$spectra)))
-  columns <- unique(round(seq(1, ncol(object$spectra), length.out = sample_n)))
+  envelope_n <- max(1L, min(as.integer(envelope_n), ncol(object$spectra)))
+  regular <- unique(round(seq(1, ncol(object$spectra), length.out = sample_n)))
+  magnitude <- colMeans(abs(object$spectra), na.rm = TRUE)
+  ranked <- order(magnitude, method = "radix")
+  extremes <- unique(c(
+    ranked[[1L]], ranked[[length(ranked)]],
+    ranked[[max(1L, round(length(ranked) / 2L))]]
+  ))
+  columns <- unique(c(regular, extremes))
   diagnostic <- object$spectra[, columns, drop = FALSE]
+  envelope_columns <- unique(round(seq(
+    1, ncol(object$spectra), length.out = envelope_n
+  )))
+  envelope <- matrixStats::rowQuantiles(
+    object$spectra[, envelope_columns, drop = FALSE],
+    probs = c(0.01, 0.25, 0.5, 0.75, 0.99), na.rm = TRUE
+  )
+  units <- if ("intensity_units" %in% names(object$metadata)) {
+    unique(trimws(as.character(object$metadata$intensity_units)))
+  } else {
+    character()
+  }
+  units <- units[!is.na(units) & nzchar(units)]
+  ylab <- if (length(units) == 1L) {
+    paste0("Intensity (", units, ")")
+  } else {
+    "Intensity"
+  }
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   grDevices::png(path, width = 1800, height = 1100, res = 160)
   on.exit(grDevices::dev.off(), add = TRUE)
+  graphics::par(mfrow = c(2, 1), mar = c(4.2, 4.5, 3.2, 1.2))
+  graphics::plot(
+    object$wavenumber, envelope[, 3L], type = "n",
+    ylim = range(envelope[, c(1L, 5L)], finite = TRUE),
+    xlab = expression("Wavenumber (cm"^-1*")"), ylab = ylab,
+    main = paste0(
+      "Full-axis quantile envelope; deterministic spectra n=",
+      length(envelope_columns)
+    )
+  )
+  graphics::polygon(
+    c(object$wavenumber, rev(object$wavenumber)),
+    c(envelope[, 1L], rev(envelope[, 5L])),
+    border = NA, col = grDevices::adjustcolor("#9CB8DD", alpha.f = 0.45)
+  )
+  graphics::polygon(
+    c(object$wavenumber, rev(object$wavenumber)),
+    c(envelope[, 2L], rev(envelope[, 4L])),
+    border = NA, col = grDevices::adjustcolor("#4A7BBC", alpha.f = 0.55)
+  )
+  graphics::lines(object$wavenumber, envelope[, 3L], col = "#123B70", lwd = 1.4)
+  graphics::grid()
   graphics::matplot(
     object$wavenumber, diagnostic, type = "l", lty = 1,
     col = grDevices::adjustcolor("#2457A7", alpha.f = 0.25),
-    xlab = expression("Wavenumber (cm"^-1*")"), ylab = "Intensity",
-    main = paste0("Reference intake diagnostic: ", ncol(object$spectra),
-                  " spectra; deterministic sample n=", length(columns))
+    xlab = expression("Wavenumber (cm"^-1*")"), ylab = ylab,
+    main = paste0(
+      "Representative plus magnitude-extreme traces: ",
+      ncol(object$spectra), " total; plotted n=", length(columns)
+    )
   )
   graphics::grid()
   invisible(path)
@@ -231,7 +282,15 @@ reference_collect_admitted_inputs <- function(rawrefdata_dir, manifest_path,
         stop("Cleaner must define clean_reference_dataset(): ",
              admitted$cleaner_path[[i]], call. = FALSE)
       }
-      cleaner(admitted$dataset_path[[i]], admitted$output_path[[i]])
+      cleaner_args <- list(
+        dataset_dir = admitted$dataset_path[[i]],
+        output_path = admitted$output_path[[i]]
+      )
+      if ("visual_review_status" %in% names(formals(cleaner))) {
+        cleaner_args$visual_review_status <-
+          admitted$visual_review_status[[i]]
+      }
+      do.call(cleaner, cleaner_args)
     }
   }
   missing_cleaner <- !file.exists(admitted$cleaner_path)

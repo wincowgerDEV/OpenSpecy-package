@@ -81,17 +81,24 @@ test_that("aggregate gated checkpoints require every expected model", {
 test_that("reference checkpoint signatures cover all executed package code", {
   paths <- OpenSpecy:::.lib_build_source_paths()
   root <- normalizePath(testthat::test_path("..", ".."), mustWork = TRUE)
-  expected_r <- sort(normalizePath(
-    list.files(file.path(root, "R"), pattern = "[.]R$", full.names = TRUE),
-    mustWork = TRUE
-  ))
+  workflow <- file.path(root, "workflows", "OpenSpecy_reference_library.R")
+  source_layout <- dir.exists(file.path(root, "R")) && file.exists(workflow)
 
-  expect_setequal(intersect(paths, expected_r), expected_r)
-  expect_true(normalizePath(file.path(root, "DESCRIPTION")) %in% paths)
-  expect_true(normalizePath(file.path(root, "NAMESPACE")) %in% paths)
-  expect_true(normalizePath(file.path(
-    root, "workflows", "OpenSpecy_reference_library.R"
-  )) %in% paths)
+  expect_true(all(c("DESCRIPTION", "NAMESPACE") %in% basename(paths)))
+  expect_true(any(grepl("[/\\\\]R[/\\\\]", paths)))
+  if (source_layout) {
+    expected_r <- sort(normalizePath(
+      list.files(file.path(root, "R"), pattern = "[.]R$", full.names = TRUE),
+      mustWork = TRUE
+    ))
+    expect_setequal(intersect(paths, expected_r), expected_r)
+    expect_true(normalizePath(file.path(root, "DESCRIPTION")) %in% paths)
+    expect_true(normalizePath(file.path(root, "NAMESPACE")) %in% paths)
+    expect_true(normalizePath(workflow) %in% paths)
+    expect_true(normalizePath(file.path(
+      root, "workflows", "reference_intake.R"
+    )) %in% paths)
+  }
   signatures <- OpenSpecy:::.lib_build_source_signatures()
   expect_equal(nrow(signatures), length(paths))
   expect_false(anyNA(signatures$checksum))

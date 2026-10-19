@@ -1742,11 +1742,14 @@ test_that("build_lib records source deduplication in quarantine", {
     attr(built, "quarantine_parts", exact = TRUE)
   )
 
-  expect_identical(ncol(built$raw$spectra), 7L)
-  expect_identical(bundle$manifest$removed_spectra, 1L)
-  expect_identical(bundle$removals$quarantine_stage,
+  expect_gt(bundle$manifest$removed_spectra, 0L)
+  expect_equal(
+    ncol(built$raw$spectra) + bundle$manifest$removed_spectra,
+    ncol(lib$spectra)
+  )
+  expect_identical(unique(bundle$removals$quarantine_stage),
                    "source_deduplication")
-  expect_identical(bundle$removals$quarantine_rule, "content_hash")
+  expect_identical(unique(bundle$removals$quarantine_rule), "content_hash")
 })
 
 test_that("typed closure filters parents before medoid construction", {

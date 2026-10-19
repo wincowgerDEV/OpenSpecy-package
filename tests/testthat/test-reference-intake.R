@@ -1,7 +1,16 @@
+reference_workflow_path <- function(file) {
+  path <- testthat::test_path("..", "..", "workflows", file)
+  testthat::skip_if_not(
+    file.exists(path),
+    "repository workflow sources are not installed with the package"
+  )
+  path
+}
+
 reference_intake_environment <- function() {
   environment <- new.env(parent = globalenv())
   sys.source(
-    testthat::test_path("..", "..", "workflows", "reference_intake.R"),
+    reference_workflow_path("reference_intake.R"),
     envir = environment
   )
   environment
@@ -39,6 +48,9 @@ test_that("reference intake validation enforces type, units, and visual review",
   object$metadata$instrument_mode <- "transmission"
   valid <- helpers$reference_validate_cleaned_object(object, row)
   expect_true(valid$valid)
+
+  helpers$reference_write_diagnostic_plot(object, plot, sample_n = 2L)
+  expect_gt(file.info(plot)$size, 0)
 })
 
 test_that("QMe14S-style chunk deduplication is stable across chunks", {
@@ -94,10 +106,69 @@ test_that("missing admitted outputs are source failures, not quarantine", {
   expect_length(result$files, 1L)
 })
 
+test_that("reference runner forwards an approved visual review to cleaners", {
+  helpers <- reference_intake_environment()
+  root <- tempfile("OpenSpecy-reference-cleaner-")
+  dataset <- file.path(root, "fixture")
+  processed <- file.path(dataset, "Processed")
+  dir.create(processed, recursive = TRUE)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+
+  cleaner <- file.path(root, "clean_fixture.R")
+  writeLines(c(
+    "clean_reference_dataset <- function(dataset_dir, output_path,",
+    "                                    visual_review_status) {",
+    "  writeLines(visual_review_status, file.path(dataset_dir, 'review.txt'))",
+    "}"
+  ), cleaner)
+  spectra <- cbind(a = 1:5, b = 5:1)
+  object <- as_OpenSpecy(
+    seq(400, 800, by = 100), spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      spectrum_identity = c("a", "b"), spectrum_type = "raman",
+      intensity_units = "arbitrary units", citation = "fixture",
+      license = "CC BY", canonical_release = "fixture-release",
+      source_declared_license = "CC BY", license_status = "verified_open",
+      maintainer_use_basis = "source license", origin = "experimental"
+    )
+  )
+  output <- file.path(processed, "CleanedOS_raw.rds")
+  plot <- file.path(processed, "diagnostic.png")
+  saveRDS(object, output)
+  file.create(plot)
+  manifest <- data.table::data.table(
+    candidate_id = 1L, slug = "fixture", title = "Fixture",
+    canonical_release = "fixture-release", dataset_dir = "fixture",
+    cleaner = "clean_fixture.R",
+    output = "fixture/Processed/CleanedOS_raw.rds", state = "admitted",
+    source_declared_license = "CC BY", license_status = "verified_open",
+    maintainer_use_basis = "source license", expected_spectrum_type = "raman",
+    citation = "fixture", origin = "experimental",
+    diagnostic_plot = "fixture/Processed/diagnostic.png",
+    visual_review_status = "approved", downloaded_at = "2026-10-19",
+    raw_sha256 = "raw-fixture",
+    cleaner_sha256 = digest::digest(
+      file = cleaner, algo = "sha256", serialize = FALSE
+    ),
+    output_sha256 = digest::digest(
+      file = output, algo = "sha256", serialize = FALSE
+    )
+  )
+  manifest_path <- file.path(root, "datasets.csv")
+  data.table::fwrite(manifest, manifest_path)
+
+  result <- helpers$reference_collect_admitted_inputs(
+    root, manifest_path, run_cleaners = TRUE
+  )
+
+  expect_identical(readLines(file.path(dataset, "review.txt")), "approved")
+  expect_true(result$validation$valid)
+})
+
 test_that("reference workflow uses manifest-selected cleaned outputs", {
   workflow <- readLines(
-    testthat::test_path("..", "..", "workflows",
-                        "OpenSpecy_reference_library.R"),
+    reference_workflow_path("OpenSpecy_reference_library.R"),
     warn = FALSE
   )
   code <- paste(workflow, collapse = "\n")
