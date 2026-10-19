@@ -1,7 +1,7 @@
 ---
 title: "Spectroscopy Advanced"
 author: >
-  Jessica Meyers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz,
+  Jessica Myers, Jeremy Conkle, Win Cowger, Zacharias Steinmetz,
   Andrew Gray, Chelsea Rochman, Sebastian Primpke, Jennifer Lynch,
   Hannah Hapich, Hannah De Frond, Keenan Munno, Bridget O’Donnell
 date: "`r Sys.Date()`"
