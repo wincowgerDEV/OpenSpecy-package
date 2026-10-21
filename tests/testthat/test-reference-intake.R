@@ -43,11 +43,15 @@ test_that("reference intake validation enforces type, units, and visual review",
 
   invalid <- helpers$reference_validate_cleaned_object(object, row)
   expect_false(invalid$valid)
-  expect_match(invalid$problems, "transmission instrument_mode")
+  expect_match(invalid$problems, "transmission or ATR")
 
   object$metadata$instrument_mode <- "transmission"
   valid <- helpers$reference_validate_cleaned_object(object, row)
   expect_true(valid$valid)
+
+  object$metadata$instrument_mode <- "atr"
+  atr_valid <- helpers$reference_validate_cleaned_object(object, row)
+  expect_true(atr_valid$valid)
 
   helpers$reference_write_diagnostic_plot(object, plot, sample_n = 2L)
   expect_gt(file.info(plot)$size, 0)

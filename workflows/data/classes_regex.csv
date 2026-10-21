@@ -69,3 +69,20 @@ pattern,material
 ^tf[0-9]+_(?!.*(?:acetate|cotton|linen|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose|wool)).*hemp(?:[[:space:]]|$),organic matter
 ^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose|wool)).*linen(?:[[:space:]]|$),organic matter
 ^tf[0-9]+_(?!.*(?:acetate|cotton|hemp|linen|lycra|modal|nylon|polyester|rayon|silk|spandex|viscose)).*wool(?:[[:space:]]|$),organic matter
+^smiles: (?=(?:(?! \[[^]]+\]$).)*(?:C(?![a-z])|c)),organic matter
+^smiles: (?!(?:(?! \[[^]]+\]$).)*(?:C(?![a-z])|c)),other material
+^[a-z0-9-]+__r[0-9]+__raman__,mineral
+^raman spectra of [[:alnum:]-]+$,mineral
+^pe[0-9]+_.*_(?:raw|processed)$,poly(ethylene)
+^pp[0-9]+_.*_(?:raw|processed)$,poly(propylene)
+^(?:actinonite|mica|quartz)_[0-9]+$,mineral
+^(?:cotton|hair|shell)_[0-9]+$,organic matter
+^(?:hdpe|ldpe)_[0-9]+$,poly(ethylene)
+^pc_[0-9]+$,polycarbonates
+^(?:pester|petg)_[0-9]+$,polyesters
+^pla_[0-9]+$,polylactic acid
+^pp_[0-9]+$,poly(propylene)
+^ps_[0-9]+$,polystyrene
+^pur_[0-9]+$,polyurethanes
+^rayon_[0-9]+$,rayon
+^rubber_[0-9]+$,other plastic

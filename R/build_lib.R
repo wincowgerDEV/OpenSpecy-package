@@ -8794,6 +8794,39 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   build
 }
 
+.lib_complete_reference_library_type <- function(metadata) {
+  out <- data.table::as.data.table(data.table::copy(metadata))
+  if (!"library_type" %in% names(out)) {
+    out[, library_type := NA_character_]
+  } else {
+    out[, library_type := as.character(library_type)]
+  }
+  blank <- is.na(out$library_type) | !nzchar(trimws(out$library_type))
+  origin <- if ("origin" %in% names(out)) {
+    tolower(trimws(as.character(out$origin)))
+  } else {
+    rep(NA_character_, nrow(out))
+  }
+  fallback <- data.table::fcase(
+    origin == "experimental", "experimental reference collection",
+    origin == "computed_solid", "computed solid reference collection",
+    origin == "computed_molecule", "computed molecular reference collection",
+    default = "reference collection (type not reported)"
+  )
+  out$library_type[blank] <- fallback[blank]
+  list(
+    metadata = out,
+    assessment = data.table::data.table(
+      total = nrow(out),
+      source_reported = sum(!blank),
+      provenance_fallback = sum(blank),
+      fallback_values = if (any(blank)) {
+        paste(sort(unique(fallback[blank])), collapse = "; ")
+      } else NA_character_
+    )
+  )
+}
+
 .lib_complete_reference_build <- function(libraries, tables, prune,
                                            remove_other, progress, report) {
   quarantine_parts <- attr(libraries, "quarantine_parts", exact = TRUE)
@@ -8820,6 +8853,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   }), fill = TRUE)
   prediction_rows <- list()
   coverage_rows <- list()
+  library_type_rows <- list()
   for (name in names(libraries)) {
     report(paste0("completing class metadata (", name, ")"))
     prediction <- predict_class_reference(
@@ -8842,6 +8876,19 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       hierarchy = tables$material_hierarchy,
       enforce_other_limit = !isTRUE(remove_other)
     )
+    library_type <- .lib_complete_reference_library_type(
+      libraries[[name]]$metadata
+    )
+    libraries[[name]]$metadata <- library_type$metadata
+    library_type_rows[[name]] <- data.table::copy(
+      library_type$assessment
+    )[, artifact := name]
+    if (library_type$assessment$provenance_fallback[[1L]] > 0L) {
+      report(sprintf(
+        "completed missing library_type from provenance (%s; spectra=%d)",
+        name, library_type$assessment$provenance_fallback[[1L]]
+      ))
+    }
     prediction_rows[[name]] <- data.table::data.table(
       artifact = name, metric = names(prediction$summary),
       value = as.numeric(unlist(prediction$summary, use.names = FALSE))
@@ -8871,14 +8918,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     .lib_library_stage_counts(libraries, stage = "post_other")
   ), fill = TRUE)
 
+  library_type_completion <- data.table::rbindlist(
+    library_type_rows, fill = TRUE
+  )
   type_coverage <- data.table::rbindlist(lapply(names(libraries), function(name) {
     metadata <- libraries[[name]]$metadata
+    completed <- library_type_completion[artifact == name]
     data.table::data.table(
       artifact = name, field = c("library_type", "spectrum_type"),
       populated = c(
         sum(!is.na(metadata$library_type) & nzchar(metadata$library_type)),
         sum(!is.na(metadata$spectrum_type) & nzchar(metadata$spectrum_type))
-      ), total = nrow(metadata)
+      ), total = nrow(metadata),
+      source_reported = c(completed$source_reported, NA_integer_),
+      provenance_fallback = c(completed$provenance_fallback, NA_integer_),
+      fallback_values = c(completed$fallback_values, NA_character_)
     )
   }))
   if (any(type_coverage$populated != type_coverage$total)) {

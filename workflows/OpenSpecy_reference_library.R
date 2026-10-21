@@ -89,7 +89,7 @@ rawrefdata_dir <- Sys.getenv(
 )
 intake_manifest <- Sys.getenv(
   "OPENSPECY_REFERENCE_INTAKE_MANIFEST",
-  unset = file.path(rawrefdata_dir, "datasets.csv")
+  unset = file.path(rawrefdata_dir, "updatedv1", "datasets.csv")
 )
 intake <- list(
   files = character(), validation = data.table::data.table(),

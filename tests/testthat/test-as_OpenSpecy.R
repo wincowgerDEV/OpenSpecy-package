@@ -81,39 +81,55 @@ test_that("as_OpenSpecy() upgrades old data.table spectra", {
 })
 
 test_that("check_OpenSpecy() work as expected", {
+  expect_invalid <- function(object, pattern) {
+    emitted <- character()
+    valid <- withCallingHandlers(
+      check_OpenSpecy(object),
+      warning = function(warning) {
+        emitted <<- c(emitted, conditionMessage(warning))
+        invokeRestart("muffleWarning")
+      }
+    )
+    expect_false(valid)
+    expect_true(
+      any(grepl(pattern, emitted, ignore.case = TRUE)),
+      info = paste(emitted, collapse = " | ")
+    )
+  }
+
   os <- as_OpenSpecy(df)
   check_OpenSpecy(os) |> expect_true()
-  expect_warning(expect_false(check_OpenSpecy(df)))
+  expect_invalid(df, "not of class")
 
   osna <- osd <- osv <- osn <- oss <- ost <- osl <- os
 
   osv$wavenumber <- list(osv$wavenumber)
-  check_OpenSpecy(osv) |> expect_false() |> expect_warning()
+  expect_invalid(osv, "length of wavenumber")
 
   names(osn) <- 1:3
-  expect_warning(expect_false(check_OpenSpecy(osn)))
+  expect_invalid(osn, "names of the object components")
 
   osna$spectra[2:nrow(osna$spectra), "intensity"] <- NA
-  check_OpenSpecy(osna) |> expect_warning() 
+  expect_invalid(osna, "one or fewer non NA values")
   
   osna$spectra[, "intensity"] <- NA
-  check_OpenSpecy(osna) |> expect_warning()
+  expect_invalid(osna, "one or fewer non NA values")
   
   oss$wavenumber <- sample(oss$wavenumber)
-  check_OpenSpecy(oss) |> expect_false() |> expect_warning()
+  expect_invalid(oss, "continuous sequence")
 
   class(ost$metadata) <- class(ost$spectra) <- "data.frame"
-  check_OpenSpecy(ost) |> expect_false() |> expect_warning() |> expect_warning()
+  expect_invalid(ost, "metadata are not")
 
   osl$metadata <- rbind(osl$metadata, osl$metadata)
   osl$spectra <- osl$spectra[-1]
 
-  check_OpenSpecy(osl) |> expect_false() |> expect_warning() |> expect_warning()
+  expect_invalid(osl, "number of columns in spectra")
   
   #dup wavenumbers
   osd$wavenumber <- rep(300, length.out = length(osd$wavenumber))
 
-  check_OpenSpecy(osd) |> expect_false() |> expect_warning() 
+  expect_invalid(osd, "unqiue values")
   
 })
 

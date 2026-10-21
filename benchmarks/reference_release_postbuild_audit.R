@@ -1300,14 +1300,34 @@ audit_aliases_and_prior_models <- function(new_dir, prior_dir, checks) {
 audit_special_artifacts <- function(new_dir, prior_dir, new_signature, checks) {
   new_quarantine <- readRDS(file.path(new_dir, "quarantined_spectra.rds"))
   prior_quarantine <- readRDS(file.path(prior_dir, "quarantined_spectra.rds"))
-  quarantine_ok <- is.list(new_quarantine) &&
-    all(c("spectra", "conflicts", "manifest") %in% names(new_quarantine)) &&
+  quarantine_total <- if (is.list(new_quarantine$spectra)) {
+    sum(vapply(new_quarantine$spectra, function(object) {
+      ncol(object$spectra)
+    }, integer(1L)))
+  } else {
+    NA_integer_
+  }
+  quarantine_ok <- inherits(new_quarantine, "OpenSpecyQuarantine") &&
+    all(c("spectra", "removals", "conflicts", "source_failures",
+          "manifest") %in% names(new_quarantine)) &&
     identical(
       new_quarantine$manifest$schema,
-      "OpenSpecy_quarantined_spectra_v1"
+      "OpenSpecy_quarantined_spectra_v2"
     ) &&
     identical(new_quarantine$manifest$release_signature, new_signature) &&
+    identical(as.integer(new_quarantine$manifest$removed_spectra),
+              as.integer(quarantine_total)) &&
+    nrow(new_quarantine$removals) == quarantine_total &&
+    !anyDuplicated(new_quarantine$removals$quarantine_key) &&
+    all(vapply(c(
+      "quarantine_key", "quarantine_source", "quarantine_artifact",
+      "quarantine_stage", "quarantine_rule", "quarantine_reason"
+    ), function(column) {
+      value <- as.character(new_quarantine$removals[[column]])
+      !any(is.na(value) | !nzchar(trimws(value)))
+    }, logical(1L))) &&
     is.data.frame(new_quarantine$conflicts) &&
+    is.data.frame(new_quarantine$source_failures) &&
     all(vapply(new_quarantine$spectra, is_reference_object, logical(1L)))
   checks$add(
     "quarantine_artifact_contract", quarantine_ok,

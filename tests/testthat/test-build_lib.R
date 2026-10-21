@@ -1329,6 +1329,27 @@ test_that("build_lib() standardizes source keys before external lookups", {
   )
 })
 
+test_that("official library types retain source values and audit provenance fallbacks", {
+  metadata <- data.table::data.table(
+    library_type = c("polymers", NA, ""),
+    origin = c("experimental", "computed_solid", "computed_molecule")
+  )
+
+  completed <- .lib_complete_reference_library_type(metadata)
+
+  expect_equal(
+    completed$metadata$library_type,
+    c(
+      "polymers", "computed solid reference collection",
+      "computed molecular reference collection"
+    )
+  )
+  expect_equal(completed$assessment$source_reported, 1L)
+  expect_equal(completed$assessment$provenance_fallback, 2L)
+  expect_match(completed$assessment$fallback_values, "computed solid")
+  expect_match(completed$assessment$fallback_values, "computed molecular")
+})
+
 test_that("build_lib() cleans filename-derived spectrum identities and keys", {
   lib <- tiny_build_lib()
   lib$metadata$spectrum_identity <- c(

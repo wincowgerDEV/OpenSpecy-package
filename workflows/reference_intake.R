@@ -139,8 +139,11 @@ reference_validate_cleaned_object <- function(object, manifest_row,
       rep(NA_character_, nrow(metadata))
     }
     if (any(transmission & (.reference_blank(mode) |
-                            !grepl("transmi", mode)))) {
-      problems <- c(problems, "transmittance spectra lack transmission instrument_mode")
+                            !grepl("transmi|atr", mode)))) {
+      problems <- c(problems, paste(
+        "transmittance spectra lack a source-supported transmission or ATR",
+        "instrument_mode"
+      ))
     }
   }
   required_metadata <- c(
