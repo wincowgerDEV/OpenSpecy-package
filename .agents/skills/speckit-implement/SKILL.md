@@ -47,7 +47,18 @@ are not required.
 11. For official reference-library rebuilds, apply
     `openspecy-rebuild-reference-library`. Freeze the build contract before
     production, including exact source/code/artifact hashes and freeze boundary,
-    pruning/reassignment, cross-class threshold/operator and enablement,
+    pruning/reassignment, source-local dedupe cohort/threshold/operator and
+    stable survivor order after hashes, correlation allocation mode/peak block,
+    bounded source-hash block plus per-source chunk telemetry,
+    path-backed merge staging plus maximum block and per-source telemetry,
+    quarantine-first source prefiltering, retained-only blocks, and lossless
+    metadata drop/compaction with public expansion evidence,
+    bounded no-copy production metadata lookups, in-place hierarchy/retention
+    work, metadata-join telemetry, and recipe metadata-column swapping,
+    early superseded-source release and bounded merge GC cadence/telemetry,
+    file-backed recipe trigger/block size and hashed quarantine-shard policy,
+    global `prune_lib()` enablement separately from identity-local dedupe,
+    cross-class threshold/operator and enablement,
     model/hierarchy method,
     output, signature/reuse, budgets, and legacy comparator. For other
     long-running external workflows, run a small representative probe first,
@@ -56,7 +67,8 @@ are not required.
     kernel at representative dimensions and do not continue a materially
     over-budget stage merely because it remains active. Stop at a safe
     checkpoint, isolate the scaling or memory issue, verify the replacement, and
-    then restart. Compare rebuilt artifacts against available legacy identifiers,
+    then refreeze and restart into a fresh target rather than reusing an
+    over-budget partial target. Compare rebuilt artifacts against available legacy identifiers,
     wavenumber axes, metadata shape, warnings, and representative `OpenSpecy`
     joins or matches before marking the work complete.
     For new measured or physically simulated reference datasets, apply

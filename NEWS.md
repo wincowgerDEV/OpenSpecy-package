@@ -2,10 +2,12 @@
 
 - Official reference builds now preserve every successfully ingested spectrum
   removed by source exclusion/deduplication, class completion, quality gates,
-  pruning, type/range partitioning, or final support closure in a validated v2
-  quarantine bundle. The bundle includes full `OpenSpecy` payloads, a balanced
-  removal ledger with source/stage/rule/reason evidence, conflict records, and
-  separate source-failure records plus CSV review exports.
+  pruning, type/range partitioning, or final support closure. Ordinary builds
+  use the validated v2 quarantine bundle; large builds use a v3 ledger of
+  immediately persisted, hash-verified `OpenSpecy` shards so removed spectra do
+  not accumulate in memory. Both contracts balance every payload against
+  source/stage/rule/reason evidence, conflict records, separate source failures,
+  and CSV review exports.
 - The maintained reference driver can now admit exact locally cleaned
   `rawrefdata/<dataset>/Processed/CleanedOS_raw.rds` files through an ignored
   manifest. Intake rechecks FTIR/Raman type, intensity semantics, transmission
@@ -16,6 +18,52 @@
   remains the compatibility default. The maintained reference rebuild driver
   now fits the flat model and explicitly disables cross-class 0.9 closure while
   retaining within-class pruning and generic reassignment.
+- `build_lib()` now accepts `dedupe_correlation_threshold` for deterministic
+  near-duplicate removal after exact content hashes. The official rebuild uses
+  strict correlation `> 0.99` within one source, spectral type, and cleaned
+  source identity (canonical-material fallback), streams bounded query/survivor
+  blocks, and quarantines every removal with its survivor, grouping, observed
+  correlation, threshold, and operator. The production driver also forces
+  bounded correlation views instead of permitting a full square cache, and
+  consumes the exact admitted cleaned list by default; adding the opaque raw
+  source now requires an explicit workflow opt-in.
+- Source-stage content hashing now bounds both current/legacy hash transforms
+  and missing-value envelope discovery by column blocks, avoids copying
+  file-backed source metadata, reports per-source chunk telemetry, and preserves
+  identifiers from the previous full-matrix path.
+- The maintained file-backed reference build now stages each validated source
+  once as metadata plus bounded spectral blocks and merges those blocks into one
+  target without rereading entire source objects. Above 250,000 spectra, recipe
+  completion, quality gates, type/range partitioning, medoid selection, and
+  sequential ordinary-RDS promotion also remain file-backed. This removes the
+  former all-source and all-recipe memory peaks while retaining axes, metadata,
+  identifiers, unit conversion, source order, and merge telemetry.
+- Large source staging now applies exact hashes and strict identity-local
+  correlation deduplication before allocating the merged matrix, writes every
+  removed spectrum immediately to a hash-verified quarantine part, and stages
+  retained spectral blocks only. Approved and globally empty metadata fields
+  are dropped early; repeated non-key character fields are compacted losslessly
+  during staging and restored before public `OpenSpecy` objects are returned.
+  The production merge and recipe blocks are capped at 5,000 spectra while the
+  independent source-hash cap remains 20,000.
+- Path-backed staging now releases the original source-list reference before
+  allocating an exact-filter replacement matrix. The merge explicitly collects
+  released temporary vectors every 10 chunks and at source boundaries, with
+  the cadence preserved in telemetry, preventing long multi-block sources from
+  retaining enough dead heap pages to create a transient system-memory spike.
+- Metadata lookups in large builds now match in configurable 100,000-row
+  blocks and update only their output columns by reference. Hierarchy joins and
+  retention counts likewise avoid copying the complete metadata table, and
+  file-backed recipe metadata temporarily swaps only the signal-to-noise
+  column. High-cardinality unmatched diagnostics now retain exact aggregate
+  counts with at most 1,000 representative values plus an explicit collapsed
+  count, and colliding columns are coalesced in the join pass. Metadata-join
+  chunk/copy/report telemetry is retained as assessment evidence.
+- The production contract now explicitly disables global class-wide
+  `prune_lib()` correlation passes at large scale. Exact content hashes and
+  strict correlation `> 0.99` within one independent source, spectral type, and
+  cleaned identity remain authoritative, keeping correlations identity-local
+  and block-streamed rather than allocating a multi-million-square matrix.
 - The landing-page timeline now includes Win Cowger's 2026 TOPSCINET Top 2%
   Scientist badge and links to the corresponding scientist profile.
 - `train_spec_model()` and `build_model_lib()` now accept ordered hierarchy

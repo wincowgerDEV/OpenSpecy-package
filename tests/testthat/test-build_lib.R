@@ -80,6 +80,103 @@ test_that("join_lib_metadata() reports incomplete and duplicate joins", {
                "unique")
 })
 
+test_that("metadata joins use bounded chunks without mutating public inputs", {
+  old_options <- options(OpenSpecy.metadata_join_chunk_size = 3L)
+  on.exit(options(old_options), add = TRUE)
+  lib <- tiny_build_lib()
+  original <- data.table::copy(lib$metadata)
+  lookup <- data.table::data.table(
+    source = c("A", "B", "C"),
+    joined_value = c("one", "two", "three")
+  )
+
+  joined <- join_lib_metadata(lib, lookup, by = "source")
+  telemetry <- attr(joined, "metadata_join_chunk_report", exact = TRUE)
+  expect_equal(lib$metadata, original)
+  expect_equal(
+    joined$metadata$joined_value,
+    lookup$joined_value[match(original$source, lookup$source)]
+  )
+  expect_equal(telemetry$rows, 8L)
+  expect_equal(telemetry$chunks, 3L)
+  expect_equal(telemetry$max_chunk_rows, 3L)
+  expect_true(telemetry$copied_metadata)
+
+  internal_metadata <- data.table::copy(original)
+  internal <- OpenSpecy:::.lib_join_metadata_table(
+    internal_metadata, lookup, by = "source", copy_metadata = FALSE,
+    chunk_size = 3L
+  )
+  expect_identical(names(internal$data), names(joined$metadata))
+  for (column in names(internal$data)) {
+    expect_equal(internal$data[[column]], joined$metadata[[column]])
+  }
+  expect_false(internal$telemetry$copied_metadata)
+})
+
+test_that("production metadata joins bound diagnostic cardinality exactly", {
+  metadata <- data.table::data.table(
+    spectrum_identity = paste0("unmatched_", seq_len(9L)),
+    material = rep(NA_character_, 9L)
+  )
+  lookup <- data.table::data.table(
+    spectrum_identity = "matched", material = "polymer"
+  )
+
+  expect_warning(
+    joined <- OpenSpecy:::.lib_join_metadata_table(
+      metadata, lookup, by = "spectrum_identity", copy_metadata = FALSE,
+      chunk_size = 3L, report_value_limit = 2L,
+      coalesce_existing = TRUE
+    ),
+    "unmatched_metadata_key.*9"
+  )
+  unmatched <- joined$report[problem == "unmatched_metadata_key"]
+  expect_equal(sum(unmatched$n), 9L)
+  expect_equal(
+    unmatched[value != "<additional values collapsed>", .N], 2L
+  )
+  expect_equal(
+    unmatched[value == "<additional values collapsed>", n], 7L
+  )
+  expect_equal(joined$telemetry$reported_unmatched_values, 2L)
+  expect_equal(joined$telemetry$collapsed_unmatched_rows, 7L)
+  expect_equal(joined$telemetry$report_value_limit, 2)
+  expect_true(joined$telemetry$coalesced_existing)
+})
+
+test_that("in-pass metadata coalescing preserves legacy join results", {
+  original <- data.table::data.table(
+    spectrum_identity = c("a", "b", "c", "d"),
+    material = c("existing-a", NA_character_, "", "existing-d"),
+    note = letters[1:4]
+  )
+  lookup <- data.table::data.table(
+    spectrum_identity = c("a", "b", "c"),
+    material = c("lookup-a", "lookup-b", NA_character_),
+    material_class = c("one", "two", "three")
+  )
+
+  for (lookup_precedence in c(TRUE, FALSE)) {
+    legacy <- suppressWarnings(OpenSpecy:::.lib_join_metadata_table(
+      original, lookup, by = "spectrum_identity", copy_metadata = TRUE
+    )$data)
+    legacy <- OpenSpecy:::.lib_coalesce_joined_metadata(
+      legacy, "material", lookup_precedence = lookup_precedence
+    )
+    bounded_input <- data.table::copy(original)
+    bounded <- suppressWarnings(OpenSpecy:::.lib_join_metadata_table(
+      bounded_input, lookup, by = "spectrum_identity", copy_metadata = FALSE,
+      chunk_size = 2L, report_value_limit = 2L,
+      coalesce_existing = TRUE,
+      lookup_precedence = lookup_precedence
+    ))
+    expect_equal(bounded$data, legacy)
+    expect_false(bounded$telemetry$copied_metadata)
+    expect_true(bounded$telemetry$coalesced_existing)
+  }
+})
+
 test_that("join_material_hierarchy() matches user-specified levels", {
   lib <- tiny_build_lib()
   hierarchy <- data.table::data.table(
@@ -175,6 +272,222 @@ test_that("build_lib() uses legacy source-stage hashes for sample_name", {
     progress = FALSE
   )$raw
   expect_equal(excluded$metadata$sample_name, expected[2])
+})
+
+test_that("source-stage hashing is chunked without changing identifiers", {
+  wavenumber <- seq(100, 900, by = 10)
+  spectra <- vapply(seq_len(7L), function(i) {
+    sin(wavenumber / (35 + i)) + cos(wavenumber / (80 + i)) + i
+  }, numeric(length(wavenumber)))
+  metadata <- data.table::data.table(sample_name = paste0("s", seq_len(7L)))
+  old_options <- options(OpenSpecy.source_hash_chunk_size = 100L)
+  on.exit(options(old_options), add = TRUE)
+  full <- OpenSpecy:::.lib_source_hash_ids(
+    wavenumber, spectra, metadata, source_index = 1L
+  )
+
+  messages <- character()
+  options(OpenSpecy.source_hash_chunk_size = 3L)
+  chunked <- OpenSpecy:::.lib_source_hash_ids(
+    wavenumber, spectra, metadata, source_index = 1L,
+    report = function(message) messages <<- c(messages, message)
+  )
+
+  expect_identical(chunked$current, full$current)
+  expect_identical(chunked$old, full$old)
+  expect_equal(chunked$chunk_report$chunks, 3L)
+  expect_equal(chunked$chunk_report$max_chunk_columns, 3L)
+  expect_true(any(grepl("chunk 3/3", messages, fixed = TRUE)))
+
+  frozen_hash <- function(values) {
+    ignored <- OpenSpecy:::.spectra_ignore_info(
+      values, lead_tail_only = TRUE, ig = c(NA)
+    )
+    keep <- rowSums(ignored$ignored) == 0L
+    calculate <- function(range, min_rows = 1L, short_value = NA_character_) {
+      if (any(keep)) {
+        return(OpenSpecy:::.lib_hash_processed_matrix(
+          wavenumber[keep], values[keep, , drop = FALSE], range = range,
+          res = 8, scale = 100, algo = "md5", min_rows = min_rows,
+          short_value = short_value
+        ))
+      }
+      vapply(seq_len(ncol(values)), function(i) {
+        valid <- !ignored$ignored[, i]
+        OpenSpecy:::.lib_hash_processed_matrix(
+          wavenumber[valid], values[valid, i, drop = FALSE], range = range,
+          res = 8, scale = 100, algo = "md5", min_rows = min_rows,
+          short_value = short_value
+        )[[1L]]
+      }, character(1L))
+    }
+    list(
+      current = calculate(NULL),
+      old = calculate(c(100, 4000), 3L, "new format")
+    )
+  }
+  with_na <- spectra[, seq_len(4L), drop = FALSE]
+  with_na[seq_len(2L), 1L] <- NA_real_
+  with_na[(nrow(with_na) - 2L):nrow(with_na), 2L] <- NA_real_
+  with_na[10L, 3L] <- NA_real_
+  expected_na <- frozen_hash(with_na)
+  observed_na <- OpenSpecy:::.lib_source_hash_ids(
+    wavenumber, with_na, metadata[seq_len(4L)], source_index = 2L
+  )
+  expect_identical(observed_na$current, expected_na$current)
+  expect_identical(observed_na$old, expected_na$old)
+
+  no_overlap <- spectra[, seq_len(2L), drop = FALSE]
+  no_overlap[31L:nrow(no_overlap), 1L] <- NA_real_
+  no_overlap[seq_len(51L), 2L] <- NA_real_
+  expected_no_overlap <- frozen_hash(no_overlap)
+  observed_no_overlap <- OpenSpecy:::.lib_source_hash_ids(
+    wavenumber, no_overlap, metadata[seq_len(2L)], source_index = 3L
+  )
+  expect_identical(observed_no_overlap$current, expected_no_overlap$current)
+  expect_identical(observed_no_overlap$old, expected_no_overlap$old)
+
+  built <- build_lib(
+    as_OpenSpecy(wavenumber, spectra, metadata = metadata),
+    recipes = list(raw = list()), convert_intensity = FALSE,
+    signal_noise = FALSE, progress = FALSE
+  )$raw
+  telemetry <- attr(built, "source_hash_chunk_report", exact = TRUE)
+  expect_equal(telemetry$source_index, 1L)
+  expect_equal(telemetry$chunks, 3L)
+
+  options(OpenSpecy.source_hash_chunk_size = 0L)
+  expect_error(
+    OpenSpecy:::.lib_source_hash_ids(wavenumber, spectra, metadata),
+    "positive integer"
+  )
+})
+
+test_that("source correlation dedupe is bounded, strict, and source-local", {
+  wavenumber <- seq(100, 800, by = 100)
+  base <- c(0, 1, 4, 2, 8, 3, 1, 0)
+  near <- base + c(0, 0.001, -0.001, 0.002, -0.001, 0, 0.001, 0)
+  far <- c(4, 1, 7, 0, 2, 8, 3, 5)
+  spectra <- cbind(base, near, near, near, far, base, near, near)
+  colnames(spectra) <- paste0("s", seq_len(ncol(spectra)))
+  object <- as_OpenSpecy(
+    wavenumber,
+    spectra = spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      library_name = c("a", "a", "b", "a", "a", "a", "a", "a"),
+      spectrum_type = "ftir",
+      material = c("nylon", "nylon", "nylon", "pet", "nylon",
+                   NA, NA, NA),
+      spectrum_identity = c(rep(NA_character_, 5), "fallback", "fallback",
+                            "another")
+    ),
+    attributes = list(intensity_unit = "absorbance")
+  )
+
+  result <- OpenSpecy:::.lib_stream_correlation_dedupe(
+    object, threshold = 0.99, query_block_size = 2L,
+    survivor_block_size = 2L
+  )
+  expect_identical(result$removals$spectrum_id, c("s2", "s7"))
+  expect_identical(result$removals$survivor_id, c("s1", "s6"))
+  expect_true(all(result$removals$correlation > 0.99))
+  expect_true(all(result$removals$operator == ">"))
+  expect_true(check_OpenSpecy(result$object))
+  expect_identical(
+    as.character(result$object$metadata$sample_name),
+    c("s1", "s3", "s4", "s5", "s6", "s8")
+  )
+  expect_lte(max(result$groups$max_correlation_cells), 4)
+  expect_true(any(
+    result$groups$full_matrix_cells > result$groups$max_correlation_cells
+  ))
+  expect_equal(result$settings$largest_group_spectra, 3L)
+  expect_equal(result$settings$pair_comparisons, 4)
+  expect_lt(result$settings$max_correlation_bytes,
+            result$settings$largest_full_matrix_bytes)
+
+  zero_spectra <- cbind(c(0, 1, 2, 1), c(1, 0, 1, 2))
+  colnames(zero_spectra) <- c("zero_a", "zero_b")
+  zero_pair <- as_OpenSpecy(
+    1:4, spectra = zero_spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(zero_spectra), library_name = "a",
+      spectrum_type = "ftir", material = "boundary"
+    ),
+    attributes = list(intensity_unit = "absorbance")
+  )
+  normalized <- OpenSpecy:::.lib_correlation_normalize_columns(zero_pair, 1:2)
+  expect_equal(tcrossprod(normalized)[1, 2], 0, tolerance = 1e-15)
+  strict <- OpenSpecy:::.lib_stream_correlation_dedupe(
+    zero_pair, threshold = 0,
+    query_block_size = 1L, survivor_block_size = 1L
+  )
+  expect_equal(nrow(strict$removals), 0L)
+})
+
+test_that("build_lib records source correlation removals in quarantine", {
+  wavenumber <- seq(100, 800, by = 100)
+  base <- c(0, 1, 4, 2, 8, 3, 1, 0)
+  spectra <- cbind(
+    base,
+    base + c(0, 0.001, -0.001, 0.002, -0.001, 0, 0.001, 0),
+    c(4, 1, 7, 0, 2, 8, 3, 5)
+  )
+  colnames(spectra) <- c("keep", "near", "different")
+  object <- as_OpenSpecy(
+    wavenumber,
+    spectra = spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra), organization = "fixture",
+      spectrum_type = "ftir", material = "nylon",
+      spectrum_identity = "nylon", intensity_units = "absorbance",
+      source_label = colnames(spectra)
+    ),
+    attributes = list(intensity_unit = "absorbance")
+  )
+
+  built <- build_lib(
+    object, recipes = list(raw = list()), range = "full", res = 100,
+    dedupe = TRUE, dedupe_correlation_threshold = 0.99,
+    convert_intensity = FALSE, signal_noise = FALSE, progress = FALSE
+  )
+  expect_identical(
+    as.character(built$raw$metadata$source_label), c("keep", "different")
+  )
+  report <- attr(built$raw, "correlation_dedupe_report")
+  expect_equal(nrow(report$removals), 1L)
+  keep_id <- built$raw$metadata[source_label == "keep", sample_name]
+  expect_identical(report$removals$survivor_id, keep_id)
+  expect_identical(report$removals$operator, ">")
+  expect_equal(report$settings$threshold, 0.99)
+
+  quarantine <- OpenSpecy:::.lib_quarantine_bundle(
+    attr(built, "quarantine_parts")
+  )
+  removal <- quarantine$removals[
+    quarantine_stage == "source_correlation_deduplication"
+  ]
+  expect_equal(nrow(removal), 1L)
+  expect_identical(removal$quarantine_reason,
+                   "near_duplicate_within_library")
+  expect_identical(removal$source_label, "near")
+  expect_identical(removal$correlation_survivor_id, keep_id)
+  expect_equal(removal$correlation_threshold, 0.99)
+  expect_identical(removal$correlation_operator, ">")
+  expect_gt(removal$correlation_observed, 0.99)
+  expect_true(0.99 %in% quarantine$manifest$thresholds)
+
+  expect_error(
+    build_lib(object, recipes = list(raw = list()), dedupe = FALSE,
+              dedupe_correlation_threshold = 0.99, progress = FALSE),
+    "requires 'dedupe = TRUE'"
+  )
+  expect_error(
+    build_lib(object, recipes = list(raw = list()),
+              dedupe_correlation_threshold = 1, progress = FALSE),
+    "in \\[0, 1\\)"
+  )
 })
 
 test_that("reduce_lib() returns medoid ids or reduced OpenSpecy objects", {
@@ -965,6 +1278,424 @@ test_that("build_lib() reads one or many OpenSpecy objects from each RDS", {
   )
 })
 
+test_that("path-backed source staging matches retained-record merging", {
+  old_options <- options(
+    OpenSpecy.source_record_staging = FALSE,
+    OpenSpecy.source_merge_chunk_size = 1L
+  )
+  on.exit(options(old_options), add = TRUE)
+
+  left <- filter_spec(tiny_build_lib(), 1:3)
+  right <- filter_spec(tiny_build_lib(), 4:8)
+  left$metadata$source_number <- 1:3
+  right$metadata$source_number <- as.character(4:8)
+  left$spectra[,] <- 50
+  right$spectra[,] <- 0.5
+  attr(left, "intensity_unit") <- "reflectance"
+  attr(right, "intensity_unit") <- NULL
+  right$metadata$intensity_units <- "transmittance"
+
+  list_file <- tempfile(fileext = ".rds")
+  saveRDS(list(left, right), list_file)
+  arguments <- list(
+    x = list_file,
+    recipes = list(raw = list()),
+    range = NULL,
+    dedupe = TRUE,
+    clean_metadata_values = TRUE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )
+  retained <- do.call(build_lib, arguments)$raw
+
+  options(OpenSpecy.source_record_staging = TRUE)
+  staged <- do.call(build_lib, arguments)$raw
+
+  expect_equal(staged$wavenumber, retained$wavenumber)
+  expect_equal(staged$spectra, retained$spectra)
+  expect_equal(staged$metadata, retained$metadata)
+  expect_equal(attributes(staged)[c(
+    "intensity_unit", "derivative_order", "baseline", "spectra_type"
+  )], attributes(retained)[c(
+    "intensity_unit", "derivative_order", "baseline", "spectra_type"
+  )])
+  telemetry <- attr(staged, "source_merge_chunk_report", exact = TRUE)
+  expect_equal(telemetry$spectra, c(3L, 5L))
+  expect_equal(telemetry$chunks, c(3L, 5L))
+  expect_equal(telemetry$max_chunk_columns, c(1L, 1L))
+  expect_equal(telemetry$gc_interval, c(10L, 10L))
+  expect_true(all(telemetry$staged_spectrum_bytes > 0))
+  expect_equal(nrow(attr(staged, "source_hash_chunk_report", exact = TRUE)), 2L)
+})
+
+test_that("path-backed staging preserves variable-axis full-range merging", {
+  old_options <- options(
+    OpenSpecy.source_record_staging = FALSE,
+    OpenSpecy.source_merge_chunk_size = 2L
+  )
+  on.exit(options(old_options), add = TRUE)
+
+  left <- filter_spec(tiny_build_lib(), 1:2)
+  right <- filter_spec(tiny_build_lib(), 3:5)
+  right$wavenumber <- right$wavenumber[6:55]
+  right$spectra <- right$spectra[6:55, , drop = FALSE]
+  left_file <- tempfile(fileext = ".rds")
+  right_file <- tempfile(fileext = ".rds")
+  saveRDS(left, left_file)
+  saveRDS(right, right_file)
+  arguments <- list(
+    x = c(left_file, right_file),
+    recipes = list(raw = list()),
+    range = "full", res = 100,
+    dedupe = FALSE, signal_noise = FALSE, progress = FALSE
+  )
+  retained <- do.call(build_lib, arguments)$raw
+  options(OpenSpecy.source_record_staging = TRUE)
+  staged <- do.call(build_lib, arguments)$raw
+
+  expect_equal(staged$wavenumber, retained$wavenumber)
+  expect_equal(staged$spectra, retained$spectra)
+  expect_equal(staged$metadata, retained$metadata)
+  expect_true(check_OpenSpecy(staged))
+})
+
+test_that("source prefilter staging preserves bounded dedupe results", {
+  old_options <- options(
+    OpenSpecy.source_record_staging = FALSE,
+    OpenSpecy.source_prefilter_staging = FALSE,
+    OpenSpecy.compact_staged_metadata = FALSE,
+    OpenSpecy.source_merge_chunk_size = 2L,
+    OpenSpecy.recipe_record_staging = FALSE
+  )
+  on.exit(options(old_options), add = TRUE)
+  staging_dir <- tempfile("OpenSpecy-prefilter-")
+  dir.create(staging_dir)
+  on.exit(unlink(staging_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  x <- filter_spec(tiny_build_lib(), 1:4)
+  x$metadata$organization <- "fixture"
+  x$metadata$library_name <- "fixture"
+  x$metadata$spectrum_type <- "ftir"
+  x$metadata$spectrum_identity <- c("same", "same", "other", "third")
+  x$metadata$repeated_source_label <- "fixture label"
+  x$spectra[, 2] <- x$spectra[, 1] +
+    0.02 * sin(seq_len(nrow(x$spectra)))
+  path <- tempfile(fileext = ".rds")
+  saveRDS(x, path)
+  arguments <- list(
+    x = path, recipes = list(raw = list()), range = NULL,
+    dedupe = TRUE, dedupe_correlation_threshold = 0.99,
+    signal_noise = FALSE, progress = FALSE
+  )
+  retained <- do.call(build_lib, arguments)$raw
+
+  options(
+    OpenSpecy.source_record_staging = TRUE,
+    OpenSpecy.source_prefilter_staging = TRUE,
+    OpenSpecy.compact_staged_metadata = TRUE,
+    OpenSpecy.recipe_staging_dir = staging_dir
+  )
+  staged <- do.call(build_lib, arguments)
+
+  expect_equal(staged$raw$wavenumber, retained$wavenumber)
+  expect_equal(staged$raw$spectra, retained$spectra)
+  expect_equal(staged$raw$metadata, retained$metadata)
+  expect_type(staged$raw$metadata$repeated_source_label, "character")
+  parts <- attr(staged, "quarantine_parts", exact = TRUE)
+  expect_true(length(parts) > 0L)
+  expect_true(all(vapply(
+    parts, inherits, logical(1L), "OpenSpecyQuarantinePartPath"
+  )))
+  expect_true(all(file.exists(vapply(parts, `[[`, character(1L), "path"))))
+  correlation <- attr(
+    staged$raw, "correlation_dedupe_report", exact = TRUE
+  )
+  expect_gt(nrow(correlation$removals), 0L)
+})
+
+test_that("staged metadata compaction is lossless and reversible", {
+  old_options <- options(OpenSpecy.compact_staged_metadata = TRUE)
+  on.exit(options(old_options), add = TRUE)
+  metadata <- data.table::data.table(
+    sample_name = paste0("s", 1:1000),
+    spectrum_identity = paste0("identity", 1:1000),
+    repeated = rep(c("a", "b", NA_character_), length.out = 1000),
+    numeric_value = seq_len(1000)
+  )
+
+  compact <- OpenSpecy:::.lib_compact_staged_metadata(
+    data.table::copy(metadata)
+  )
+  expect_true(is.factor(compact$metadata$repeated))
+  expect_false(is.factor(compact$metadata$sample_name))
+  expect_gt(compact$report$bytes_saved, 0)
+  expanded <- OpenSpecy:::.lib_expand_staged_metadata(compact$metadata)
+  expect_equal(expanded, metadata)
+})
+
+test_that("source-record staging options reject invalid values", {
+  old_options <- options(
+    OpenSpecy.source_record_staging = "yes",
+    OpenSpecy.source_merge_chunk_size = 2L
+  )
+  on.exit(options(old_options), add = TRUE)
+  path <- tempfile(fileext = ".rds")
+  saveRDS(tiny_build_lib(), path)
+  expect_error(
+    build_lib(path, recipes = list(raw = list()), progress = FALSE),
+    "source_record_staging.*TRUE or FALSE"
+  )
+
+  options(OpenSpecy.source_record_staging = TRUE,
+          OpenSpecy.source_merge_chunk_size = 0L)
+  expect_error(
+    build_lib(path, recipes = list(raw = list()), progress = FALSE),
+    "source_merge_chunk_size.*positive"
+  )
+
+  options(OpenSpecy.source_merge_chunk_size = 2L,
+          OpenSpecy.source_merge_gc_interval = 0L)
+  expect_error(
+    build_lib(path, recipes = list(raw = list()), progress = FALSE),
+    "source_merge_gc_interval.*positive"
+  )
+
+  options(OpenSpecy.source_merge_gc_interval = 10L,
+          OpenSpecy.metadata_join_chunk_size = 0L)
+  expect_error(
+    OpenSpecy:::.lib_metadata_join_chunk_size(),
+    "metadata_join_chunk_size.*positive"
+  )
+
+  options(OpenSpecy.metadata_join_chunk_size = 100000L,
+          OpenSpecy.metadata_join_report_value_limit = 0L)
+  expect_error(
+    OpenSpecy:::.lib_metadata_join_report_value_limit(),
+    "metadata_join_report_value_limit.*positive"
+  )
+
+  options(OpenSpecy.source_record_staging = TRUE,
+          OpenSpecy.source_merge_chunk_size = 2L,
+          OpenSpecy.source_merge_gc_interval = 10L,
+          OpenSpecy.metadata_join_chunk_size = 100000L,
+          OpenSpecy.source_prefilter_staging = "yes")
+  expect_error(
+    build_lib(path, recipes = list(raw = list()), progress = FALSE),
+    "source_prefilter_staging.*TRUE or FALSE"
+  )
+
+  options(OpenSpecy.source_prefilter_staging = FALSE,
+          OpenSpecy.compact_staged_metadata = "yes")
+  expect_error(
+    OpenSpecy:::.lib_compact_staged_metadata(data.table::data.table(x = "a")),
+    "compact_staged_metadata.*TRUE or FALSE"
+  )
+})
+
+test_that("source-record staging cleanup removes populated directories", {
+  path <- tempfile("OpenSpecy-stage-cleanup-")
+  dir.create(path)
+  saveRDS(matrix(1:4, nrow = 2), file.path(path, "block.rds"))
+
+  expect_true(OpenSpecy:::.lib_remove_staging_dir(path))
+  expect_false(dir.exists(path))
+})
+
+test_that("file-backed recipe blocks preserve recipe outputs", {
+  skip_if_not_installed("hdf5r")
+  old_options <- options(OpenSpecy.recipe_chunk_size = 3L)
+  on.exit(options(old_options), add = TRUE)
+  path <- tempfile("OpenSpecy-recipe-stage-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE, force = TRUE), add = TRUE)
+  x <- tiny_build_lib()
+  recipes <- list(
+    raw = list(),
+    derivative = list(
+      conform_spec = FALSE,
+      smooth_intens = TRUE,
+      smooth_intens_args = list(
+        polynomial = 3, window = 15, derivative = 1, abs = TRUE
+      ),
+      subtr_baseline = FALSE,
+      make_rel = TRUE
+    )
+  )
+  staged <- OpenSpecy:::.lib_stage_recipe_collection(
+    x, recipes, path, signal_noise = FALSE, assess = FALSE,
+    report = function(...) invisible(NULL)
+  )
+  expected <- lapply(recipes, function(recipe) {
+    if (!length(recipe)) x else do.call(process_spec, c(list(x), recipe))
+  })
+
+  expect_s3_class(staged, "OpenSpecyStagedRecipeCollection")
+  expect_equal(staged$telemetry$chunks, c(3L, 3L))
+  expect_equal(staged$telemetry$max_chunk_columns, c(3L, 3L))
+  for (name in names(recipes)) {
+    artifact <- staged$artifacts[[name]]
+    expect_no_error(OpenSpecy:::.lib_validate_staged_recipe_artifact(
+      artifact, strong = TRUE
+    ))
+    observed <- OpenSpecy:::.lib_materialize_staged_recipe(artifact)
+    expect_equal(observed$wavenumber, expected[[name]]$wavenumber)
+    expect_equal(observed$spectra, expected[[name]]$spectra)
+    expect_equal(observed$metadata, expected[[name]]$metadata)
+    expect_equal(
+      OpenSpecy:::.lib_read_staged_recipe_block(artifact, 2:4),
+      expected[[name]]$spectra[, 2:4, drop = FALSE]
+    )
+  }
+})
+
+test_that("resizable staged artifacts append, shrink, and materialize exactly", {
+  skip_if_not_installed("hdf5r")
+  path <- tempfile("OpenSpecy-resizable-stage-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE, force = TRUE), add = TRUE)
+  x <- tiny_build_lib()
+  writer <- OpenSpecy:::.lib_stage_artifact_writer(
+    file.path(path, "spectra.h5"), file.path(path, "metadata.rds"),
+    wavenumber = x$wavenumber, capacity = 8L, chunk_size = 2L,
+    recipe = "fixture", attributes = list(intensity_unit = "absorbance")
+  )
+  on.exit(writer$close(), add = TRUE)
+  writer$append(x$spectra[, 1:3, drop = FALSE], x$metadata[1:3])
+  writer$append(x$spectra[, 4:5, drop = FALSE], x$metadata[4:5])
+  artifact <- writer$finalize()
+
+  expect_identical(artifact$spectra, 5L)
+  expect_no_error(OpenSpecy:::.lib_validate_staged_recipe_artifact(
+    artifact, strong = TRUE
+  ))
+  observed <- OpenSpecy:::.lib_materialize_staged_recipe(artifact)
+  expect_equal(observed$spectra, x$spectra[, 1:5, drop = FALSE])
+  expect_equal(observed$metadata, x$metadata[1:5])
+})
+
+test_that("file-backed quarantine shards balance ledger rows and hashes", {
+  path <- tempfile("OpenSpecy-quarantine-shards-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE, force = TRUE), add = TRUE)
+  x <- tiny_build_lib()
+  writer <- OpenSpecy:::.lib_quarantine_shard_writer(path)
+  expect_identical(
+    writer$capture(
+      x, 1:2, artifact = "raw", stage = "fixture_stage",
+      rule = "fixture_rule", reason = "fixture removal",
+      source_rows = 101:108
+    ),
+    1L
+  )
+  bundle <- writer$bundle(build_signature = "fixture-signature")
+
+  expect_identical(
+    bundle$manifest$schema, "OpenSpecy_quarantined_spectra_v3"
+  )
+  expect_identical(bundle$manifest$removed_spectra, 2L)
+  expect_identical(bundle$manifest$shards, 1L)
+  expect_identical(anyDuplicated(bundle$removals$quarantine_key), 0L)
+  expect_no_error(OpenSpecy:::.lib_validate_quarantine(bundle))
+  shard <- bundle$spectra[[1L]]
+  payload <- readRDS(shard$path)
+  expect_true(check_OpenSpecy(payload))
+  expect_identical(ncol(payload$spectra), 2L)
+
+  changed <- bundle
+  changed$spectra[[1L]]$sha256 <- paste(rep("0", 64L), collapse = "")
+  expect_error(
+    OpenSpecy:::.lib_validate_quarantine(changed),
+    "match its frozen hash"
+  )
+})
+
+test_that("large staged completion threshold is explicit and validated", {
+  staged <- structure(list(
+    artifacts = list(raw = list(spectra = 5L))
+  ), class = c("OpenSpecyStagedRecipeCollection", "list"))
+  old_options <- options(OpenSpecy.staged_completion_threshold = 5L)
+  on.exit(options(old_options), add = TRUE)
+
+  expect_false(OpenSpecy:::.lib_staged_completion_required(staged))
+  options(OpenSpecy.staged_completion_threshold = 4L)
+  expect_true(OpenSpecy:::.lib_staged_completion_required(staged))
+  options(OpenSpecy.staged_completion_threshold = 0L)
+  expect_error(
+    OpenSpecy:::.lib_staged_completion_required(staged),
+    "positive integer"
+  )
+})
+
+test_that("build_lib core can return bounded staged recipes", {
+  skip_if_not_installed("hdf5r")
+  old_options <- options(
+    OpenSpecy.recipe_record_staging = FALSE,
+    OpenSpecy.recipe_chunk_size = 3L
+  )
+  on.exit(options(old_options), add = TRUE)
+  path <- tempfile("OpenSpecy-recipe-core-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE, force = TRUE), add = TRUE)
+  recipes <- list(raw = list(), derivative = list(
+    conform_spec = FALSE,
+    smooth_intens = TRUE,
+    smooth_intens_args = list(
+      polynomial = 3, window = 15, derivative = 1, abs = TRUE
+    ),
+    subtr_baseline = FALSE, make_rel = TRUE
+  ))
+  arguments <- list(
+    x = tiny_build_lib(), recipes = recipes, dedupe = FALSE,
+    signal_noise = FALSE, progress = FALSE
+  )
+  expected <- do.call(build_lib, arguments)
+  options(OpenSpecy.recipe_record_staging = TRUE)
+  staged <- do.call(build_lib, c(
+    arguments, list(.recipe_staging_dir = path)
+  ))
+
+  expect_true(OpenSpecy:::.lib_is_staged_recipe_collection(staged))
+  for (name in names(expected)) {
+    observed <- OpenSpecy:::.lib_materialize_staged_recipe(
+      staged$artifacts[[name]]
+    )
+    expect_equal(observed$spectra, expected[[name]]$spectra)
+    expect_equal(observed$metadata, expected[[name]]$metadata)
+    expect_equal(
+      attr(observed, "build_stage_report", exact = TRUE),
+      attr(expected[[name]], "build_stage_report", exact = TRUE)
+    )
+  }
+})
+
+test_that("recipe-record staging options reject invalid values", {
+  old_options <- options(
+    OpenSpecy.recipe_record_staging = "yes",
+    OpenSpecy.recipe_chunk_size = 2L
+  )
+  on.exit(options(old_options), add = TRUE)
+  expect_error(
+    build_lib(
+      tiny_build_lib(), recipes = list(raw = list()), dedupe = FALSE,
+      signal_noise = FALSE, progress = FALSE
+    ),
+    "recipe_record_staging.*TRUE or FALSE"
+  )
+
+  options(
+    OpenSpecy.recipe_record_staging = TRUE,
+    OpenSpecy.recipe_chunk_size = 0L
+  )
+  expect_error(
+    build_lib(
+      tiny_build_lib(), recipes = list(raw = list()), dedupe = FALSE,
+      signal_noise = FALSE, progress = FALSE,
+      .recipe_staging_dir = tempfile("OpenSpecy-recipe-invalid-")
+    ),
+    "recipe_chunk_size.*positive"
+  )
+})
+
 test_that("build_lib() bulk-prepares legacy same-axis source lists", {
   lib <- tiny_build_lib()
   sources <- split_spec(list(lib))
@@ -1207,6 +1938,15 @@ test_that("build_lib() runs default joins, processing, SNR, and assessment", {
   expect_equal(attr(built$derivative, "derivative_order"), "1")
   expect_equal(attr(built$nobaseline, "baseline"), "nobaseline")
   expect_true(built$raw$metadata$assessment_flag[1])
+  metadata_join <- attr(
+    built$raw, "metadata_join_chunk_report", exact = TRUE
+  )
+  expect_equal(metadata_join$lookup, 1L)
+  expect_equal(metadata_join$rows, nrow(built$raw$metadata))
+  expect_false(metadata_join$copied_metadata)
+  expect_true(metadata_join$coalesced_existing)
+  expect_equal(metadata_join$report_value_limit, 1000)
+  expect_lte(metadata_join$reported_unmatched_values, 1000L)
 })
 
 test_that("build_lib() skips metadata lookups with no shared key", {
@@ -3605,8 +4345,10 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
   )
   expect_false(any(c("scope", "expected_class") %in%
                      names(release_assessments$ref_lib$accuracy)))
-  expect_true("model_training_tests" %in%
-                names(attr(release_assessments, "evidence")))
+  expect_true(all(c(
+    "model_training_tests", "source_hash_chunking",
+    "source_merge_chunking", "metadata_join_chunking"
+  ) %in% names(attr(release_assessments, "evidence"))))
 
   report_attributes <- c(
     "join_report", "metadata_lookup_reports",

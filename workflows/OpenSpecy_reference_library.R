@@ -20,6 +20,15 @@ data_dir <- Sys.getenv(
 
 processed_dir <- data_dir
 
+include_raw_source <- identical(
+  tolower(Sys.getenv("OPENSPECY_REFERENCE_INCLUDE_RAW_SOURCE", unset = "false")),
+  "true"
+)
+manifest_only <- identical(
+  tolower(Sys.getenv("OPENSPECY_REFERENCE_MANIFEST_ONLY", unset = "true")),
+  "true"
+)
+
 output_dir <- Sys.getenv(
   "OPENSPECY_REFERENCE_OUTPUT_DIR",
   unset = file.path(dirname(package_dir), "reference-library-build-2.0.0")
@@ -44,14 +53,21 @@ sys.source(intake_helpers, envir = environment())
 build_workers <- min(8L, parallelly::availableCores(omit = 1L))
 options(
   OpenSpecy.build_workers = build_workers,
-  future.globals.maxSize = 8 * 1024^3
+  future.globals.maxSize = 8 * 1024^3,
+  OpenSpecy.correlation_cache = "bounded",
+  OpenSpecy.source_hash_chunk_size = 20000L,
+  OpenSpecy.source_record_staging = TRUE,
+  OpenSpecy.source_prefilter_staging = TRUE,
+  OpenSpecy.compact_staged_metadata = TRUE,
+  OpenSpecy.source_merge_chunk_size = 5000L,
+  OpenSpecy.source_merge_gc_interval = 10L,
+  OpenSpecy.metadata_join_chunk_size = 100000L,
+  OpenSpecy.metadata_join_report_value_limit = 1000L,
+  OpenSpecy.recipe_record_staging = TRUE,
+  OpenSpecy.recipe_chunk_size = 5000L,
+  OpenSpecy.staged_completion_threshold = 250000L
 )
 data.table::setDTthreads(build_workers)
-
-if (!dir_exists(processed_dir)) {
-  stop("Processed source directory does not exist: ", processed_dir,
-       call. = FALSE)
-}
 
 processed_files_env <- Sys.getenv(
   "OPENSPECY_REFERENCE_PROCESSED_FILES", unset = ""
@@ -71,7 +87,11 @@ if (nzchar(processed_files_env)) {
     )
   }
   message("  Processed source discovery: explicit validated file list")
-} else {
+} else if (!manifest_only) {
+  if (!dir_exists(processed_dir)) {
+    stop("Processed source directory does not exist: ", processed_dir,
+         call. = FALSE)
+  }
   metadatafiles <- dir_ls(
     path = processed_dir,
     recurse = TRUE,
@@ -82,6 +102,9 @@ if (nzchar(processed_files_env)) {
   metadatafiles <- sort(metadatafiles[
     path_file(path_dir(metadatafiles)) == "Processed"
   ])
+} else {
+  metadatafiles <- character()
+  message("  Processed source discovery: exact admitted manifest only")
 }
 
 rawrefdata_dir <- Sys.getenv(
@@ -107,7 +130,11 @@ if (file_exists(intake_manifest)) {
   metadatafiles <- sort(unique(c(metadatafiles, intake$files)))
 }
 intake_review_dir <- file.path(output_dir, "review")
-dir_create(intake_review_dir, recurse = TRUE)
+if (!dir.exists(intake_review_dir) &&
+    !dir.create(intake_review_dir, recursive = TRUE, showWarnings = FALSE)) {
+  stop("Could not create intake review directory: ", intake_review_dir,
+       call. = FALSE)
+}
 data.table::fwrite(
   intake$validation,
   file.path(intake_review_dir, "reference_intake_validation.csv")
@@ -123,23 +150,44 @@ if (nrow(intake$validation) && any(!intake$validation$valid)) {
        ], collapse = "; "), call. = FALSE)
 }
 
-source_file <- file.path(data_dir, "library_raw.rds")
-if (!file_exists(source_file)) {
-  stop("Raw source library does not exist: ", source_file, call. = FALSE)
-}
 if (!length(metadatafiles)) {
-  stop("No processed RDS sources were found below: ", processed_dir,
-       call. = FALSE)
+  stop("No processed RDS sources were selected by the admitted manifest, ",
+       "explicit file list, or processed-source directory", call. = FALSE)
 }
-files <- unique(c(metadatafiles, source_file))
+source_file <- Sys.getenv(
+  "OPENSPECY_REFERENCE_RAW_SOURCE_FILE",
+  unset = file.path(data_dir, "library_raw.rds")
+)
+raw_sources <- character()
+if (include_raw_source) {
+  if (!file_exists(source_file)) {
+    stop("Raw source library does not exist: ", source_file, call. = FALSE)
+  }
+  raw_sources <- source_file
+}
+files <- unique(c(metadatafiles, raw_sources))
 
 message("OpenSpecy reference-library full rebuild")
 message("  Processed sources: ", length(metadatafiles))
 message("  Manifest-admitted sources: ", length(intake$files))
-message("  Raw source: ", source_file)
+message("  Raw source: ", if (include_raw_source) source_file else "disabled")
 message("  Output root: ", output_dir)
 message("  Checkpoint reuse: disabled (clean full rebuild)")
-message("  Cross-class 0.9 closure: disabled")
+message("  Source-local correlation deduplication: strict > 0.99")
+message("  Correlation cache: bounded blocks (no full square allocation)")
+message("  Source hashing: bounded blocks of at most 20,000 spectra")
+message(paste0(
+  "  Source merge: path-backed two-pass staging with blocks of at most ",
+  "5,000 retained spectra; temporary blocks collected every 10 chunks"
+))
+message("  Source prefilter: per-source hash/correlation before global merge")
+message("  Metadata: deprecated/blank fields dropped early; repeated values compacted")
+message("  Metadata joins: in-place output columns in blocks of at most 100,000 rows")
+message("  Recipe materialization: HDF5-backed blocks of at most 5,000 spectra")
+message(paste0(
+  "  Global class-based prune_lib pass: disabled; source-local exact/hash ",
+  "and strict >0.99 identity-cohort deduplication are authoritative"
+))
 message("  Classification model: flat guardrailed logistic regression")
 message("  High-throughput workers: ", build_workers)
 
@@ -149,10 +197,8 @@ reference_library_build <- build_lib(
   previous_library_dir = "system",
   reuse = FALSE,
   remove_other = TRUE,
-  prune = list(
-    derivative = list(cross_class = FALSE),
-    nobaseline = list(cross_class = FALSE)
-  ),
+  dedupe_correlation_threshold = 0.99,
+  prune = list(),
   model_method = "logistic_regression",
   progress = TRUE
 )

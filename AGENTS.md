@@ -48,10 +48,40 @@ counts/names, warnings, and representative `OpenSpecy` joins or matches before
 claiming completion. Apply `openspecy-rebuild-reference-library` for official
 rebuilds: persist and freeze the exact source/code/artifact hashes, pruning and
 reassignment policy, cross-class enablement plus threshold/operator, model
-method, signature/reuse policy, budgets, and output target; balance retained, reassigned, ordinary
+method, signature/reuse policy, budgets, and output target. Separately freeze
+source-local near-duplicate cohort keys, threshold/operator, survivor order,
+and placement after exact hashes; do not pool distinct identities merely by a
+broad class. Inventory cohort sizes before production and explicitly select
+bounded correlation blocks unless a measured dense allocation fits the budget;
+record the largest block and avoided/accepted square allocation. Bound source
+hashing end to end, including its missing-value scan and current/legacy hash
+transforms; freeze the maximum column block and record per-source chunk
+telemetry. When file-backed source records do not fit together, use path-backed
+two-pass staging: capture source-local hash/correlation removals in quarantine,
+persist only retained normalized metadata plus bounded spectral blocks, release
+each first-pass matrix, apply global exclusions/hashes before target allocation,
+then preallocate once and merge only staged blocks. Drop approved/globally empty
+metadata early and compact repeated non-key character fields only losslessly;
+restore public metadata values, classes, and order before return. Freeze separate
+hash/merge blocks, release superseded source references before replacement
+matrices, and freeze a bounded merge garbage-collection cadence when temporary
+heap retention can breach the budget. Verify unchanged files between passes, prove output
+equivalence on same/variable axes, and record prefilter/compaction/merge
+telemetry. Once the merged target is resident, join only output metadata columns
+in frozen row blocks without copying the full table; update hierarchy and count
+retention in place/on minimum projections, swap only recipe-specific metadata
+columns for serialization, and record block/copy telemetry. If a production
+target crosses its stop threshold, preserve it,
+isolate the exact read/hash/merge/recipe kernel, prove an output-identical
+bounded replacement, refreeze, and restart into a fresh target. Balance retained, reassigned, ordinary
 removals, cross-class removals, and other exclusions; preserve every removed
 ingested spectrum in quarantine with its stable ID, source, removal stage, rule,
-and reason; and restate those settings in the handoff. Frozen holdout work must
+and reason. When simultaneous recipe or quarantine matrices exceed the budget,
+process one file-backed recipe/block at a time, promote ordinary RDS recipes
+sequentially, and store removed spectra in hashed `OpenSpecy` shards whose
+counts balance the ledger. Freeze the large-build trigger and global
+`prune_lib()` enablement separately from source-local identity deduplication;
+and restate those settings in the handoff. Frozen holdout work must
 pin inputs, truth, artifacts, and output-determining controls, return through
 compatibility/probe gates after
 any invalidating change, and never tune a candidate on the same holdout. The

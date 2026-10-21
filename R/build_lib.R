@@ -41,6 +41,30 @@
 #' spectrum.
 #' Progress messages report named stages and elapsed time by default so
 #' long-running builds remain observable.
+#' The maintained production driver enables path-backed two-pass source
+#' staging: the first pass validates, hashes, and source-locally correlation
+#' deduplicates one independent source while staging cleaned metadata plus
+#' bounded spectral blocks. Exact cross-source hashes and exclusions are then
+#' resolved from metadata before the retained target matrix is allocated. The
+#' second pass reads/interpolates one retained staged block at a time. Internal
+#' options \code{OpenSpecy.source_record_staging},
+#' \code{OpenSpecy.source_prefilter_staging},
+#' \code{OpenSpecy.compact_staged_metadata}, and
+#' \code{OpenSpecy.source_merge_chunk_size} control this same-value strategy;
+#' \code{OpenSpecy.source_merge_gc_interval} bounds released temporary merge
+#' blocks between explicit garbage collections. Metadata lookups update only
+#' their output columns by reference and use
+#' \code{OpenSpecy.metadata_join_chunk_size} (100,000 rows by default), avoiding
+#' full copies of the combined metadata while the retained spectra matrix is
+#' resident. Production diagnostics preserve exact unmatched-row totals while
+#' limiting distinct reported values with
+#' \code{OpenSpecy.metadata_join_report_value_limit} (1,000 by default), and
+#' colliding lookup columns are coalesced during the same bounded pass.
+#' Metadata columns already designated for final removal can be discarded
+#' before the combined allocation, while repeated strings use a reversible
+#' compact representation until file-backed completion. The workflow trades
+#' temporary disk use for bounded live matrices and reports source prefilter,
+#' compaction, staging, merge-chunk, and metadata-join telemetry.
 #'
 #' The official workflow requires explicit source paths and an output
 #' directory. When \code{workflow_data} is omitted, \code{build_lib()} looks
@@ -72,7 +96,15 @@
 #' spectra with running signal-to-noise below two are removed before pruning.
 #' Full artifacts are then partitioned into Raman (200--4000), FTIR
 #' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-#' After pruning and class reassignment, the official workflow joins the
+#' The maintained large-library workflow does not run global class-based
+#' \code{prune_lib()} correlations: exact hashes and strict greater-than-0.99
+#' correlation deduplication within one independent source, spectral type, and
+#' cleaned source identity are its authoritative redundancy policy. This avoids
+#' allocating a global square correlation matrix and avoids comparing distinct
+#' molecules that merely share a broad material class. Global pruning remains
+#' available for smaller explicitly selected recipe artifacts through
+#' \code{prune}, and is a separate policy decision from source-local deduplication.
+#' After any requested pruning and class reassignment, the official workflow joins the
 #' complete \code{material_group_reference.csv} crosswalk so every final
 #' \code{material_class} has exactly one \code{material_type} and
 #' \code{material_group} route. It then derives \code{material_form} from the
@@ -111,12 +143,16 @@
 #' arbitrary-score consumers finish, a full-range view is losslessly compacted
 #' to its exact directed greater-than-threshold edges before a changed range is
 #' allocated; lower-threshold reuse is rejected. Bounded blocks remain the
-#' lower-memory fallback. Official builds repeat closure on the rounded typed and
-#' model-range views before deriving medoids. Every successfully ingested
-#' spectrum later excluded is retained as a valid \code{OpenSpecy} object in
-#' \code{quarantined_spectra.rds}, with a disposition ledger naming its source,
-#' artifact, stage, rule, reason, and available comparison evidence. Source
-#' records that cannot be ingested are reported separately from quarantine.
+#' lower-memory fallback. When global pruning is requested, builds repeat
+#' closure on the rounded typed and model-range views before deriving medoids.
+#' Every successfully ingested
+#' spectrum later excluded is retained in \code{quarantined_spectra.rds}, with a
+#' disposition ledger naming its source, artifact, stage, rule, reason, and
+#' available comparison evidence. Ordinary builds embed valid \code{OpenSpecy}
+#' payloads. Large builds write hashed valid-\code{OpenSpecy} shards as each
+#' bounded block is removed, then publish a v3 descriptor ledger whose payload
+#' count and hashes must balance. Source records that cannot be ingested are
+#' reported separately from quarantine.
 #' Pruning then
 #' reassigns generic classes by nearest same-technique correlation:
 #' \code{"other"} may use any established class,
@@ -213,8 +249,9 @@
 #' locations.
 #' Each RDS path may store either one \code{OpenSpecy} or a list of them; other
 #' paths are read with \code{\link{read_any}()}.
-#' Large same-axis source lists are prepared in bulk to avoid repeated legacy
-#' object coercion.
+#' Large same-axis in-memory source lists are prepared in bulk to avoid repeated
+#' legacy object coercion. The maintained file-backed production workflow uses
+#' path-backed two-pass staging so source matrices are not retained together.
 #' For \code{rebuild_lib_artifacts()}, a completed four-part build object, its
 #' RDS path, or a build/output directory containing completed \code{libraries}
 #' checkpoints.
@@ -245,6 +282,21 @@
 #' functions. Names become names of the returned libraries.
 #' @param dedupe logical; whether to generate stable IDs and remove duplicated
 #' spectra in \code{build_lib()}.
+#' @param dedupe_correlation_threshold \code{NULL} to retain all nonidentical
+#' spectra after content-hash deduplication, or one finite value in
+#' \code{[0, 1)}. Supplying a value removes a spectrum only when its Pearson
+#' correlation is strictly greater than the threshold to an earlier
+#' deterministic survivor from the same \code{library_name}, spectral type,
+#' and cleaned \code{spectrum_identity}. Rows without that source identity use
+#' canonical material; rows without either identity are not correlation
+#' deduplicated. This avoids quadratic comparisons across scientifically
+#' distinct molecules that share only a broad material class. Comparisons are
+#' block-streamed and every removal is retained
+#' in quarantine with its survivor and correlation evidence. Pearson
+#' correlation is unitless: higher thresholds retain more spectra, lower
+#' thresholds remove more, and \code{NULL} is a no-op. Flat/nonfinite
+#' comparisons are retained. Values outside \code{[0, 1)} are rejected. This
+#' argument requires \code{dedupe = TRUE}.
 #' @param range,res wavenumber range and resolution passed to \code{c_spec()}
 #' when \code{build_lib()} combines multiple sources.
 #' @param restrict_range_args optional named list of arguments passed to
@@ -292,7 +344,9 @@
 #' outputs; the official end-to-end workflow interprets \code{NULL} as its
 #' derivative/no-baseline cross-class pruning default. Supply explicit recipe
 #' lists with \code{cross_class = FALSE} to retain ordinary pruning and generic
-#' reassignment without cross-class conflict removal or closure.
+#' reassignment without cross-class conflict removal or closure. The maintained
+#' large reference build supplies \code{list()} to freeze global pruning off
+#' while retaining exact and source-local correlation deduplication.
 #' @param progress logical; whether \code{build_lib()} reports named processing
 #' stages and elapsed time, or \code{reduce_lib()} reports group sizes and
 #' correlation/PAM timings.
@@ -387,7 +441,21 @@
 #' @return
 #' Each library returned by \code{build_lib()} includes a
 #' \code{spectrum_identity_cleanup_report} attribute listing changed original
-#' and normalized identities with their counts.
+#' and normalized identities with their counts. It also includes a
+#' \code{correlation_dedupe_report} containing the source cohort summaries,
+#' deterministic survivor/removal evidence, threshold/operator, and largest
+#' comparison block; the official assessments retain these tables as hashed
+#' evidence. File-backed staged builds additionally include
+#' \code{source_merge_chunk_report} with per-source spectra, chunk counts,
+#' largest block, and target-axis size, plus
+#' \code{metadata_join_chunk_report} with row, match, chunk, copy-mode,
+#' coalescing, and bounded-report evidence for each lookup. Once a staged recipe exceeds the
+#' maintained 250,000-spectrum threshold, completion, quality gates, type/range
+#' partitioning, medoid grouping, and release promotion remain file-backed.
+#' Only one bounded recipe block, one source/class medoid group, or one final
+#' ordinary RDS artifact is materialized at a time. Such builds return a
+#' lightweight \code{OpenSpecyFileBackedReferenceBuild} index instead of loading
+#' every final library into one R session.
 #' In composable mode, \code{build_lib()} returns a named list of
 #' \code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
 #' \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
@@ -417,10 +485,11 @@
 #' \code{assessments.rds}; library, medoid, and model files retain only runtime
 #' data, scientific attributes, and prediction state. The companion
 #' \code{reference_library_build.rds} is a lightweight release index. The
-#' companion \code{quarantined_spectra.rds} stores valid \code{OpenSpecy}
-#' objects by recipe/type/axis, a complete removal ledger, a long conflict
-#' table, source failures, and build provenance for every post-ingestion
-#' exclusion.
+#' companion \code{quarantined_spectra.rds} stores embedded valid
+#' \code{OpenSpecy} objects by recipe/type/axis for ordinary builds, or hashed
+#' valid-\code{OpenSpecy} shard descriptors for large builds. Both contracts
+#' include a complete removal ledger, a long conflict table, source failures,
+#' and build provenance for every post-ingestion exclusion.
 #' \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 #' \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 #' object unless \code{return} requests a table, report, or ids. A
@@ -521,7 +590,8 @@
 #' @export
 build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       res = 6, id_col = "sample_name", exclude_ids = NULL,
-                      dedupe = TRUE, metadata_lookups = NULL,
+                      dedupe = TRUE, dedupe_correlation_threshold = NULL,
+                      metadata_lookups = NULL,
                       material_hierarchy = NULL,
                       metadata_name_lookup = lib_metadata_name_lookup(),
                       clean_metadata_values = NULL,
@@ -543,6 +613,13 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       call. = FALSE
     )
   }
+  dedupe_correlation_threshold <- .lib_validate_dedupe_correlation_threshold(
+    dedupe_correlation_threshold
+  )
+  if (!is.null(dedupe_correlation_threshold) && !isTRUE(dedupe)) {
+    stop("'dedupe_correlation_threshold' requires 'dedupe = TRUE'",
+         call. = FALSE)
+  }
   official_mode <- !is.null(output_dir)
   if (is.null(clean_metadata_values)) {
     clean_metadata_values <- official_mode
@@ -560,6 +637,7 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     return(.lib_build_core(
       x = x, recipes = recipes, range = range, res = res, id_col = id_col,
       exclude_ids = exclude_ids, dedupe = dedupe,
+      dedupe_correlation_threshold = dedupe_correlation_threshold,
       metadata_lookups = metadata_lookups,
       material_hierarchy = material_hierarchy,
       metadata_name_lookup = metadata_name_lookup,
@@ -576,6 +654,7 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
   .lib_build_reference(
     x = x, recipes = recipes, range = range, res = res,
     id_col = id_col, exclude_ids = exclude_ids, dedupe = dedupe,
+    dedupe_correlation_threshold = dedupe_correlation_threshold,
     metadata_lookups = metadata_lookups,
     material_hierarchy = material_hierarchy,
     metadata_name_lookup = metadata_name_lookup,
@@ -607,6 +686,7 @@ rebuild_lib_artifacts <- function(x, output_dir,
 .lib_build_core <- function(x, recipes = .default_lib_recipes(), range = "full",
                             res = 6, id_col = "sample_name",
                             exclude_ids = NULL, dedupe = TRUE,
+                            dedupe_correlation_threshold = NULL,
                             metadata_lookups = NULL,
                             material_hierarchy = NULL,
                             metadata_name_lookup = lib_metadata_name_lookup(),
@@ -615,6 +695,13 @@ rebuild_lib_artifacts <- function(x, output_dir,
                             restrict_range_args = NULL,
                             signal_noise = TRUE, assess = FALSE, prune = NULL,
                             progress = TRUE, ...) {
+  dedupe_correlation_threshold <- .lib_validate_dedupe_correlation_threshold(
+    dedupe_correlation_threshold
+  )
+  if (!is.null(dedupe_correlation_threshold) && !isTRUE(dedupe)) {
+    stop("'dedupe_correlation_threshold' requires 'dedupe = TRUE'",
+         call. = FALSE)
+  }
   if (!is.logical(progress) || length(progress) != 1L || is.na(progress)) {
     stop("'progress' must be TRUE or FALSE", call. = FALSE)
   }
@@ -625,6 +712,29 @@ rebuild_lib_artifacts <- function(x, output_dir,
   }
   started <- proc.time()[["elapsed"]]
   dot_args <- list(...)
+  recipe_staging_dir <- dot_args$.recipe_staging_dir
+  if (is.null(recipe_staging_dir)) {
+    recipe_staging_dir <- getOption("OpenSpecy.recipe_staging_dir", NULL)
+  }
+  metadata_drop <- dot_args$.metadata_drop
+  metadata_drop <- if (is.null(metadata_drop)) {
+    character()
+  } else if (is.character(metadata_drop)) {
+    unique(metadata_drop[!is.na(metadata_drop) & nzchar(metadata_drop)])
+  } else if (inherits(metadata_drop, c("data.frame", "data.table")) &&
+             "metadata_column" %in% names(metadata_drop)) {
+    value <- as.character(metadata_drop$metadata_column)
+    unique(value[!is.na(value) & nzchar(value)])
+  } else {
+    stop("Internal '.metadata_drop' must contain metadata column names",
+         call. = FALSE)
+  }
+  source_prefilter <- .lib_source_prefilter_staging_enabled()
+  if (source_prefilter &&
+      (is.null(recipe_staging_dir) || !nzchar(recipe_staging_dir))) {
+    stop("Source prefilter staging requires the recipe staging directory",
+         call. = FALSE)
+  }
   hash_scale <- if (is.null(dot_args$scale)) 100 else dot_args$scale
   hash_algo <- if (is.null(dot_args$algo)) "md5" else dot_args$algo
   dedupe_duplicate <- if (is.null(dot_args$duplicate)) {
@@ -653,6 +763,13 @@ rebuild_lib_artifacts <- function(x, output_dir,
 
   report("starting")
   streamed_records <- NULL
+  staged_records <- NULL
+  staging_dir <- NULL
+  on.exit({
+    if (!is.null(staging_dir) && dir.exists(staging_dir)) {
+      .lib_remove_staging_dir(staging_dir, warn = TRUE)
+    }
+  }, add = TRUE)
   if (is_OpenSpecy(x)) {
     sources <- list(x)
     report("using one in-memory OpenSpecy source")
@@ -660,36 +777,72 @@ rebuild_lib_artifacts <- function(x, output_dir,
     if (length(x) == 0L || anyNA(x) || any(!nzchar(x))) {
       stop("'x' must contain one or more nonempty file paths", call. = FALSE)
     }
-    streamed_records <- list()
-    source_index <- 0L
-    for (i in seq_along(x)) {
+    if (.lib_source_record_staging_enabled()) {
+      staging_dir <- tempfile("OpenSpecy-source-stage-")
+      dir.create(staging_dir, recursive = TRUE, showWarnings = FALSE)
+      if (!dir.exists(staging_dir)) {
+        stop("Could not create the source-record staging directory",
+             call. = FALSE)
+      }
+      staged_records <- .lib_stage_path_records(
+        x,
+        staging_dir = staging_dir,
+        validate_sources = validate_sources,
+        metadata_name_lookup = metadata_name_lookup,
+        clean_metadata_values = clean_metadata_values,
+        id_col = if (isTRUE(dedupe)) id_col else NULL,
+        hash_scale = hash_scale,
+        hash_algo = hash_algo,
+        dedupe_duplicate = if (isTRUE(dedupe)) dedupe_duplicate else "none",
+        dedupe_correlation_threshold = if (source_prefilter) {
+          dedupe_correlation_threshold
+        } else NULL,
+        quarantine_dir = if (source_prefilter) {
+          file.path(recipe_staging_dir, "core_quarantine_parts")
+        } else NULL,
+        metadata_drop = metadata_drop,
+        source_prefilter = source_prefilter,
+        progress = progress,
+        report = report
+      )
       report(sprintf(
-        "reading path %d/%d (%s)",
-        i, length(x), basename(x[[i]])
+        "staged %d source object(s) from %d path(s)",
+        length(staged_records), length(x)
       ))
-      if (grepl("\\.rds$", x[[i]], ignore.case = TRUE)) {
-        source <- readRDS(x[[i]])
-      } else {
-        source <- read_any(x[[i]])
+    } else {
+      streamed_records <- list()
+      source_index <- 0L
+      for (i in seq_along(x)) {
+        report(sprintf(
+          "reading path %d/%d (%s)",
+          i, length(x), basename(x[[i]])
+        ))
+        if (grepl("\\.rds$", x[[i]], ignore.case = TRUE)) {
+          source <- readRDS(x[[i]])
+        } else {
+          source <- read_any(x[[i]])
+        }
+        path_sources <- validate_sources(source, paste0("File path ", i))
+        for (j in seq_along(path_sources)) {
+          source_index <- source_index + 1L
+          streamed_records[[source_index]] <- .lib_source_record(
+            path_sources[[j]],
+            source_index,
+            id_col = if (isTRUE(dedupe)) id_col else NULL,
+            hash_scale = hash_scale,
+            hash_algo = hash_algo,
+            report = report,
+            copy_metadata = FALSE
+          )
+        }
+        rm(source, path_sources)
+        gc(verbose = FALSE)
       }
-      path_sources <- validate_sources(source, paste0("File path ", i))
-      for (j in seq_along(path_sources)) {
-        source_index <- source_index + 1L
-        streamed_records[[source_index]] <- .lib_source_record(
-          path_sources[[j]],
-          source_index,
-          id_col = if (isTRUE(dedupe)) id_col else NULL,
-          hash_scale = hash_scale,
-          hash_algo = hash_algo
-        )
-      }
-      rm(source, path_sources)
-      gc(verbose = FALSE)
+      report(sprintf(
+        "streamed %d source object(s) from %d path(s)",
+        length(streamed_records), length(x)
+      ))
     }
-    report(sprintf(
-      "streamed %d source object(s) from %d path(s)",
-      length(streamed_records), length(x)
-    ))
   } else {
     if (!is.list(x) || length(x) == 0L ||
         !all(vapply(x, is_OpenSpecy, logical(1)))) {
@@ -700,7 +853,28 @@ rebuild_lib_artifacts <- function(x, output_dir,
     report(sprintf("using %d in-memory OpenSpecy source(s)", length(sources)))
   }
 
-  if (is.null(streamed_records)) {
+  if (!is.null(staged_records)) {
+    lib <- .lib_prepare_staged_paths(
+      staged_records,
+      range = range,
+      res = res,
+      convert_intensity = convert_intensity,
+      id_col = id_col,
+      exclude_ids = exclude_ids,
+      dedupe_duplicate = if (isTRUE(dedupe)) dedupe_duplicate else "none",
+      source_prefilter = source_prefilter,
+      quarantine_dir = if (source_prefilter) {
+        file.path(recipe_staging_dir, "core_quarantine_parts")
+      } else NULL,
+      validate_sources = validate_sources,
+      report = report
+    )
+    rm(staged_records)
+    gc(verbose = FALSE)
+    if (.lib_remove_staging_dir(staging_dir, warn = FALSE)) {
+      staging_dir <- NULL
+    }
+  } else if (is.null(streamed_records)) {
     report(sprintf("preparing %d source object(s)", length(sources)))
     lib <- .lib_prepare_sources(
       sources,
@@ -727,9 +901,68 @@ rebuild_lib_artifacts <- function(x, output_dir,
     rm(streamed_records)
     gc(verbose = FALSE)
   }
-  build_stage_report <- data.table::data.table(
-    stage = "prepared", spectra = ncol(lib$spectra), removed = 0L
+  staged_pre_filtered <- isTRUE(attr(
+    lib, "source_prefilter_applied", exact = TRUE
+  ))
+  source_hash_chunking <- attr(
+    lib, "source_hash_chunk_report", exact = TRUE
   )
+  source_merge_chunking <- attr(
+    lib, "source_merge_chunk_report", exact = TRUE
+  )
+  source_prefilter_report <- attr(
+    lib, "source_prefilter_report", exact = TRUE
+  )
+  source_global_filter_report <- attr(
+    lib, "source_global_filter_report", exact = TRUE
+  )
+  source_quarantine_parts <- attr(
+    lib, "source_quarantine_parts", exact = TRUE
+  )
+  source_correlation_report <- attr(
+    lib, "source_correlation_dedupe_report", exact = TRUE
+  )
+  metadata_compaction_report <- attr(
+    lib, "metadata_compaction_report", exact = TRUE
+  )
+  if (staged_pre_filtered && nrow(source_prefilter_report)) {
+    prepared_n <- sum(source_prefilter_report$input)
+    hash_removed <- sum(source_prefilter_report$hash_removed)
+    correlation_removed <- sum(source_prefilter_report$correlation_removed)
+    excluded_removed <- source_global_filter_report[
+      stage == "excluded_identifiers", sum(removed)
+    ]
+    global_hash_removed <- source_global_filter_report[
+      stage == "deduplicated", sum(removed)
+    ]
+    build_stage_report <- data.table::data.table(
+      stage = c(
+        "prepared", "source_hash_deduplicated",
+        "correlation_deduplicated", "excluded_identifiers", "deduplicated"
+      ),
+      spectra = c(
+        prepared_n,
+        prepared_n - hash_removed,
+        prepared_n - hash_removed - correlation_removed,
+        prepared_n - hash_removed - correlation_removed - excluded_removed,
+        ncol(lib$spectra)
+      ),
+      removed = c(
+        0L, hash_removed, correlation_removed, excluded_removed,
+        global_hash_removed
+      )
+    )
+    report(sprintf(
+      paste0("source prefilter complete (hash=%d; correlation=%d; ",
+             "excluded=%d; cross-source hash=%d; retained=%d)"),
+      hash_removed, correlation_removed, excluded_removed,
+      global_hash_removed, ncol(lib$spectra)
+    ))
+  } else {
+    build_stage_report <- data.table::data.table(
+      stage = "prepared", spectra = ncol(lib$spectra), removed = 0L
+    )
+  }
   identity_cleanup_report <- data.table::data.table()
   if ("spectrum_identity" %in% names(lib$metadata)) {
     identity_before <- as.character(lib$metadata$spectrum_identity)
@@ -777,6 +1010,7 @@ rebuild_lib_artifacts <- function(x, output_dir,
   }
 
   lookup_reports <- list()
+  metadata_join_chunking <- list()
   if (nrow(source_key_report) > 0L) {
     lookup_reports$canonical_source_keys <- source_key_report
   }
@@ -865,12 +1099,26 @@ rebuild_lib_artifacts <- function(x, output_dir,
           n = sum(filled)
         )
       }
-      coalesce_cols <- intersect(
-        names(lib$metadata),
-        setdiff(names(lookup_table), unname(lookup_key))
+      joined <- .lib_join_metadata_table(
+        lib$metadata, lookup_table, by = lookup_key,
+        copy_metadata = FALSE,
+        chunk_size = .lib_metadata_join_chunk_size(),
+        report_value_limit = .lib_metadata_join_report_value_limit(),
+        coalesce_existing = TRUE,
+        lookup_precedence = !isTRUE(lookup_spec$fill_only)
       )
-      lib <- join_lib_metadata(lib, lookup_table, by = lookup_key)
-      join_report <- attr(lib, "join_report")
+      lib$metadata <- joined$data
+      join_report <- joined$report
+      join_telemetry <- joined$telemetry
+      rm(joined)
+      gc(verbose = FALSE, full = TRUE)
+      metadata_join_chunking[[i]] <- data.table::copy(join_telemetry)[
+        , lookup := as.integer(i)
+      ]
+      data.table::setcolorder(
+        metadata_join_chunking[[i]],
+        c("lookup", setdiff(names(metadata_join_chunking[[i]]), "lookup"))
+      )
       report(sprintf(
         "metadata lookup %d/%d complete (matched=%d; unmatched=%d)",
         i, length(lookups),
@@ -882,24 +1130,31 @@ rebuild_lib_artifacts <- function(x, output_dir,
       lookup_reports[[paste0("lookup_", i)]] <- data.table::rbindlist(
         list(key_merge_report, join_report), fill = TRUE
       )
-      lib$metadata <- .lib_coalesce_joined_metadata(
-        lib$metadata, coalesce_cols,
-        lookup_precedence = !isTRUE(lookup_spec$fill_only)
-      )
+      rm(lookup_table, join_telemetry)
+      gc(verbose = FALSE, full = TRUE)
     }
   }
+  metadata_join_chunking <- data.table::rbindlist(
+    metadata_join_chunking, fill = TRUE
+  )
 
   if (!is.null(material_hierarchy)) {
     report("joining the material hierarchy")
     hierarchy <- lib_clean_metadata(.lib_read_lookup(material_hierarchy),
                                     metadata_name_lookup,
                                     clean_values = clean_metadata_values)
-    lib <- join_material_hierarchy(lib, hierarchy)
-    hierarchy_report <- attr(lib, "join_report")
+    hierarchy_join <- .lib_join_material_hierarchy_table(
+      lib$metadata, hierarchy, copy_metadata = FALSE
+    )
+    lib$metadata <- hierarchy_join$data
+    hierarchy_report <- hierarchy_join$report
+    attr(lib, "join_report") <- hierarchy_report
     report(sprintf(
       "material hierarchy complete (unmatched=%d)",
       sum(hierarchy_report[problem == "unmatched_metadata_key", n])
     ))
+    rm(hierarchy_join, hierarchy)
+    gc(verbose = FALSE, full = TRUE)
   }
 
   retention_stages <- .lib_library_stage_counts(
@@ -914,9 +1169,25 @@ rebuild_lib_artifacts <- function(x, output_dir,
       NA_character_
     }
   )
-  quarantine_parts <- list()
+  quarantine_parts <- if (staged_pre_filtered) {
+    source_quarantine_parts
+  } else list()
+  correlation_dedupe_report <- if (
+      staged_pre_filtered && !is.null(source_correlation_report)
+    ) source_correlation_report else list(
+    removals = .lib_correlation_dedupe_removal_schema(),
+    groups = .lib_correlation_dedupe_group_schema(),
+    settings = list(
+      threshold = dedupe_correlation_threshold, operator = ">",
+      query_block_size = 64L, survivor_block_size = 512L,
+      eligible_spectra = 0L, compared_groups = 0L,
+      pair_comparisons = 0, largest_group_spectra = 0L,
+      largest_full_matrix_bytes = 0,
+      max_correlation_cells = 0, max_correlation_bytes = 0
+    )
+  )
 
-  if (!is.null(exclude_ids)) {
+  if (!is.null(exclude_ids) && !staged_pre_filtered) {
     before <- ncol(lib$spectra)
     excluded <- .lib_excluded_mask(lib, exclude_ids, id_col = id_col)
     quarantine_parts <- c(
@@ -944,7 +1215,7 @@ rebuild_lib_artifacts <- function(x, output_dir,
     )[, artifact := NULL]
   ))
 
-  if (dedupe) {
+  if (dedupe && !staged_pre_filtered) {
     before <- ncol(lib$spectra)
     report("generating identifiers and removing duplicate spectra")
     existing <- .lib_dedupe_existing_ids(
@@ -1005,6 +1276,65 @@ rebuild_lib_artifacts <- function(x, output_dir,
     ))
     report(sprintf("deduplication complete (removed=%d; retained=%d)",
                    before - ncol(lib$spectra), ncol(lib$spectra)))
+  }
+  if (!is.null(dedupe_correlation_threshold) && !staged_pre_filtered) {
+    before <- ncol(lib$spectra)
+    report(sprintf(
+      "removing within-library identity-cohort correlations strictly > %.4f",
+      dedupe_correlation_threshold
+    ))
+    correlation_dedupe_report <- .lib_stream_correlation_dedupe(
+      lib, threshold = dedupe_correlation_threshold, progress = progress
+    )
+    correlation_removals <- correlation_dedupe_report$removals
+    if (nrow(correlation_removals)) {
+      evidence <- list(
+        correlation_survivor_id = rep(NA_character_, before),
+        correlation_observed = rep(NA_real_, before),
+        correlation_threshold = rep(NA_real_, before),
+        correlation_operator = rep(NA_character_, before),
+        correlation_group_basis = rep(NA_character_, before),
+        correlation_group_value = rep(NA_character_, before)
+      )
+      rows <- correlation_removals$source_row
+      evidence$correlation_survivor_id[rows] <-
+        correlation_removals$survivor_id
+      evidence$correlation_observed[rows] <-
+        correlation_removals$correlation
+      evidence$correlation_threshold[rows] <-
+        correlation_removals$threshold
+      evidence$correlation_operator[rows] <-
+        correlation_removals$operator
+      evidence$correlation_group_basis[rows] <-
+        correlation_removals$group_basis
+      evidence$correlation_group_value[rows] <-
+        correlation_removals$group_value
+      quarantine_parts <- c(
+        quarantine_parts,
+        .lib_quarantine_typed_capture(
+          lib, rows, artifact = "source",
+          stage = "source_correlation_deduplication",
+          rule = "pearson_correlation",
+          reason = "near_duplicate_within_library",
+          evidence = evidence
+        )
+      )
+    }
+    lib <- correlation_dedupe_report$object
+    correlation_dedupe_report$object <- NULL
+    build_stage_report <- data.table::rbindlist(list(
+      build_stage_report,
+      data.table::data.table(
+        stage = "correlation_deduplicated", spectra = ncol(lib$spectra),
+        removed = before - ncol(lib$spectra)
+      )
+    ))
+    report(sprintf(
+      paste0("correlation deduplication complete (removed=%d; retained=%d; ",
+             "largest correlation block=%.2f MiB)"),
+      before - ncol(lib$spectra), ncol(lib$spectra),
+      correlation_dedupe_report$settings$max_correlation_bytes / 1024^2
+    ))
   }
   retention_stages <- data.table::rbindlist(list(
     retention_stages,
@@ -1095,7 +1425,14 @@ rebuild_lib_artifacts <- function(x, output_dir,
       attr(out, "metadata_lookup_reports") <- lookup_reports
     }
     attr(out, "spectrum_identity_cleanup_report") <- identity_cleanup_report
+    attr(out, "source_hash_chunk_report") <- source_hash_chunking
+    attr(out, "source_merge_chunk_report") <- source_merge_chunking
+    attr(out, "metadata_join_chunk_report") <- metadata_join_chunking
+    attr(out, "source_prefilter_report") <- source_prefilter_report
+    attr(out, "source_global_filter_report") <- source_global_filter_report
+    attr(out, "metadata_compaction_report") <- metadata_compaction_report
     attr(out, "build_stage_report") <- build_stage_report
+    attr(out, "correlation_dedupe_report") <- correlation_dedupe_report
     attr(out, "dropped_spectrum_identities") <- dropped_identities
     recipe_retention <- data.table::copy(retention_stages)
     recipe_retention[, artifact := recipe_name]
@@ -1123,6 +1460,52 @@ rebuild_lib_artifacts <- function(x, output_dir,
            paste(unknown_prune, collapse = ", "), call. = FALSE)
     }
   }
+  if (.lib_recipe_record_staging_enabled()) {
+    if (!is.null(prune)) {
+      stop("File-backed recipe staging requires downstream pruning",
+           call. = FALSE)
+    }
+    if (!is.character(recipe_staging_dir) ||
+        length(recipe_staging_dir) != 1L || is.na(recipe_staging_dir) ||
+        !nzchar(recipe_staging_dir)) {
+      stop("File-backed recipe staging requires an internal staging path",
+           call. = FALSE)
+    }
+    report("materializing recipes in bounded file-backed blocks")
+    staged <- .lib_stage_recipe_collection(
+      lib, recipes = recipes, staging_dir = recipe_staging_dir,
+      signal_noise = signal_noise, assess = assess, report = report
+    )
+    for (recipe_name in names(staged$artifacts)) {
+      recipe_retention <- data.table::copy(retention_stages)
+      recipe_retention[, artifact := recipe_name]
+      data.table::setcolorder(
+        recipe_retention, c("stage", "artifact", "library_name", "spectra")
+      )
+      staged$artifacts[[recipe_name]]$object_attributes <- list(
+        metadata_lookup_reports = if (length(lookup_reports)) {
+          lookup_reports
+        } else NULL,
+        spectrum_identity_cleanup_report = identity_cleanup_report,
+        source_hash_chunk_report = source_hash_chunking,
+        source_merge_chunk_report = source_merge_chunking,
+        metadata_join_chunk_report = metadata_join_chunking,
+        source_prefilter_report = source_prefilter_report,
+        source_global_filter_report = source_global_filter_report,
+        metadata_compaction_report = metadata_compaction_report,
+        build_stage_report = build_stage_report,
+        correlation_dedupe_report = correlation_dedupe_report,
+        dropped_spectrum_identities = dropped_identities,
+        library_retention_stages = recipe_retention
+      )
+    }
+    staged$quarantine_parts <- quarantine_parts
+    report("complete")
+    return(staged)
+  }
+  # Factor compaction is a staging-only representation. Restore the public
+  # metadata contract before ordinary in-memory recipes are returned.
+  lib$metadata <- .lib_expand_staged_metadata(lib$metadata)
   out <- lapply(seq_along(recipes), function(i) {
     apply_recipe(recipes[[i]], names(recipes)[[i]], i)
   })
@@ -1639,7 +2022,8 @@ predict_class_reference <- function(metadata, regex_reference,
       i,
       id_col = id_col,
       hash_scale = hash_scale,
-      hash_algo = hash_algo
+      hash_algo = hash_algo,
+      report = report
     )
   }
   .lib_prepare_records(
@@ -1656,6 +2040,10 @@ predict_class_reference <- function(metadata, regex_reference,
 .lib_prepare_records <- function(records, range, res, metadata_name_lookup,
                                  clean_metadata_values, convert_intensity,
                                  report) {
+  source_hash_chunking <- data.table::rbindlist(lapply(records, function(record) {
+    if (is.null(record$hash_report)) return(NULL)
+    data.table::as.data.table(record$hash_report)
+  }), fill = TRUE)
   metadata <- .lib_combined_metadata(
     records,
     metadata_name_lookup,
@@ -1688,33 +2076,796 @@ predict_class_reference <- function(metadata, regex_reference,
   }
 
   if (length(records) == 1L) {
-    return(.lib_combine_same_axis_records(
+    out <- .lib_combine_same_axis_records(
       records,
       metadata,
       range = NULL,
       res = res
-    ))
-  }
-
-  if (shared_axis) {
-    return(.lib_combine_same_axis_records(
+    )
+  } else if (shared_axis) {
+    out <- .lib_combine_same_axis_records(
       records,
       metadata,
       range = range,
       res = res
-    ))
+    )
+  } else {
+    out <- .lib_combine_variable_axis_records(
+      records,
+      metadata,
+      range = range,
+      res = res
+    )
   }
+  attr(out, "source_hash_chunk_report") <- source_hash_chunking
+  out
+}
 
-  .lib_combine_variable_axis_records(
-    records,
-    metadata,
-    range = range,
-    res = res
+.lib_source_record_staging_enabled <- function() {
+  value <- getOption("OpenSpecy.source_record_staging", FALSE)
+  if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+    stop("Option 'OpenSpecy.source_record_staging' must be TRUE or FALSE",
+         call. = FALSE)
+  }
+  value
+}
+
+.lib_source_prefilter_staging_enabled <- function() {
+  value <- getOption("OpenSpecy.source_prefilter_staging", FALSE)
+  if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+    stop("Option 'OpenSpecy.source_prefilter_staging' must be TRUE or FALSE",
+         call. = FALSE)
+  }
+  value
+}
+
+.lib_combine_source_correlation_reports <- function(reports, threshold) {
+  reports <- Filter(Negate(is.null), reports)
+  removals <- data.table::rbindlist(lapply(seq_along(reports), function(i) {
+    value <- data.table::copy(reports[[i]]$removals)
+    if (nrow(value)) value[, source_index := as.integer(i)]
+    value
+  }), fill = TRUE)
+  if (!nrow(removals)) removals <- .lib_correlation_dedupe_removal_schema()
+  groups <- data.table::rbindlist(lapply(seq_along(reports), function(i) {
+    value <- data.table::copy(reports[[i]]$groups)
+    if (nrow(value)) value[, source_index := as.integer(i)]
+    value
+  }), fill = TRUE)
+  if (!nrow(groups)) groups <- .lib_correlation_dedupe_group_schema()
+  settings <- lapply(reports, `[[`, "settings")
+  sum_setting <- function(name) {
+    sum(vapply(settings, function(x) as.numeric(x[[name]]), numeric(1L)))
+  }
+  max_setting <- function(name) {
+    if (!length(settings)) return(0)
+    max(vapply(settings, function(x) as.numeric(x[[name]]), numeric(1L)))
+  }
+  list(
+    removals = removals, groups = groups,
+    settings = list(
+      threshold = threshold, operator = ">", query_block_size = 64L,
+      survivor_block_size = 512L,
+      eligible_spectra = sum_setting("eligible_spectra"),
+      compared_groups = sum_setting("compared_groups"),
+      pair_comparisons = sum_setting("pair_comparisons"),
+      largest_group_spectra = max_setting("largest_group_spectra"),
+      largest_full_matrix_bytes = max_setting("largest_full_matrix_bytes"),
+      max_correlation_cells = max_setting("max_correlation_cells"),
+      max_correlation_bytes = max_setting("max_correlation_bytes")
+    )
   )
 }
 
+.lib_remove_staging_dir <- function(path, warn = TRUE, attempts = 4L) {
+  if (is.null(path) || !dir.exists(path)) return(TRUE)
+  attempts <- max(1L, as.integer(attempts))
+  for (attempt in seq_len(attempts)) {
+    unlink(path, recursive = TRUE, force = TRUE)
+    if (!dir.exists(path)) return(TRUE)
+    gc(verbose = FALSE, full = TRUE)
+    Sys.sleep(0.25 * attempt)
+  }
+  if (isTRUE(warn)) {
+    warning(
+      "Could not remove source-record staging directory after ", attempts,
+      " attempts: ", path,
+      call. = FALSE
+    )
+  }
+  FALSE
+}
+
+.lib_source_merge_chunk_size <- function() {
+  value <- suppressWarnings(as.integer(getOption(
+    "OpenSpecy.source_merge_chunk_size", 20000L
+  )))
+  if (length(value) != 1L || is.na(value) || value < 1L) {
+    stop("Option 'OpenSpecy.source_merge_chunk_size' must be one positive ",
+         "integer", call. = FALSE)
+  }
+  value
+}
+
+.lib_source_merge_gc_interval <- function() {
+  value <- suppressWarnings(as.integer(getOption(
+    "OpenSpecy.source_merge_gc_interval", 10L
+  )))
+  if (length(value) != 1L || is.na(value) || value < 1L) {
+    stop("Option 'OpenSpecy.source_merge_gc_interval' must be one positive ",
+         "integer", call. = FALSE)
+  }
+  value
+}
+
+.lib_metadata_join_chunk_size <- function() {
+  value <- suppressWarnings(as.integer(getOption(
+    "OpenSpecy.metadata_join_chunk_size", 100000L
+  )))
+  if (length(value) != 1L || is.na(value) || value < 1L) {
+    stop("Option 'OpenSpecy.metadata_join_chunk_size' must be one positive ",
+         "integer", call. = FALSE)
+  }
+  value
+}
+
+.lib_metadata_join_report_value_limit <- function() {
+  value <- suppressWarnings(as.integer(getOption(
+    "OpenSpecy.metadata_join_report_value_limit", 1000L
+  )))
+  if (length(value) != 1L || is.na(value) || value < 1L) {
+    stop("Option 'OpenSpecy.metadata_join_report_value_limit' must be one ",
+         "positive integer", call. = FALSE)
+  }
+  value
+}
+
+.lib_read_path_sources <- function(path, path_index, validate_sources) {
+  source <- if (grepl("\\.rds$", path, ignore.case = TRUE)) {
+    readRDS(path)
+  } else {
+    read_any(path)
+  }
+  validate_sources(source, paste0("File path ", path_index))
+}
+
+.lib_stage_path_records <- function(paths, staging_dir, validate_sources,
+                                    metadata_name_lookup,
+                                    clean_metadata_values, id_col,
+                                    hash_scale, hash_algo,
+                                    dedupe_duplicate = "none",
+                                    dedupe_correlation_threshold = NULL,
+                                    quarantine_dir = NULL,
+                                    metadata_drop = character(),
+                                    source_prefilter = FALSE,
+                                    progress = FALSE, report) {
+  records <- list()
+  quarantine_parts <- list()
+  correlation_reports <- list()
+  prefilter_rows <- list()
+  source_index <- 0L
+  chunk_size <- .lib_source_merge_chunk_size()
+  for (i in seq_along(paths)) {
+    path <- normalizePath(paths[[i]], winslash = "/", mustWork = TRUE)
+    path_info <- file.info(path)
+    report(sprintf(
+      "staging path %d/%d (%s)", i, length(paths), basename(path)
+    ))
+    path_sources <- .lib_read_path_sources(path, i, validate_sources)
+    for (j in seq_along(path_sources)) {
+      source_index <- source_index + 1L
+      record <- .lib_source_record(
+        path_sources[[j]], source_index,
+        id_col = id_col,
+        hash_scale = hash_scale,
+        hash_algo = hash_algo,
+        report = report,
+        copy_metadata = FALSE
+      )
+      # The record now owns every value needed below. Release the path-list
+      # reference before any exact-filter replacement matrix is allocated.
+      path_sources[j] <- list(NULL)
+      record$metadata <- .lib_combined_metadata(
+        list(record), metadata_name_lookup,
+        clean_metadata_values = clean_metadata_values
+      )
+      drop <- intersect(metadata_drop, names(record$metadata))
+      if (length(drop)) record$metadata[, (drop) := NULL]
+      record$spectrum_names <- colnames(record$spectra)
+      retained_source_columns <- seq_len(record$n)
+      hash_removed <- 0L
+      correlation_removed <- 0L
+      if (isTRUE(source_prefilter)) {
+        metadata_order <- names(record$metadata)
+        record$metadata <- .lib_assign_library_name(record$metadata)
+        data.table::setcolorder(
+          record$metadata,
+          c(metadata_order, setdiff(names(record$metadata), metadata_order))
+        )
+        object <- .lib_make_open_specy(
+          record$wavenumber, record$spectra, record$metadata, record$attrs,
+          copy_metadata = FALSE
+        ) |>
+          as_OpenSpecy()
+        input_n <- ncol(object$spectra)
+        ids <- if (!is.null(id_col)) {
+          as.character(.lib_ids(object, id_col))
+        } else colnames(object$spectra)
+        duplicate_remove <- rep(FALSE, length(ids))
+        if (identical(dedupe_duplicate, "first")) {
+          duplicate_remove <- duplicated(ids)
+        } else if (identical(dedupe_duplicate, "remove_all")) {
+          duplicate_remove <- duplicated(ids) |
+            duplicated(ids, fromLast = TRUE)
+        }
+        if (any(duplicate_remove)) {
+          parts <- .lib_quarantine_typed_capture(
+            object, duplicate_remove, artifact = "source",
+            stage = "source_deduplication", rule = "content_hash",
+            reason = if (identical(dedupe_duplicate, "remove_all")) {
+              "duplicate_content_remove_all"
+            } else "duplicate_content",
+            evidence = list(duplicate_hash = ids)
+          )
+          quarantine_parts <- c(
+            quarantine_parts,
+            .lib_save_quarantine_part_paths(
+              parts, quarantine_dir,
+              sprintf("source_%06d_hash", source_index)
+            )
+          )
+          # Do not retain the unfiltered source matrix through the correlation
+          # and block-write stages after filter_spec() creates its replacement.
+          record$spectra <- NULL
+          object <- filter_spec(object, !duplicate_remove)
+          hash_removed <- sum(duplicate_remove)
+        }
+        correlation <- NULL
+        if (!is.null(dedupe_correlation_threshold)) {
+          correlation <- .lib_stream_correlation_dedupe(
+            object, threshold = dedupe_correlation_threshold,
+            progress = progress, filter_object = FALSE
+          )
+          removals <- correlation$removals
+          if (nrow(removals)) {
+            before <- ncol(object$spectra)
+            evidence <- list(
+              correlation_survivor_id = rep(NA_character_, before),
+              correlation_observed = rep(NA_real_, before),
+              correlation_threshold = rep(NA_real_, before),
+              correlation_operator = rep(NA_character_, before),
+              correlation_group_basis = rep(NA_character_, before),
+              correlation_group_value = rep(NA_character_, before)
+            )
+            rows <- removals$source_row
+            evidence$correlation_survivor_id[rows] <- removals$survivor_id
+            evidence$correlation_observed[rows] <- removals$correlation
+            evidence$correlation_threshold[rows] <- removals$threshold
+            evidence$correlation_operator[rows] <- removals$operator
+            evidence$correlation_group_basis[rows] <- removals$group_basis
+            evidence$correlation_group_value[rows] <- removals$group_value
+            parts <- .lib_quarantine_typed_capture(
+              object, rows, artifact = "source",
+              stage = "source_correlation_deduplication",
+              rule = "pearson_correlation",
+              reason = "near_duplicate_within_library", evidence = evidence
+            )
+            quarantine_parts <- c(
+              quarantine_parts,
+              .lib_save_quarantine_part_paths(
+                parts, quarantine_dir,
+                sprintf("source_%06d_correlation", source_index)
+              )
+            )
+          }
+          retained_source_columns <- which(!correlation$remove)
+          correlation_removed <- sum(correlation$remove)
+          correlation$object <- NULL
+          correlation$remove <- NULL
+          correlation_reports[[source_index]] <- correlation
+        } else {
+          retained_source_columns <- seq_len(ncol(object$spectra))
+        }
+        record$spectra <- object$spectra
+        record$metadata <- object$metadata[retained_source_columns]
+        record$n <- length(retained_source_columns)
+        record$spectrum_names <- colnames(object$spectra)[
+          retained_source_columns
+        ]
+        if (record$n < 1L) {
+          stop("Source prefilter removed every spectrum from source ",
+               source_index, call. = FALSE)
+        }
+        prefilter_rows[[source_index]] <- data.table::data.table(
+          source_index = source_index, input = input_n,
+          hash_removed = hash_removed,
+          correlation_removed = correlation_removed,
+          retained = record$n
+        )
+        rm(object)
+      }
+      metadata_path <- file.path(
+        staging_dir, sprintf("metadata-%06d.rds", source_index)
+      )
+      saveRDS(record$metadata, metadata_path, compress = FALSE, version = 3)
+      chunk_count <- ceiling(record$n / chunk_size)
+      spectrum_chunk_paths <- character(chunk_count)
+      spectrum_chunk_columns <- integer(chunk_count)
+      for (chunk_index in seq_len(chunk_count)) {
+        first_column <- (chunk_index - 1L) * chunk_size + 1L
+        last_column <- min(record$n, chunk_index * chunk_size)
+        columns <- seq.int(first_column, last_column)
+        spectrum_chunk_paths[[chunk_index]] <- file.path(
+          staging_dir,
+          sprintf("spectra-%06d-%06d.rds", source_index, chunk_index)
+        )
+        block <- record$spectra[
+          , retained_source_columns[columns], drop = FALSE
+        ]
+        saveRDS(
+          block, spectrum_chunk_paths[[chunk_index]],
+          compress = FALSE, version = 3
+        )
+        spectrum_chunk_columns[[chunk_index]] <- length(columns)
+        rm(block, columns)
+      }
+      records[[source_index]] <- list(
+        source_index = source_index,
+        path_index = i,
+        object_index = j,
+        path = path,
+        file_size = as.numeric(path_info$size[[1L]]),
+        file_mtime = as.numeric(path_info$mtime[[1L]]),
+        wavenumber = record$wavenumber,
+        n = record$n,
+        spectrum_names = record$spectrum_names,
+        metadata_path = metadata_path,
+        metadata_prototype = record$metadata[0],
+        spectrum_chunk_paths = spectrum_chunk_paths,
+        spectrum_chunk_columns = spectrum_chunk_columns,
+        hash_report = record$hash_report,
+        intensity_attr = record$intensity_attr,
+        attrs = record$attrs
+      )
+      path_sources[j] <- list(NULL)
+      rm(record)
+      gc(verbose = FALSE)
+    }
+    rm(path_sources)
+    gc(verbose = FALSE)
+  }
+  attr(records, "quarantine_parts") <- quarantine_parts
+  attr(records, "source_prefilter_report") <- data.table::rbindlist(
+    prefilter_rows, fill = TRUE
+  )
+  attr(records, "correlation_dedupe_report") <-
+    .lib_combine_source_correlation_reports(
+      correlation_reports, dedupe_correlation_threshold
+    )
+  records
+}
+
+.lib_coerce_metadata_column <- function(value, template) {
+  target_type <- typeof(template)
+  if (identical(typeof(value), target_type) &&
+      identical(class(value), class(template))) {
+    return(value)
+  }
+  if (inherits(template, "Date")) return(as.Date(value))
+  if (inherits(template, "POSIXct")) {
+    return(as.POSIXct(value, origin = "1970-01-01", tz = attr(template, "tzone")))
+  }
+  switch(
+    target_type,
+    logical = as.logical(value),
+    integer = as.integer(value),
+    double = as.numeric(value),
+    complex = as.complex(value),
+    character = as.character(value),
+    raw = as.raw(value),
+    list = as.list(value),
+    value
+  )
+}
+
+.lib_combine_staged_metadata <- function(records, report) {
+  prototype <- data.table::rbindlist(
+    lapply(records, `[[`, "metadata_prototype"), fill = TRUE
+  )
+  total <- sum(vapply(records, `[[`, integer(1L), "n"))
+  metadata <- data.table::as.data.table(lapply(prototype, function(value) {
+    value[rep(NA_integer_, total)]
+  }))
+  starts <- cumsum(c(
+    1L, head(vapply(records, `[[`, integer(1L), "n"), -1L)
+  ))
+  for (i in seq_along(records)) {
+    if (i == 1L || i == length(records) || i %% 10L == 0L) {
+      report(sprintf(
+        "assembling staged metadata %d/%d", i, length(records)
+      ))
+    }
+    local <- readRDS(records[[i]]$metadata_path)
+    if (nrow(local) != records[[i]]$n) {
+      stop("Staged metadata row count changed for source ", i, call. = FALSE)
+    }
+    rows <- starts[[i]] + seq_len(records[[i]]$n) - 1L
+    for (column in names(local)) {
+      value <- .lib_coerce_metadata_column(local[[column]], metadata[[column]])
+      data.table::set(metadata, i = rows, j = column, value = value)
+    }
+    rm(local)
+  }
+  metadata
+}
+
+.lib_staged_target_axis <- function(records, range, res) {
+  shared_axis <- .lib_same_wavenumber(records)
+  if (length(records) == 1L || (shared_axis && is.null(range))) {
+    return(list(
+      wavenumber = records[[1L]]$wavenumber,
+      target_range = base::range(records[[1L]]$wavenumber),
+      allow_na = FALSE,
+      shared_axis = shared_axis,
+      direct = TRUE
+    ))
+  }
+
+  pmin <- vapply(records, function(record) min(record$wavenumber), numeric(1))
+  pmax <- vapply(records, function(record) max(record$wavenumber), numeric(1))
+  if (is.numeric(range)) {
+    target_range <- range
+    allow_na <- TRUE
+  } else if (length(range) == 1L && range %in% c("common", "full")) {
+    if (!shared_axis && range == "common" &&
+        (any(max(pmin) > pmax) || any(min(pmax) < pmin))) {
+      stop("data points need to overlap in their ranges", call. = FALSE)
+    }
+    target_range <- if (shared_axis) {
+      base::range(records[[1L]]$wavenumber)
+    } else if (range == "common") {
+      c(max(pmin), min(pmax))
+    } else {
+      c(min(pmin), max(pmax))
+    }
+    allow_na <- identical(range, "full")
+  } else {
+    stop("If range is specified it should be numeric, 'full', or 'common'",
+         call. = FALSE)
+  }
+
+  target_wn <- if (is.null(res)) {
+    sort(unique(unlist(lapply(records, function(record) {
+      record$wavenumber[
+        record$wavenumber >= min(target_range) &
+          record$wavenumber <= max(target_range)
+      ]
+    }), use.names = FALSE)))
+  } else {
+    conform_res(target_range, res = res)
+  }
+  list(
+    wavenumber = target_wn, target_range = target_range,
+    allow_na = allow_na, shared_axis = shared_axis, direct = FALSE
+  )
+}
+
+.lib_staged_local_axis <- function(record, target, res) {
+  if (isTRUE(target$direct) &&
+      identical(record$wavenumber, target$wavenumber)) {
+    return(target$wavenumber)
+  }
+  local_range <- c(
+    max(min(target$target_range), min(record$wavenumber)),
+    min(max(target$target_range), max(record$wavenumber))
+  )
+  if (is.null(res)) {
+    target$wavenumber[
+      target$wavenumber >= min(record$wavenumber) &
+        target$wavenumber <= max(record$wavenumber)
+    ]
+  } else {
+    conform_res(local_range, res = res)
+  }
+}
+
+.lib_capture_staged_record_removals <- function(
+    records, metadata, remove, quarantine_dir, stage, rule, reason,
+    evidence = list()) {
+  remove <- as.logical(remove)
+  if (!any(remove)) return(list())
+  counts <- vapply(records, `[[`, integer(1L), "n")
+  if (length(remove) != sum(counts)) {
+    stop("Staged removal mask does not align with source records",
+         call. = FALSE)
+  }
+  starts <- cumsum(c(1L, head(counts, -1L)))
+  out <- list()
+  for (i in seq_along(records)) {
+    record <- records[[i]]
+    global <- starts[[i]] + seq_len(record$n) - 1L
+    local_remove <- which(remove[global])
+    if (!length(local_remove)) next
+    chunk_starts <- cumsum(c(
+      1L, head(record$spectrum_chunk_columns, -1L)
+    ))
+    for (chunk_index in seq_along(record$spectrum_chunk_paths)) {
+      chunk_local <- chunk_starts[[chunk_index]] +
+        seq_len(record$spectrum_chunk_columns[[chunk_index]]) - 1L
+      selected <- match(intersect(local_remove, chunk_local), chunk_local)
+      if (!length(selected)) next
+      block <- readRDS(record$spectrum_chunk_paths[[chunk_index]])[
+        , selected, drop = FALSE
+      ]
+      local_positions <- chunk_local[selected]
+      global_positions <- starts[[i]] + local_positions - 1L
+      object <- .lib_make_open_specy(
+        record$wavenumber, block, metadata[global_positions], record$attrs,
+        copy_metadata = FALSE
+      ) |>
+        as_OpenSpecy()
+      local_evidence <- lapply(evidence, function(value) {
+        if (length(value) == length(remove)) value[global_positions] else value
+      })
+      parts <- .lib_quarantine_typed_capture(
+        object, seq_len(ncol(object$spectra)), artifact = "source",
+        stage = stage, rule = rule, reason = reason,
+        evidence = local_evidence, source_rows = global_positions
+      )
+      out <- c(out, .lib_save_quarantine_part_paths(
+        parts, quarantine_dir,
+        sprintf("global_%s_source_%06d_chunk_%06d", rule, i, chunk_index)
+      ))
+      rm(block, object, parts)
+      gc(verbose = FALSE)
+    }
+  }
+  out
+}
+
+.lib_prepare_staged_paths <- function(
+    records, range, res, convert_intensity, id_col, exclude_ids,
+    dedupe_duplicate, source_prefilter, quarantine_dir,
+    validate_sources, report) {
+  chunk_size <- .lib_source_merge_chunk_size()
+  gc_interval <- .lib_source_merge_gc_interval()
+  source_quarantine_parts <- attr(
+    records, "quarantine_parts", exact = TRUE
+  )
+  source_prefilter_report <- attr(
+    records, "source_prefilter_report", exact = TRUE
+  )
+  source_correlation_report <- attr(
+    records, "correlation_dedupe_report", exact = TRUE
+  )
+  source_hash_chunking <- data.table::rbindlist(lapply(records, function(record) {
+    if (is.null(record$hash_report)) return(NULL)
+    data.table::as.data.table(record$hash_report)
+  }), fill = TRUE)
+  metadata <- .lib_combine_staged_metadata(records, report)
+  if (isTRUE(convert_intensity)) {
+    intensity <- .lib_record_intensity_plan(
+      records, metadata, source_label = "staged source paths"
+    )
+    records <- intensity$records
+    metadata <- intensity$metadata
+    canonical_intensity <- intensity$canonical
+  } else {
+    canonical_intensity <- rep(NA_character_, nrow(metadata))
+  }
+
+  original_counts <- vapply(records, `[[`, integer(1L), "n")
+  original_starts <- cumsum(c(1L, head(original_counts, -1L)))
+  merge_keep <- lapply(original_counts, seq_len)
+  global_filter_report <- data.table::data.table()
+  if (isTRUE(source_prefilter)) {
+    source_names_all <- unlist(lapply(records, `[[`, "spectrum_names"),
+                                 use.names = FALSE)
+    excluded <- rep(FALSE, nrow(metadata))
+    if (!is.null(exclude_ids)) {
+      exclude_ids <- as.character(exclude_ids)
+      metadata_cols <- intersect(
+        c(id_col, paste0(id_col, "_old"), "col_id"), names(metadata)
+      )
+      for (column in metadata_cols) {
+        excluded <- excluded |
+          as.character(metadata[[column]]) %in% exclude_ids
+      }
+      excluded <- excluded | source_names_all %in% exclude_ids
+    }
+    if (any(excluded)) {
+      source_quarantine_parts <- c(
+        source_quarantine_parts,
+        .lib_capture_staged_record_removals(
+          records, metadata, excluded, quarantine_dir,
+          stage = "source_exclusion", rule = "exclude_ids",
+          reason = "excluded_identifier"
+        )
+      )
+    }
+    ids <- if (!is.null(id_col) && id_col %in% names(metadata)) {
+      as.character(metadata[[id_col]])
+    } else source_names_all
+    duplicate_remove <- rep(FALSE, length(ids))
+    eligible <- which(!excluded)
+    if (identical(dedupe_duplicate, "first")) {
+      duplicate_remove[eligible] <- duplicated(ids[eligible])
+    } else if (identical(dedupe_duplicate, "remove_all")) {
+      duplicate_remove[eligible] <- duplicated(ids[eligible]) |
+        duplicated(ids[eligible], fromLast = TRUE)
+    }
+    if (any(duplicate_remove)) {
+      source_quarantine_parts <- c(
+        source_quarantine_parts,
+        .lib_capture_staged_record_removals(
+          records, metadata, duplicate_remove, quarantine_dir,
+          stage = "source_deduplication", rule = "content_hash",
+          reason = if (identical(dedupe_duplicate, "remove_all")) {
+            "duplicate_content_remove_all"
+          } else "duplicate_content",
+          evidence = list(duplicate_hash = ids)
+        )
+      )
+    }
+    keep <- !(excluded | duplicate_remove)
+    merge_keep <- lapply(seq_along(records), function(i) {
+      global <- original_starts[[i]] + seq_len(original_counts[[i]]) - 1L
+      which(keep[global])
+    })
+    global_filter_report <- data.table::data.table(
+      stage = c("excluded_identifiers", "deduplicated"),
+      removed = c(sum(excluded), sum(duplicate_remove)),
+      retained = c(sum(!excluded), sum(keep))
+    )
+    metadata <- metadata[keep]
+    canonical_intensity <- canonical_intensity[keep]
+    metadata <- .lib_drop_blank_staged_metadata(metadata)
+    compact <- .lib_compact_staged_metadata(metadata)
+    metadata <- compact$metadata
+    metadata_compaction_report <- compact$report
+  } else {
+    metadata_compaction_report <- data.table::data.table()
+  }
+
+  target <- .lib_staged_target_axis(records, range, res)
+  if (length(records) > 1L) {
+    report(sprintf(
+      if (target$shared_axis) {
+        "combining %d same-axis staged source object(s)"
+      } else {
+        "merging %d staged source object(s) with bounded interpolation"
+      },
+      length(records)
+    ))
+  }
+  counts <- lengths(merge_keep)
+  starts <- cumsum(c(1L, head(counts, -1L)))
+  total <- sum(counts)
+  spectra <- matrix(
+    NA_real_, nrow = length(target$wavenumber), ncol = total
+  )
+  source_names <- unlist(lapply(seq_along(records), function(i) {
+    records[[i]]$spectrum_names[merge_keep[[i]]]
+  }), use.names = FALSE)
+  if (length(source_names) == total) {
+    colnames(spectra) <- make.unique(source_names, sep = ".")
+  }
+
+  merge_report <- vector("list", length(records))
+  by_path <- split(seq_along(records), vapply(
+    records, `[[`, integer(1L), "path_index"
+  ))
+  for (path_group in seq_along(by_path)) {
+    descriptor_rows <- by_path[[path_group]]
+    first <- records[[descriptor_rows[[1L]]]]
+    observed <- file.info(first$path)
+    if (!isTRUE(all.equal(as.numeric(observed$size[[1L]]), first$file_size)) ||
+        !isTRUE(all.equal(as.numeric(observed$mtime[[1L]]), first$file_mtime))) {
+      stop("Source path changed between staged passes: ", first$path,
+           call. = FALSE)
+    }
+    for (i in descriptor_rows) {
+      descriptor <- records[[i]]
+      report(sprintf(
+        "reading staged spectra source %d/%d (%s)",
+        descriptor$source_index, length(records), basename(first$path)
+      ))
+      local_wn <- .lib_staged_local_axis(descriptor, target, res)
+      if (!target$allow_na && !identical(local_wn, target$wavenumber)) {
+        stop("data points need to overlap in their ranges", call. = FALSE)
+      }
+      rows <- match(local_wn, target$wavenumber)
+      chunk_paths <- descriptor$spectrum_chunk_paths
+      chunk_columns <- descriptor$spectrum_chunk_columns
+      if (!length(chunk_paths) || length(chunk_paths) != length(chunk_columns) ||
+          sum(chunk_columns) != descriptor$n ||
+          any(!file.exists(chunk_paths))) {
+        stop("Staged spectrum blocks are incomplete for source ",
+             descriptor$source_index, call. = FALSE)
+      }
+      first_columns <- cumsum(c(1L, head(chunk_columns, -1L)))
+      for (block_index in seq_along(chunk_paths)) {
+        local_columns <- first_columns[[block_index]] +
+          seq_len(chunk_columns[[block_index]]) - 1L
+        selected_columns <- intersect(merge_keep[[i]], local_columns)
+        if (!length(selected_columns)) next
+        selected_in_block <- match(selected_columns, local_columns)
+        output_local <- match(selected_columns, merge_keep[[i]])
+        global_columns <- starts[[i]] + output_local - 1L
+        block <- readRDS(chunk_paths[[block_index]])
+        if (!is.matrix(block) ||
+            nrow(block) != length(descriptor$wavenumber) ||
+            ncol(block) != length(local_columns)) {
+          stop("Staged spectrum block changed for source ",
+             descriptor$source_index, " chunk ", block_index,
+               call. = FALSE)
+        }
+        block <- block[, selected_in_block, drop = FALSE]
+        if (isTRUE(convert_intensity)) {
+          block <- .lib_convert_spectra_matrix(
+            block, canonical_intensity[global_columns]
+          )
+        }
+        if (!identical(descriptor$wavenumber, local_wn)) {
+          block <- .conform_intens_matrix(
+            x = descriptor$wavenumber, y = block, xout = local_wn
+          )
+        }
+        spectra[rows, global_columns] <- block
+        rm(block)
+        if (block_index %% gc_interval == 0L ||
+            block_index == length(chunk_paths)) {
+          gc(verbose = FALSE)
+        }
+        if (length(chunk_paths) > 1L &&
+            (block_index == 1L || block_index == length(chunk_paths) ||
+               block_index %% 10L == 0L)) {
+          report(sprintf(
+            "filling source %d merge chunk %d/%d",
+            descriptor$source_index, block_index, length(chunk_paths)
+          ))
+        }
+      }
+      merge_report[[i]] <- data.table::data.table(
+        source_index = descriptor$source_index,
+        input_spectra = descriptor$n,
+        spectra = counts[[i]],
+        chunk_size = chunk_size,
+        gc_interval = gc_interval,
+        chunks = length(chunk_paths),
+        max_chunk_columns = max(chunk_columns),
+        staged_spectrum_bytes = sum(file.info(chunk_paths)$size),
+        target_wavenumbers = length(target$wavenumber)
+      )
+      rm(chunk_paths, chunk_columns, first_columns)
+      gc(verbose = FALSE)
+    }
+    gc(verbose = FALSE)
+  }
+
+  out <- .lib_make_open_specy(
+    target$wavenumber, spectra, metadata,
+    .lib_common_record_attributes(records),
+    copy_metadata = FALSE
+  ) |>
+    as_OpenSpecy()
+  attr(out, "source_hash_chunk_report") <- source_hash_chunking
+  attr(out, "source_merge_chunk_report") <- data.table::rbindlist(
+    merge_report, fill = TRUE
+  )
+  attr(out, "source_prefilter_applied") <- isTRUE(source_prefilter)
+  attr(out, "source_prefilter_report") <- source_prefilter_report
+  attr(out, "source_global_filter_report") <- global_filter_report
+  attr(out, "source_quarantine_parts") <- source_quarantine_parts
+  attr(out, "source_correlation_dedupe_report") <-
+    source_correlation_report
+  attr(out, "metadata_compaction_report") <- metadata_compaction_report
+  out
+}
+
 .lib_source_record <- function(source, index, id_col = NULL,
-                               hash_scale = 100, hash_algo = "md5") {
+                               hash_scale = 100, hash_algo = "md5",
+                               report = NULL, copy_metadata = TRUE) {
   if (!is_OpenSpecy(source)) {
     stop("Source ", index, " must be an OpenSpecy object", call. = FALSE)
   }
@@ -1735,19 +2886,26 @@ predict_class_reference <- function(metadata, regex_reference,
     spectra <- spectra[ord, , drop = FALSE]
   }
 
-  metadata <- data.table::as.data.table(data.table::copy(source$metadata))
+  metadata <- data.table::as.data.table(if (isTRUE(copy_metadata)) {
+    data.table::copy(source$metadata)
+  } else {
+    source$metadata
+  })
   if (nrow(metadata) != ncol(spectra)) {
     stop("Source ", index, " metadata rows must match spectra columns",
          call. = FALSE)
   }
 
+  source_ids <- NULL
   if (!is.null(id_col)) {
     source_ids <- .lib_source_hash_ids(
       wavenumber,
       spectra,
       metadata,
       scale = hash_scale,
-      algo = hash_algo
+      algo = hash_algo,
+      report = report,
+      source_index = index
     )
     metadata[[id_col]] <- source_ids$current
     metadata[[paste0(id_col, "_old")]] <- source_ids$old
@@ -1773,23 +2931,49 @@ predict_class_reference <- function(metadata, regex_reference,
     spectra = spectra,
     metadata = metadata,
     n = ncol(spectra),
+    hash_report = if (is.null(source_ids)) NULL else c(
+      list(source_index = as.integer(index)), source_ids$chunk_report
+    ),
     intensity_attr = if (length(object_unit) == 1L) object_unit else NA_character_,
     attrs = attrs
   )
 }
 
 .lib_source_hash_ids <- function(wavenumber, spectra, metadata, scale = 100,
-                                 algo = "md5") {
-  ignored_info <- .spectra_ignore_info(spectra, lead_tail_only = TRUE,
-                                       ig = c(NA))
-  if (any(!ignored_info$has_valid)) {
-    stop("All intensity values are NA, cannot remove or ignore with manage na.",
-         call. = FALSE)
+                                 algo = "md5", report = NULL,
+                                 source_index = NA_integer_) {
+  chunk_size <- getOption("OpenSpecy.source_hash_chunk_size", 20000L)
+  chunk_size <- suppressWarnings(as.integer(chunk_size))
+  if (length(chunk_size) != 1L || is.na(chunk_size) || chunk_size < 1L) {
+    stop("Option 'OpenSpecy.source_hash_chunk_size' must be one positive ",
+         "integer", call. = FALSE)
   }
-  keep <- rowSums(ignored_info$ignored) == 0L
-  if (!any(keep)) {
+  column_blocks <- split(
+    seq_len(ncol(spectra)),
+    ceiling(seq_len(ncol(spectra)) / chunk_size)
+  )
+  first_valid <- rep(1L, ncol(spectra))
+  last_valid <- rep(nrow(spectra), ncol(spectra))
+  if (anyNA(spectra)) {
+    for (columns in column_blocks) {
+      block_spectra <- spectra[, columns, drop = FALSE]
+      ignored_info <- .spectra_ignore_info(
+        block_spectra, lead_tail_only = TRUE, ig = c(NA)
+      )
+      if (any(!ignored_info$has_valid)) {
+        stop("All intensity values are NA, cannot remove or ignore with manage na.",
+             call. = FALSE)
+      }
+      first_valid[columns] <- ignored_info$first
+      last_valid[columns] <- ignored_info$last
+      rm(block_spectra, ignored_info)
+    }
+  }
+  common_first <- max(first_valid)
+  common_last <- min(last_valid)
+  if (common_first > common_last) {
     ids <- lapply(seq_len(ncol(spectra)), function(i) {
-      valid <- !ignored_info$ignored[, i]
+      valid <- seq.int(first_valid[[i]], last_valid[[i]])
       current <- .lib_hash_processed_matrix(
         wavenumber[valid], spectra[valid, i, drop = FALSE],
         range = NULL, res = 8, scale = scale, algo = algo
@@ -1803,32 +2987,70 @@ predict_class_reference <- function(metadata, regex_reference,
     })
     return(list(
       current = vapply(ids, `[[`, character(1), "current"),
-      old = vapply(ids, `[[`, character(1), "old")
+      old = vapply(ids, `[[`, character(1), "old"),
+      chunk_report = list(
+        spectra = ncol(spectra), chunk_size = 1L,
+        chunks = ncol(spectra), max_chunk_columns = 1L,
+        common_finite_rows = 0L
+      )
     ))
   }
-  wavenumber <- wavenumber[keep]
-  spectra <- spectra[keep, , drop = FALSE]
+  keep <- seq.int(common_first, common_last)
+  common_wavenumber <- wavenumber[keep]
+  current <- rep(NA_character_, ncol(spectra))
+  old <- rep(NA_character_, ncol(spectra))
+  if (length(column_blocks) > 1L && is.function(report)) {
+    report(sprintf(
+      "hashing source %s in %d bounded column chunks (maximum=%d)",
+      ifelse(is.na(source_index), "?", source_index),
+      length(column_blocks), chunk_size
+    ))
+  }
+  progress_points <- unique(pmax(
+    1L, round(seq(1, length(column_blocks), length.out = 10L))
+  ))
+  for (block_index in seq_along(column_blocks)) {
+    columns <- column_blocks[[block_index]]
+    block_spectra <- spectra[keep, columns, drop = FALSE]
+    current[columns] <- .lib_hash_processed_matrix(
+      common_wavenumber,
+      block_spectra,
+      range = NULL,
+      res = 8,
+      scale = scale,
+      algo = algo
+    )
+    old[columns] <- .lib_hash_processed_matrix(
+      common_wavenumber,
+      block_spectra,
+      range = c(100, 4000),
+      res = 8,
+      scale = scale,
+      algo = algo,
+      min_rows = 3L,
+      short_value = "new format"
+    )
+    rm(block_spectra)
+    if (length(column_blocks) > 1L && is.function(report) &&
+        block_index %in% progress_points) {
+      report(sprintf(
+        "hashing source %s chunk %d/%d",
+        ifelse(is.na(source_index), "?", source_index),
+        block_index, length(column_blocks)
+      ))
+    }
+    if (block_index %% 5L == 0L) gc(verbose = FALSE)
+  }
 
-  current <- .lib_hash_processed_matrix(
-    wavenumber,
-    spectra,
-    range = NULL,
-    res = 8,
-    scale = scale,
-    algo = algo
+  list(
+    current = current, old = old,
+    chunk_report = list(
+      spectra = ncol(spectra), chunk_size = chunk_size,
+      chunks = length(column_blocks),
+      max_chunk_columns = max(lengths(column_blocks)),
+      common_finite_rows = length(keep)
+    )
   )
-  old <- .lib_hash_processed_matrix(
-    wavenumber,
-    spectra,
-    range = c(100, 4000),
-    res = 8,
-    scale = scale,
-    algo = algo,
-    min_rows = 3L,
-    short_value = "new format"
-  )
-
-  list(current = current, old = old)
 }
 
 .lib_hash_processed_matrix <- function(wavenumber, spectra, range = NULL,
@@ -1919,8 +3141,13 @@ predict_class_reference <- function(metadata, regex_reference,
   out
 }
 
-.lib_make_open_specy <- function(wavenumber, spectra, metadata, attributes) {
-  metadata <- data.table::as.data.table(data.table::copy(metadata))
+.lib_make_open_specy <- function(wavenumber, spectra, metadata, attributes,
+                                 copy_metadata = TRUE) {
+  metadata <- data.table::as.data.table(if (isTRUE(copy_metadata)) {
+    data.table::copy(metadata)
+  } else {
+    metadata
+  })
   metadata$col_id <- colnames(spectra)
   structure(
     list(wavenumber = wavenumber, spectra = spectra, metadata = metadata),
@@ -2050,8 +3277,8 @@ predict_class_reference <- function(metadata, regex_reference,
     as_OpenSpecy()
 }
 
-.lib_convert_records_intensity <- function(records, metadata,
-                                           source_label = "source") {
+.lib_record_intensity_plan <- function(records, metadata,
+                                       source_label = "source") {
   attr_units <- unlist(lapply(records, function(record) {
     rep(record$intensity_attr, record$n)
   }), use.names = FALSE)
@@ -2070,13 +3297,8 @@ predict_class_reference <- function(metadata, regex_reference,
   }
   canonical <- .lib_canonical_intensity_unit(declared)
   starts <- cumsum(c(1L, head(vapply(records, `[[`, integer(1), "n"), -1L)))
-
   for (i in seq_along(records)) {
     cols <- starts[[i]] + seq_len(records[[i]]$n) - 1L
-    records[[i]]$spectra <- .lib_convert_spectra_matrix(
-      records[[i]]$spectra,
-      canonical[cols]
-    )
     resolved_i <- !is.na(canonical[cols])
     if (all(resolved_i)) {
       records[[i]]$attrs$intensity_unit <- "absorbance"
@@ -2092,7 +3314,23 @@ predict_class_reference <- function(metadata, regex_reference,
   }
 
   .lib_warn_unknown_intensity(declared, resolved, source_label)
-  list(records = records, metadata = metadata)
+  list(records = records, metadata = metadata, canonical = canonical)
+}
+
+.lib_convert_records_intensity <- function(records, metadata,
+                                           source_label = "source") {
+  plan <- .lib_record_intensity_plan(records, metadata, source_label)
+  starts <- cumsum(c(
+    1L, head(vapply(plan$records, `[[`, integer(1), "n"), -1L)
+  ))
+  for (i in seq_along(plan$records)) {
+    cols <- starts[[i]] + seq_len(plan$records[[i]]$n) - 1L
+    plan$records[[i]]$spectra <- .lib_convert_spectra_matrix(
+      plan$records[[i]]$spectra,
+      plan$canonical[cols]
+    )
+  }
+  list(records = plan$records, metadata = plan$metadata)
 }
 
 .lib_convert_spectra_matrix <- function(spectra, canonical) {
@@ -2434,7 +3672,7 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
   ), fill = TRUE)
 }
 
-.lib_assign_library_name <- function(metadata) {
+.lib_library_name_values <- function(metadata) {
   metadata <- data.table::as.data.table(metadata)
   value <- function(column) {
     if (column %in% names(metadata)) {
@@ -2449,6 +3687,12 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
   organization[blank] <- user_name[blank]
   blank <- is.na(organization) | !nzchar(organization)
   organization[blank] <- NA_character_
+  organization
+}
+
+.lib_assign_library_name <- function(metadata) {
+  metadata <- data.table::as.data.table(metadata)
+  organization <- .lib_library_name_values(metadata)
   data.table::set(metadata, j = "library_name", value = organization)
   metadata
 }
@@ -2457,8 +3701,7 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
   rows <- list()
   collect <- function(value, artifact) {
     if (is_OpenSpecy(value)) {
-      metadata <- .lib_assign_library_name(data.table::copy(value$metadata))
-      names <- as.character(metadata$library_name)
+      names <- .lib_library_name_values(value$metadata)
       names[is.na(names) | !nzchar(trimws(names))] <- "(missing)"
       rows[[length(rows) + 1L]] <<- data.table::data.table(
         stage = stage, artifact = artifact, library_name = names
@@ -2565,22 +3808,118 @@ make_lib_lookup_template <- function(x, columns, add = NULL, path = NULL) {
   template
 }
 
-#' @rdname build_lib
-#' @export
-join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
-                              return = c("object", "table", "report"),
-                              suffixes = c(".x", ".y")) {
-  if (inherits(x, "FileSpecs"))
-    .filespec_stop_unsupported("join_lib_metadata()")
-  return <- match.arg(return)
-  is_os <- is_OpenSpecy(x)
-  is_specs <- is_Specs(x)
-  if (!(is_os || is_specs)) {
-    stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
+.lib_join_problem_report <- function(values, include, problem, column,
+                                     value_limit = Inf, chunk_size = 100000L) {
+  empty <- data.table::data.table(
+    problem = character(), column = character(), value = character(),
+    n = integer()
+  )
+  if (!length(values) || !any(include & !is.na(values))) {
+    return(list(data = empty, reported_values = 0L, collapsed_rows = 0L))
   }
-  metadata <- data.table::as.data.table(data.table::copy(x$metadata))
-  lookup <- .lib_read_lookup(lookup)
+  if (is.infinite(value_limit)) {
+    out <- data.table::data.table(value = values[include & !is.na(values)])[
+      , .(n = .N), by = "value"][
+        , `:=`(problem = problem, column = column)][
+          , .(problem, column, value, n)]
+    return(list(
+      data = out, reported_values = as.integer(nrow(out)),
+      collapsed_rows = 0L
+    ))
+  }
 
+  value_limit <- as.integer(value_limit)
+  starts <- seq.int(1L, length(values), by = chunk_size)
+  sample_values <- character()
+  sample_counts <- integer()
+  collapsed_rows <- 0
+  for (start in starts) {
+    block <- seq.int(start, min(length(values), start + chunk_size - 1L))
+    keep <- include[block] & !is.na(values[block])
+    if (!any(keep)) next
+    block_values <- values[block][keep]
+    positions <- match(block_values, sample_values)
+    matched <- !is.na(positions)
+    if (any(matched)) {
+      sample_counts <- sample_counts + tabulate(
+        positions[matched], nbins = length(sample_values)
+      )
+    }
+    unseen <- block_values[!matched]
+    room <- value_limit - length(sample_values)
+    if (length(unseen) && room > 0L) {
+      added <- head(unique(unseen), room)
+      added_positions <- match(unseen, added)
+      added_counts <- tabulate(
+        added_positions[!is.na(added_positions)], nbins = length(added)
+      )
+      sample_values <- c(sample_values, added)
+      sample_counts <- c(sample_counts, added_counts)
+      collapsed_rows <- collapsed_rows + sum(is.na(added_positions))
+    } else {
+      collapsed_rows <- collapsed_rows + length(unseen)
+    }
+  }
+  out <- data.table::data.table(
+    problem = rep(problem, length(sample_values)),
+    column = rep(column, length(sample_values)),
+    value = sample_values,
+    n = as.integer(sample_counts)
+  )
+  if (collapsed_rows > 0) {
+    out <- data.table::rbindlist(list(
+      out,
+      data.table::data.table(
+        problem = problem, column = column,
+        value = "<additional values collapsed>",
+        n = as.integer(collapsed_rows)
+      )
+    ))
+  }
+  list(
+    data = out, reported_values = as.integer(length(sample_values)),
+    collapsed_rows = as.integer(collapsed_rows)
+  )
+}
+
+.lib_join_metadata_table <- function(
+    metadata, lookup, by, require_complete = FALSE,
+    suffixes = c(".x", ".y"), copy_metadata = TRUE,
+    chunk_size = .lib_metadata_join_chunk_size(),
+    report_value_limit = Inf, coalesce_existing = FALSE,
+    lookup_precedence = TRUE) {
+  if (!is.logical(copy_metadata) || length(copy_metadata) != 1L ||
+      is.na(copy_metadata)) {
+    stop("'copy_metadata' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!is.character(suffixes) || length(suffixes) != 2L ||
+      anyNA(suffixes)) {
+    stop("'suffixes' must contain two non-missing character values",
+         call. = FALSE)
+  }
+  chunk_size <- suppressWarnings(as.integer(chunk_size))
+  if (length(chunk_size) != 1L || is.na(chunk_size) || chunk_size < 1L) {
+    stop("'chunk_size' must be one positive integer", call. = FALSE)
+  }
+  if (!(is.infinite(report_value_limit) && length(report_value_limit) == 1L) &&
+      (length(report_value_limit) != 1L || is.na(report_value_limit) ||
+       report_value_limit < 1 || report_value_limit != as.integer(report_value_limit))) {
+    stop("'report_value_limit' must be Inf or one positive integer",
+         call. = FALSE)
+  }
+  if (!is.logical(coalesce_existing) || length(coalesce_existing) != 1L ||
+      is.na(coalesce_existing) ||
+      !is.logical(lookup_precedence) || length(lookup_precedence) != 1L ||
+      is.na(lookup_precedence)) {
+    stop("'coalesce_existing' and 'lookup_precedence' must be TRUE or FALSE",
+         call. = FALSE)
+  }
+  metadata <- data.table::as.data.table(if (isTRUE(copy_metadata)) {
+    data.table::copy(metadata)
+  } else {
+    metadata
+  })
+  lookup <- .lib_read_lookup(lookup)
   keys <- if (is.null(names(by)) || all(names(by) == "")) {
     list(x = unname(by), y = unname(by))
   } else {
@@ -2620,68 +3959,146 @@ join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
   }
 
   missing_key <- is.na(metadata_key) | !metadata_key %in% lookup_key
-  unmatched <- data.table::data.table(value = metadata_key[missing_key])[
-    !is.na(value), .(n = .N), by = "value"][
-      , `:=`(problem = "unmatched_metadata_key",
-             column = paste(keys$x, collapse = "|"))][
-               , .(problem, column, value, n)]
-
-  missing_values <- data.table::data.table()
   matched <- match(metadata_key, lookup_key)
+  starts <- if (nrow(metadata)) {
+    seq.int(1L, nrow(metadata), by = chunk_size)
+  } else integer()
+  unmatched_result <- .lib_join_problem_report(
+    metadata_key, missing_key, problem = "unmatched_metadata_key",
+    column = paste(keys$x, collapse = "|"),
+    value_limit = report_value_limit, chunk_size = chunk_size
+  )
+  unmatched <- unmatched_result$data
+
+  missing_value_rows <- list()
+  missing_value_collapsed_rows <- 0L
   if (length(value_cols) > 0 && any(!is.na(matched))) {
-    for (col in value_cols) {
-      vals <- lookup[[col]][matched]
-      miss <- !is.na(matched) & is.na(vals)
-      if (any(miss)) {
-        missing_values <- rbind(missing_values, data.table::data.table(
-          problem = "missing_joined_value",
-          column = col,
-          value = metadata_key[miss],
-          n = 1L
-        )[, .(n = .N), by = .(problem, column, value)], fill = TRUE)
-      }
+    for (col_i in seq_along(value_cols)) {
+      col <- value_cols[[col_i]]
+      include <- !is.na(matched)
+      include[include] <- is.na(lookup[[col]][matched[include]])
+      missing_result <- .lib_join_problem_report(
+        metadata_key, include, problem = "missing_joined_value", column = col,
+        value_limit = report_value_limit, chunk_size = chunk_size
+      )
+      missing_value_rows[[col_i]] <- missing_result$data
+      missing_value_collapsed_rows <- missing_value_collapsed_rows +
+        missing_result$collapsed_rows
     }
   }
+  missing_values <- data.table::rbindlist(missing_value_rows, fill = TRUE)
   report <- data.table::rbindlist(list(unmatched, missing_values), fill = TRUE)
   .lib_alert_join_report(report, require_complete)
 
-  lookup_values <- lookup[, setdiff(names(lookup), keys$y), with = FALSE]
-  meta <- data.table::copy(metadata)
-  look <- data.table::copy(lookup_values)
-  meta$..join_key <- metadata_key
-  meta$..row_id <- seq_len(nrow(meta))
-  look$..join_key <- lookup_key
-  joined <- merge(meta, look, by = "..join_key", all.x = TRUE, sort = FALSE,
-                  suffixes = suffixes)
-  data.table::setorder(joined, "..row_id")
-  joined[, c("..join_key", "..row_id") := NULL]
-  attr(joined, "join_report") <- report
-
-  if (return == "report") return(list(data = joined, report = report))
-  if (return == "table") return(joined)
-
-  x$metadata <- joined
-  attr(x, "join_report") <- report
-  x
+  original_names <- names(metadata)
+  collision <- intersect(value_cols, original_names)
+  for (col in value_cols) {
+    output_name <- col
+    if (col %in% collision && !isTRUE(coalesce_existing)) {
+      left <- paste0(col, suffixes[[1L]])
+      right <- paste0(col, suffixes[[2L]])
+      occupied <- setdiff(names(metadata), col)
+      if (left %in% occupied || right %in% occupied || identical(left, right)) {
+        stop("'suffixes' create duplicate metadata column names for '", col,
+             "'", call. = FALSE)
+      }
+      data.table::setnames(metadata, col, left)
+      output_name <- right
+    }
+    template <- lookup[[col]]
+    joined_value <- template[rep.int(NA_integer_, nrow(metadata))]
+    for (start in starts) {
+      block <- seq.int(start, min(nrow(metadata), start + chunk_size - 1L))
+      positions <- matched[block]
+      found <- !is.na(positions)
+      if (any(found)) {
+        joined_value[block[found]] <- template[positions[found]]
+      }
+    }
+    if (col %in% collision && isTRUE(coalesce_existing)) {
+      result <- metadata[[col]]
+      use_replacement <- !is.na(joined_value)
+      if (is.character(joined_value)) {
+        use_replacement <- use_replacement & nzchar(joined_value)
+      }
+      if (!isTRUE(lookup_precedence)) {
+        keep_existing <- !is.na(result)
+        if (is.character(result)) {
+          keep_existing <- keep_existing & nzchar(result)
+        }
+        use_replacement <- use_replacement & !keep_existing
+      }
+      result[use_replacement] <- joined_value[use_replacement]
+      data.table::set(metadata, j = col, value = result)
+      next
+    }
+    data.table::set(metadata, j = output_name, value = joined_value)
+  }
+  telemetry <- data.table::data.table(
+    rows = as.integer(nrow(metadata)),
+    matched = as.integer(sum(!missing_key)),
+    unmatched = as.integer(sum(missing_key)),
+    value_columns = as.integer(length(value_cols)),
+    chunks = as.integer(length(starts)),
+    chunk_size = as.integer(chunk_size),
+    max_chunk_rows = as.integer(
+      if (length(starts)) min(chunk_size, nrow(metadata)) else 0L
+    ),
+    copied_metadata = isTRUE(copy_metadata),
+    coalesced_existing = isTRUE(coalesce_existing),
+    report_value_limit = as.numeric(report_value_limit),
+    reported_unmatched_values = unmatched_result$reported_values,
+    collapsed_unmatched_rows = unmatched_result$collapsed_rows,
+    collapsed_missing_value_rows = as.integer(missing_value_collapsed_rows)
+  )
+  attr(metadata, "join_report") <- report
+  attr(metadata, "metadata_join_chunk_report") <- telemetry
+  list(data = metadata, report = report, telemetry = telemetry)
 }
 
 #' @rdname build_lib
 #' @export
-join_material_hierarchy <- function(x, hierarchy, key_col = "material",
-                                    levels = c("material", "material_class",
-                                               "material_type"),
-                                    output_names = levels,
-                                    require_complete = FALSE,
-                                    return = c("object", "table", "report")) {
+join_lib_metadata <- function(x, lookup, by, require_complete = FALSE,
+                              return = c("object", "table", "report"),
+                              suffixes = c(".x", ".y")) {
   if (inherits(x, "FileSpecs"))
-    .filespec_stop_unsupported("join_material_hierarchy()")
+    .filespec_stop_unsupported("join_lib_metadata()")
   return <- match.arg(return)
   is_os <- is_OpenSpecy(x)
   is_specs <- is_Specs(x)
   if (!(is_os || is_specs)) {
     stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
   }
-  metadata <- data.table::as.data.table(data.table::copy(x$metadata))
+  joined <- .lib_join_metadata_table(
+    x$metadata, lookup, by = by, require_complete = require_complete,
+    suffixes = suffixes, copy_metadata = TRUE
+  )
+
+  if (return == "report") {
+    return(list(data = joined$data, report = joined$report))
+  }
+  if (return == "table") return(joined$data)
+
+  x$metadata <- joined$data
+  attr(x, "join_report") <- joined$report
+  attr(x, "metadata_join_chunk_report") <- joined$telemetry
+  x
+}
+
+.lib_join_material_hierarchy_table <- function(
+    metadata, hierarchy, key_col = "material",
+    levels = c("material", "material_class", "material_type"),
+    output_names = levels, require_complete = FALSE,
+    copy_metadata = TRUE) {
+  if (!is.logical(copy_metadata) || length(copy_metadata) != 1L ||
+      is.na(copy_metadata)) {
+    stop("'copy_metadata' must be TRUE or FALSE", call. = FALSE)
+  }
+  metadata <- data.table::as.data.table(if (isTRUE(copy_metadata)) {
+    data.table::copy(metadata)
+  } else {
+    metadata
+  })
   hierarchy <- .lib_read_lookup(hierarchy)
   if (!is.null(names(output_names)) && any(names(output_names) != "")) {
     missing <- setdiff(levels, names(output_names))
@@ -2701,7 +4118,9 @@ join_material_hierarchy <- function(x, hierarchy, key_col = "material",
   keys <- as.character(metadata[[key_col]])
 
   out <- metadata
-  for (col in output_names) out[[col]] <- NA_character_
+  for (col in output_names) {
+    data.table::set(out, j = col, value = rep(NA_character_, nrow(out)))
+  }
   matched_level <- rep(NA_character_, nrow(out))
 
   remaining <- seq_len(nrow(out))
@@ -2730,7 +4149,10 @@ join_material_hierarchy <- function(x, hierarchy, key_col = "material",
     rows <- remaining[found]
     if (length(rows) > 0) {
       for (j in i:length(levels)) {
-        out[[output_names[j]]][rows] <- h[[levels[j]]][idx[found]]
+        data.table::set(
+          out, i = rows, j = output_names[[j]],
+          value = h[[levels[[j]]]][idx[found]]
+        )
       }
       matched_level[rows] <- level
       remaining <- remaining[!found]
@@ -2750,12 +4172,38 @@ join_material_hierarchy <- function(x, hierarchy, key_col = "material",
   report <- data.table::rbindlist(list(unmatched, duplicates), fill = TRUE)
   .lib_alert_join_report(report, require_complete)
   attr(out, "join_report") <- report
+  list(data = out, report = report)
+}
 
-  if (return == "report") return(list(data = out, report = report))
-  if (return == "table") return(out)
+#' @rdname build_lib
+#' @export
+join_material_hierarchy <- function(x, hierarchy, key_col = "material",
+                                    levels = c("material", "material_class",
+                                               "material_type"),
+                                    output_names = levels,
+                                    require_complete = FALSE,
+                                    return = c("object", "table", "report")) {
+  if (inherits(x, "FileSpecs"))
+    .filespec_stop_unsupported("join_material_hierarchy()")
+  return <- match.arg(return)
+  is_os <- is_OpenSpecy(x)
+  is_specs <- is_Specs(x)
+  if (!(is_os || is_specs)) {
+    stop("'x' must be an OpenSpecy or Specs object", call. = FALSE)
+  }
+  joined <- .lib_join_material_hierarchy_table(
+    x$metadata, hierarchy, key_col = key_col, levels = levels,
+    output_names = output_names, require_complete = require_complete,
+    copy_metadata = TRUE
+  )
 
-  x$metadata <- out
-  attr(x, "join_report") <- report
+  if (return == "report") {
+    return(list(data = joined$data, report = joined$report))
+  }
+  if (return == "table") return(joined$data)
+
+  x$metadata <- joined$data
+  attr(x, "join_report") <- joined$report
   x
 }
 
@@ -3275,6 +4723,302 @@ prune_lib <- function(x, class_col = "material_class",
                 ifelse(type == "raman", "raman", type))
   out[is.na(type) | !nzchar(type)] <- NA_character_
   out
+}
+
+.lib_validate_dedupe_correlation_threshold <- function(x) {
+  if (is.null(x)) return(NULL)
+  if (!is.numeric(x) || length(x) != 1L || !is.finite(x) ||
+      x < 0 || x >= 1) {
+    stop("'dedupe_correlation_threshold' must be NULL or one finite value ",
+         "in [0, 1)", call. = FALSE)
+  }
+  as.numeric(x)
+}
+
+.lib_correlation_dedupe_removal_schema <- function() {
+  data.table::data.table(
+    source_row = integer(), spectrum_id = character(),
+    survivor_row = integer(), survivor_id = character(),
+    library_name = character(), spectrum_type = character(),
+    group_basis = character(), group_value = character(),
+    material = character(), spectrum_identity = character(),
+    correlation = numeric(), threshold = numeric(), operator = character()
+  )
+}
+
+.lib_correlation_dedupe_group_schema <- function() {
+  data.table::data.table(
+    library_name = character(), spectrum_type = character(),
+    group_basis = character(), group_value = character(),
+    spectra = integer(), retained = integer(), removed = integer(),
+    threshold = numeric(), operator = character(),
+    query_block_size = integer(), survivor_block_size = integer(),
+    max_correlation_cells = double(), max_correlation_bytes = double(),
+    full_matrix_cells = double(), full_matrix_bytes = double(),
+    elapsed_seconds = numeric()
+  )
+}
+
+.lib_correlation_dedupe_keys <- function(metadata) {
+  metadata <- data.table::as.data.table(metadata)
+  n <- nrow(metadata)
+  values <- function(column, default = NA_character_) {
+    if (column %in% names(metadata)) as.character(metadata[[column]]) else
+      rep(default, n)
+  }
+  clean <- function(x) {
+    x <- trimws(as.character(x))
+    x[is.na(x) | !nzchar(x)] <- NA_character_
+    x
+  }
+  library_name <- clean(values("library_name"))
+  spectrum_type <- tolower(clean(values("spectrum_type")))
+  material <- clean(values("material"))
+  spectrum_identity <- .lib_clean_spectrum_identity(
+    clean(values("spectrum_identity"))
+  )
+  identity_available <- !is.na(spectrum_identity)
+  group_basis <- ifelse(identity_available, "spectrum_identity", "material")
+  group_value <- ifelse(identity_available, spectrum_identity, material)
+  eligible <- !is.na(library_name) & !is.na(spectrum_type) &
+    !is.na(group_value)
+  data.table::data.table(
+    source_row = seq_len(n), library_name = library_name,
+    spectrum_type = spectrum_type, group_basis = group_basis,
+    group_value = group_value, material = material,
+    spectrum_identity = spectrum_identity, eligible = eligible
+  )
+}
+
+.lib_correlation_normalize_columns <- function(x, columns) {
+  part <- x$spectra[, columns, drop = FALSE]
+  part <- make_rel(part, na.rm = TRUE)
+  part <- .matrix_mean_replace(part)
+  .scale_correlation_spectra(part)
+}
+
+.lib_stream_correlation_dedupe <- function(
+    x, threshold, query_block_size = 64L, survivor_block_size = 512L,
+    progress = FALSE, filter_object = TRUE) {
+  if (!is_OpenSpecy(x)) {
+    stop("Correlation deduplication requires one OpenSpecy object",
+         call. = FALSE)
+  }
+  threshold <- .lib_validate_dedupe_correlation_threshold(threshold)
+  if (is.null(threshold)) {
+    stop("Streaming correlation deduplication requires a numeric threshold",
+         call. = FALSE)
+  }
+  query_block_size <- suppressWarnings(as.integer(query_block_size))
+  survivor_block_size <- suppressWarnings(as.integer(survivor_block_size))
+  if (length(query_block_size) != 1L || is.na(query_block_size) ||
+      query_block_size < 1L || length(survivor_block_size) != 1L ||
+      is.na(survivor_block_size) || survivor_block_size < 1L) {
+    stop("Correlation deduplication block sizes must be positive integers",
+         call. = FALSE)
+  }
+  if (!is.logical(filter_object) || length(filter_object) != 1L ||
+      is.na(filter_object)) {
+    stop("'filter_object' must be TRUE or FALSE", call. = FALSE)
+  }
+
+  ids <- as.character(.lib_ids(x, "sample_name"))
+  missing_ids <- is.na(ids) | !nzchar(trimws(ids))
+  ids[missing_ids] <- colnames(x$spectra)[missing_ids]
+  missing_ids <- is.na(ids) | !nzchar(trimws(ids))
+  ids[missing_ids] <- paste0("source_row_", which(missing_ids))
+  if (anyDuplicated(ids)) {
+    stop("Correlation deduplication requires unique spectrum identifiers",
+         call. = FALSE)
+  }
+
+  keys <- .lib_correlation_dedupe_keys(x$metadata)
+  group_columns <- c(
+    "library_name", "spectrum_type", "group_basis", "group_value"
+  )
+  eligible_rows <- which(keys$eligible)
+  duplicate_rows <- integer()
+  if (length(eligible_rows) > 1L) {
+    eligible_keys <- keys[eligible_rows, group_columns, with = FALSE]
+    repeated <- duplicated(eligible_keys) |
+      duplicated(eligible_keys, fromLast = TRUE)
+    duplicate_rows <- eligible_rows[repeated]
+  }
+  if (!length(duplicate_rows)) {
+    return(list(
+      object = x, remove = rep(FALSE, ncol(x$spectra)),
+      removals = .lib_correlation_dedupe_removal_schema(),
+      groups = .lib_correlation_dedupe_group_schema(),
+      settings = list(
+        threshold = threshold, operator = ">",
+        query_block_size = query_block_size,
+        survivor_block_size = survivor_block_size,
+        eligible_spectra = length(eligible_rows), compared_groups = 0L,
+        pair_comparisons = 0, largest_group_spectra = 0L,
+        largest_full_matrix_bytes = 0,
+        max_correlation_cells = 0, max_correlation_bytes = 0
+      )
+    ))
+  }
+
+  grouped <- keys[duplicate_rows][
+    , list(rows = list(sort(.SD[["source_row"]]))), by = group_columns
+  ]
+  data.table::setorderv(grouped, group_columns)
+  group_sizes <- lengths(grouped$rows)
+  pair_comparisons <- sum(
+    as.double(group_sizes) * (as.double(group_sizes) - 1) / 2
+  )
+  largest_group_spectra <- max(group_sizes)
+  largest_full_matrix_bytes <- 8 * as.double(largest_group_spectra)^2
+  if (isTRUE(progress)) {
+    message(sprintf(
+      paste0("correlation dedupe preflight: eligible=%d; groups=%d; ",
+             "largest=%d; pairs=%.0f; largest square avoided=%.2f MiB"),
+      length(eligible_rows), nrow(grouped), largest_group_spectra,
+      pair_comparisons, largest_full_matrix_bytes / 1024^2
+    ))
+  }
+  removal_parts <- vector("list", nrow(grouped))
+  group_reports <- vector("list", nrow(grouped))
+  for (group_index in seq_len(nrow(grouped))) {
+    started <- proc.time()[["elapsed"]]
+    rows <- grouped$rows[[group_index]]
+    survivors <- integer()
+    removed_rows <- integer()
+    survivor_rows <- integer()
+    removed_correlations <- numeric()
+    max_correlation_cells <- 0
+    query_blocks <- split(
+      rows, ceiling(seq_along(rows) / query_block_size)
+    )
+    for (query_rows in query_blocks) {
+      query_normalized <- .lib_correlation_normalize_columns(x, query_rows)
+      best_correlation <- rep(-Inf, length(query_rows))
+      best_survivor <- rep(NA_integer_, length(query_rows))
+      if (length(survivors)) {
+        survivor_blocks <- split(
+          survivors, ceiling(seq_along(survivors) / survivor_block_size)
+        )
+        for (survivor_rows_block in survivor_blocks) {
+          survivor_normalized <- .lib_correlation_normalize_columns(
+            x, survivor_rows_block
+          )
+          scores <- tcrossprod(query_normalized, survivor_normalized)
+          max_correlation_cells <- max(
+            max_correlation_cells, as.double(length(scores))
+          )
+          scores[!is.finite(scores)] <- -Inf
+          local_best <- max.col(scores, ties.method = "first")
+          local_correlation <- scores[cbind(seq_len(nrow(scores)), local_best)]
+          improve <- local_correlation > best_correlation
+          best_correlation[improve] <- local_correlation[improve]
+          best_survivor[improve] <- survivor_rows_block[local_best[improve]]
+          rm(survivor_normalized, scores)
+        }
+      }
+
+      within_scores <- tcrossprod(query_normalized)
+      max_correlation_cells <- max(
+        max_correlation_cells, as.double(length(within_scores))
+      )
+      retained_in_block <- integer()
+      for (local_row in seq_along(query_rows)) {
+        if (length(retained_in_block)) {
+          candidates <- within_scores[local_row, retained_in_block]
+          candidates[!is.finite(candidates)] <- -Inf
+          within_best <- which.max(candidates)
+          within_correlation <- candidates[[within_best]]
+          if (within_correlation > best_correlation[[local_row]]) {
+            best_correlation[[local_row]] <- within_correlation
+            best_survivor[[local_row]] <-
+              query_rows[retained_in_block[[within_best]]]
+          }
+        }
+        if (is.finite(best_correlation[[local_row]]) &&
+            best_correlation[[local_row]] > threshold) {
+          removed_rows <- c(removed_rows, query_rows[[local_row]])
+          survivor_rows <- c(survivor_rows, best_survivor[[local_row]])
+          removed_correlations <- c(
+            removed_correlations, best_correlation[[local_row]]
+          )
+        } else {
+          survivors <- c(survivors, query_rows[[local_row]])
+          retained_in_block <- c(retained_in_block, local_row)
+        }
+      }
+      rm(query_normalized, within_scores)
+    }
+
+    group_reports[[group_index]] <- data.table::data.table(
+      library_name = grouped$library_name[[group_index]],
+      spectrum_type = grouped$spectrum_type[[group_index]],
+      group_basis = grouped$group_basis[[group_index]],
+      group_value = grouped$group_value[[group_index]],
+      spectra = length(rows), retained = length(rows) - length(removed_rows),
+      removed = length(removed_rows), threshold = threshold, operator = ">",
+      query_block_size = query_block_size,
+      survivor_block_size = survivor_block_size,
+      max_correlation_cells = as.double(max_correlation_cells),
+      max_correlation_bytes = 8 * as.double(max_correlation_cells),
+      full_matrix_cells = as.double(length(rows))^2,
+      full_matrix_bytes = 8 * as.double(length(rows))^2,
+      elapsed_seconds = proc.time()[["elapsed"]] - started
+    )
+    if (length(removed_rows)) {
+      removal_keys <- keys[removed_rows]
+      removal_parts[[group_index]] <- data.table::data.table(
+        source_row = removed_rows, spectrum_id = ids[removed_rows],
+        survivor_row = survivor_rows, survivor_id = ids[survivor_rows],
+        library_name = removal_keys$library_name,
+        spectrum_type = removal_keys$spectrum_type,
+        group_basis = removal_keys$group_basis,
+        group_value = removal_keys$group_value,
+        material = removal_keys$material,
+        spectrum_identity = removal_keys$spectrum_identity,
+        correlation = removed_correlations, threshold = threshold,
+        operator = ">"
+      )
+    }
+    if (isTRUE(progress) &&
+        (group_index == 1L || group_index == nrow(grouped) ||
+         group_index %% 25L == 0L)) {
+      message(sprintf(
+        paste0("correlation dedupe: group %d/%d; spectra=%d; ",
+               "removed=%d; max block=%.2f MiB"),
+        group_index, nrow(grouped), length(rows), length(removed_rows),
+        8 * max_correlation_cells / 1024^2
+      ))
+    }
+  }
+
+  removals <- data.table::rbindlist(removal_parts, fill = TRUE)
+  if (!nrow(removals)) removals <- .lib_correlation_dedupe_removal_schema()
+  groups <- data.table::rbindlist(group_reports, fill = TRUE)
+  remove <- rep(FALSE, ncol(x$spectra))
+  remove[removals$source_row] <- TRUE
+  out <- if (isTRUE(filter_object) && any(remove)) {
+    filter_spec(x, !remove)
+  } else x
+  list(
+    object = out, remove = remove, removals = removals, groups = groups,
+    settings = list(
+      threshold = threshold, operator = ">",
+      query_block_size = query_block_size,
+      survivor_block_size = survivor_block_size,
+      eligible_spectra = length(eligible_rows),
+      compared_groups = nrow(groups),
+      pair_comparisons = pair_comparisons,
+      largest_group_spectra = largest_group_spectra,
+      largest_full_matrix_bytes = largest_full_matrix_bytes,
+      max_correlation_cells = if (nrow(groups)) {
+        max(groups$max_correlation_cells)
+      } else 0,
+      max_correlation_bytes = if (nrow(groups)) {
+        max(groups$max_correlation_bytes)
+      } else 0
+    )
+  )
 }
 
 .lib_prune_normalize <- function(spectra, wavenumber, exclude) {
@@ -7155,7 +8899,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_build_reference <- function(x, recipes, range, res, id_col, exclude_ids,
-                                 dedupe, metadata_lookups,
+                                 dedupe, dedupe_correlation_threshold,
+                                 metadata_lookups,
                                  material_hierarchy, metadata_name_lookup,
                                  clean_metadata_values, convert_intensity,
                                  restrict_range_args, signal_noise, assess,
@@ -7215,6 +8960,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     arguments = list(
       recipes = recipes, range = range, res = res, id_col = id_col,
       exclude_ids = exclude_ids, dedupe = dedupe,
+      dedupe_correlation_threshold = dedupe_correlation_threshold,
       clean_metadata_values = clean_metadata_values,
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
@@ -7232,6 +8978,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     arguments = list(
       recipes = recipes, range = range, res = res, id_col = id_col,
       exclude_ids = exclude_ids, dedupe = dedupe,
+      dedupe_correlation_threshold = dedupe_correlation_threshold,
       metadata_lookups = metadata_lookups,
       material_hierarchy = material_hierarchy,
       metadata_name_lookup = metadata_name_lookup,
@@ -7241,7 +8988,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       signal_noise = signal_noise, assess = assess, prune = prune,
       remove_other = remove_other, model_method = model_method
     ),
-    component_version = "reference-artifacts-v17-complete-quarantine"
+    component_version = "reference-artifacts-v24-bounded-join-reports"
   )
   # Keep expensive spectral preprocessing reusable when only downstream class,
   # pruning, assessment, or export code changes. Bump component_version only
@@ -7258,6 +9005,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     arguments = list(
       recipes = recipes, range = range, res = res, id_col = id_col,
       exclude_ids = exclude_ids, dedupe = dedupe,
+      dedupe_correlation_threshold = dedupe_correlation_threshold,
       metadata_lookups = metadata_lookups,
       material_hierarchy = material_hierarchy,
       metadata_name_lookup = metadata_name_lookup,
@@ -7266,7 +9014,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess
     ),
-    component_version = "core-libraries-v3-quarantine-provenance"
+    component_version = "core-libraries-v9-bounded-join-reports"
   )
   checkpoints <- .lib_checkpoint_manager(
     output_dir, signature = artifact_signature, reuse = reuse, report = report
@@ -7284,9 +9032,21 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     core <- checkpoints$get("core_libraries", key = core_signature)
     if (is.null(core)) {
       report("building raw, derivative, and nobaseline libraries")
+      recipe_option_restore <- NULL
+      if (.lib_recipe_record_staging_enabled()) {
+        recipe_stage_dir <- file.path(
+          output_dir, "checkpoints", "core_recipe_stage"
+        )
+        dir.create(recipe_stage_dir, recursive = TRUE, showWarnings = FALSE)
+        recipe_option_restore <- options(
+          OpenSpecy.recipe_staging_dir = recipe_stage_dir
+        )
+        on.exit(options(recipe_option_restore), add = TRUE)
+      }
       core <- .lib_build_core(
         x = x, recipes = recipes, range = range, res = res, id_col = id_col,
         exclude_ids = exclude_ids, dedupe = dedupe,
+        dedupe_correlation_threshold = dedupe_correlation_threshold,
         metadata_lookups = metadata_lookups,
         material_hierarchy = material_hierarchy,
         metadata_name_lookup = metadata_name_lookup,
@@ -7294,23 +9054,65 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         convert_intensity = convert_intensity,
         restrict_range_args = restrict_range_args,
         signal_noise = signal_noise, assess = assess, prune = NULL,
-        progress = progress, ...
+        progress = progress, .metadata_drop = tables$metadata_drop, ...
       )
+      if (!is.null(recipe_option_restore)) {
+        options(recipe_option_restore)
+        recipe_option_restore <- NULL
+      }
       checkpoints$put("core_libraries", core, key = core_signature)
-      for (name in names(core)) {
-        checkpoints$put(
-          paste0("core_library_", name), core[[name]], key = core_signature
-        )
+      if (.lib_is_staged_recipe_collection(core)) {
+        for (name in names(core$artifacts)) {
+          checkpoints$put(
+            paste0("core_library_", name), core$artifacts[[name]],
+            key = core_signature
+          )
+        }
+      } else {
+        for (name in names(core)) {
+          checkpoints$put(
+            paste0("core_library_", name), core[[name]], key = core_signature
+          )
+        }
       }
     }
     rm(core)
     gc(verbose = FALSE)
+    core_input <- readRDS(core_path)
+    if (.lib_staged_completion_required(core_input)) {
+      report(
+        "large staged collection detected; completing recipes out of core"
+      )
+      completed_staged <- checkpoints$get("completed_staged_libraries")
+      if (is.null(completed_staged)) {
+        completed_staged <- .lib_complete_staged_reference_build(
+          core_input, tables = tables, prune = prune,
+          remove_other = remove_other, progress = progress,
+          report = report,
+          staging_dir = file.path(
+            output_dir, "checkpoints", "completed_recipe_stage"
+          ),
+          build_signature = artifact_signature
+        )
+        checkpoints$put("completed_staged_libraries", completed_staged)
+      }
+      rm(core_input)
+      gc(verbose = FALSE, full = TRUE)
+      return(.lib_finish_staged_reference_build(
+        completed_staged, output_dir = output_dir,
+        artifact_signature = artifact_signature,
+        previous_library_dir = previous_library_dir,
+        model_method = model_method, progress = progress,
+        report = report, checkpoints = checkpoints
+      ))
+    }
     completed <- .lib_complete_reference_build(
-      readRDS(core_path), tables = tables, prune = prune,
+      core_input, tables = tables, prune = prune,
       remove_other = remove_other,
       progress = progress,
       report = report
     )
+    rm(core_input)
     libraries <- completed$libraries
     prebuilt_medoids <- completed$medoids
     local_assessments <- completed$assessments
@@ -7776,7 +9578,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   nested <- attr(assessments, "upstream_assessments", exact = TRUE)
   if (!is.null(nested)) return(nested)
   keep <- c(
-    "lookup_coverage", "identity_cleanup", "class_prediction",
+    "lookup_coverage", "identity_cleanup",
+    "source_correlation_dedupe_groups",
+    "source_correlation_dedupe_removals", "class_prediction",
     "class_coverage", "type_coverage", "material_form_enrichment",
     "material_form_matches", "material_form_clashes",
     "common_use_enrichment", "common_use_coverage",
@@ -8687,11 +10491,17 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   .lib_atomic_saveRDS(
     quarantine, file.path(review_dir, "quarantined_spectra.rds")
   )
-  metadata <- data.table::rbindlist(lapply(names(quarantine$spectra), function(name) {
-    out <- data.table::copy(quarantine$spectra[[name]]$metadata)
-    out[, quarantine_object := name]
-    out
-  }), fill = TRUE)
+  metadata <- if (identical(
+      quarantine$manifest$schema, "OpenSpecy_quarantined_spectra_v3"
+    )) {
+    data.table::copy(data.table::as.data.table(quarantine$removals))
+  } else {
+    data.table::rbindlist(lapply(names(quarantine$spectra), function(name) {
+      out <- data.table::copy(quarantine$spectra[[name]]$metadata)
+      out[, quarantine_object := name]
+      out
+    }), fill = TRUE)
+  }
   if (!nrow(metadata)) {
     metadata <- data.table::data.table(
       quarantine_object = character(), quarantine_key = character(),
@@ -8829,6 +10639,37 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_complete_reference_build <- function(libraries, tables, prune,
                                            remove_other, progress, report) {
+  recipe_staging <- NULL
+  if (.lib_is_staged_recipe_collection(libraries)) {
+    recipe_staging <- libraries$telemetry
+    report("materializing staged recipe artifacts for completion")
+    libraries <- .lib_materialize_staged_recipe_collection(libraries)
+  }
+  source_hash_chunking <- attr(
+    libraries[[1L]], "source_hash_chunk_report", exact = TRUE
+  )
+  if (is.null(source_hash_chunking)) source_hash_chunking <- data.table::data.table()
+  source_merge_chunking <- attr(
+    libraries[[1L]], "source_merge_chunk_report", exact = TRUE
+  )
+  if (is.null(source_merge_chunking)) {
+    source_merge_chunking <- data.table::data.table()
+  }
+  metadata_join_chunking <- attr(
+    libraries[[1L]], "metadata_join_chunk_report", exact = TRUE
+  )
+  if (is.null(metadata_join_chunking)) {
+    metadata_join_chunking <- data.table::data.table()
+  }
+  source_correlation_dedupe <- attr(
+    libraries[[1L]], "correlation_dedupe_report", exact = TRUE
+  )
+  if (is.null(source_correlation_dedupe)) {
+    source_correlation_dedupe <- list(
+      groups = .lib_correlation_dedupe_group_schema(),
+      removals = .lib_correlation_dedupe_removal_schema()
+    )
+  }
   quarantine_parts <- attr(libraries, "quarantine_parts", exact = TRUE)
   if (is.null(quarantine_parts)) quarantine_parts <- list()
   attr(libraries, "quarantine_parts") <- NULL
@@ -9285,6 +11126,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     libraries = libraries,
     medoids = prebuilt_medoids,
     assessments = list(
+      source_hash_chunking = source_hash_chunking,
+      source_merge_chunking = source_merge_chunking,
+      metadata_join_chunking = metadata_join_chunking,
+      recipe_staging = if (is.null(recipe_staging)) {
+        data.table::data.table()
+      } else {
+        recipe_staging
+      },
+      source_correlation_dedupe_groups = source_correlation_dedupe$groups,
+      source_correlation_dedupe_removals = source_correlation_dedupe$removals,
       class_prediction = data.table::rbindlist(prediction_rows, fill = TRUE),
       class_coverage = data.table::rbindlist(coverage_rows, fill = TRUE),
       type_coverage = type_coverage,
@@ -9780,7 +11631,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_quarantine_capture <- function(x, rows, artifact, stage, rule, reason,
-                                    spectrum_type = NULL, evidence = list()) {
+                                    spectrum_type = NULL, evidence = list(),
+                                    source_rows = NULL) {
   if (!is_OpenSpecy(x) || !length(rows)) return(NULL)
   positions <- if (is.logical(rows)) which(rows) else as.integer(rows)
   positions <- unique(positions[!is.na(positions) & positions >= 1L &
@@ -9805,6 +11657,16 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("Quarantine evidence is not aligned with removed spectra",
          call. = FALSE)
   }
+  source_rows <- if (is.null(source_rows)) {
+    seq_len(ncol(x$spectra))
+  } else {
+    as.integer(source_rows)
+  }
+  if (length(source_rows) != ncol(x$spectra) || anyNA(source_rows) ||
+      any(source_rows < 1L)) {
+    stop("'source_rows' must contain one positive row number per spectrum",
+         call. = FALSE)
+  }
   source <- rep(NA_character_, nrow(x$metadata))
   for (column in c("library_name", "organization", "user_name", "citation")) {
     if (!column %in% names(x$metadata)) next
@@ -9827,8 +11689,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   type <- tolower(as.character(type))
   type[is.na(type) | !nzchar(trimws(type))] <- "unknown"
   reason <- as.character(select_value(reason, "unspecified_removal"))
-  payload_ids <- make.unique(
-    paste0(ids[positions], "__q", occurrence[positions]), sep = "__"
+  payload_ids <- paste0(
+    ids[positions], "__q", source_rows[positions], "_", occurrence[positions]
   )
   colnames(out$spectra) <- payload_ids
   out$metadata$col_id <- payload_ids
@@ -9843,9 +11705,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     quarantine_reason = reason,
     quarantine_spectrum_type = type,
     quarantine_original_id = ids[positions],
-    quarantine_source_row = as.integer(positions),
+    quarantine_source_row = source_rows[positions],
     quarantine_key = paste(
-      artifact, stage, type, ids[positions], occurrence[positions], sep = "/"
+      artifact, stage, type, ids[positions], source_rows[positions], sep = "/"
     )
   )]
   if (length(evidence)) {
@@ -9860,7 +11722,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_quarantine_typed_capture <- function(x, rows, artifact, stage, rule,
-                                          reason, evidence = list()) {
+                                          reason, evidence = list(),
+                                          source_rows = NULL) {
   if (!is_OpenSpecy(x) || !length(rows)) return(list())
   positions <- if (is.logical(rows)) which(rows) else as.integer(rows)
   positions <- unique(positions[!is.na(positions) & positions >= 1L &
@@ -9876,7 +11739,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   out <- lapply(names(groups), function(type) {
     .lib_quarantine_capture(
       x, groups[[type]], artifact = artifact, stage = stage, rule = rule,
-      reason = reason, spectrum_type = type, evidence = evidence
+      reason = reason, spectrum_type = type, evidence = evidence,
+      source_rows = source_rows
     )
   })
   names(out) <- paste(artifact, stage, names(groups), sep = "/")
@@ -10061,6 +11925,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       quarantine_reason = character(), spectra = integer()
     )
   }
+  source_correlation_thresholds <- if (
+      nrow(removals) && "correlation_threshold" %in% names(removals)) {
+    as.numeric(removals$correlation_threshold)
+  } else numeric()
+  thresholds <- sort(unique(c(
+    as.numeric(thresholds),
+    source_correlation_thresholds[is.finite(source_correlation_thresholds)]
+  )))
   out <- structure(list(
     spectra = spectra,
     removals = removals,
@@ -10069,7 +11941,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     manifest = list(
       schema = "OpenSpecy_quarantined_spectra_v2",
       build_signature = as.character(build_signature),
-      thresholds = sort(unique(as.numeric(thresholds))),
+      thresholds = thresholds,
       source_hashes = as.character(build_signature),
       removed_spectra = as.integer(nrow(removals)),
       removal_reasons = reasons
@@ -10083,19 +11955,50 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   if (!inherits(x, "OpenSpecyQuarantine") ||
       !all(c("spectra", "removals", "conflicts", "source_failures",
              "manifest") %in% names(x))) {
-    stop("Quarantine must use the OpenSpecy quarantine v2 contract",
+    stop("Quarantine must use a supported OpenSpecy quarantine contract",
          call. = FALSE)
   }
-  valid <- vapply(x$spectra, function(object) {
-    is_OpenSpecy(object) && isTRUE(suppressWarnings(check_OpenSpecy(object)))
-  }, logical(1L))
-  if (length(valid) && any(!valid)) {
-    stop("Every quarantine payload must be a valid OpenSpecy object",
-         call. = FALSE)
+  schema <- as.character(x$manifest$schema)
+  if (!schema %in% c(
+      "OpenSpecy_quarantined_spectra_v2",
+      "OpenSpecy_quarantined_spectra_v3"
+    )) {
+    stop("Quarantine manifest uses an unsupported schema", call. = FALSE)
   }
-  total <- sum(vapply(x$spectra, function(object) {
-    ncol(object$spectra)
-  }, integer(1L)))
+  if (identical(schema, "OpenSpecy_quarantined_spectra_v2")) {
+    valid <- vapply(x$spectra, function(object) {
+      is_OpenSpecy(object) && isTRUE(suppressWarnings(check_OpenSpecy(object)))
+    }, logical(1L))
+    if (length(valid) && any(!valid)) {
+      stop("Every quarantine payload must be a valid OpenSpecy object",
+           call. = FALSE)
+    }
+    total <- sum(vapply(x$spectra, function(object) {
+      ncol(object$spectra)
+    }, integer(1L)))
+  } else {
+    required_shard <- c(
+      "schema", "path", "spectra", "bytes", "sha256",
+      "wavenumbers", "quarantine_object"
+    )
+    valid <- vapply(x$spectra, function(shard) {
+      is.list(shard) && all(required_shard %in% names(shard)) &&
+        identical(shard$schema, "OpenSpecy_quarantine_shard_v1") &&
+        is.character(shard$path) && length(shard$path) == 1L &&
+        file.exists(shard$path) && is.numeric(shard$spectra) &&
+        length(shard$spectra) == 1L && shard$spectra >= 1L &&
+        identical(as.numeric(file.info(shard$path)$size),
+                  as.numeric(shard$bytes)) &&
+        identical(.lib_sha256_file(shard$path), as.character(shard$sha256))
+    }, logical(1L))
+    if (length(valid) && any(!valid)) {
+      stop("Every quarantine shard must exist and match its frozen hash",
+           call. = FALSE)
+    }
+    total <- sum(vapply(x$spectra, function(shard) {
+      as.integer(shard$spectra)
+    }, integer(1L)))
+  }
   removals <- data.table::as.data.table(x$removals)
   required <- c(
     "quarantine_key", "quarantine_source", "quarantine_artifact",
@@ -10116,8 +12019,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       )
     }
   }
-  if (!identical(x$manifest$schema, "OpenSpecy_quarantined_spectra_v2") ||
-      !identical(as.integer(x$manifest$removed_spectra), as.integer(total))) {
+  if (!identical(as.integer(x$manifest$removed_spectra), as.integer(total))) {
     stop("Quarantine manifest does not balance with its payload", call. = FALSE)
   }
   invisible(TRUE)
@@ -11192,6 +13094,19 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_recover_library_assessments <- function(libraries, tables) {
   artifacts <- .lib_named_typed_objects(libraries)
+  source_correlation_dedupe <- NULL
+  for (object in artifacts) {
+    source_correlation_dedupe <- attr(
+      object, "correlation_dedupe_report", exact = TRUE
+    )
+    if (!is.null(source_correlation_dedupe)) break
+  }
+  if (is.null(source_correlation_dedupe)) {
+    source_correlation_dedupe <- list(
+      groups = .lib_correlation_dedupe_group_schema(),
+      removals = .lib_correlation_dedupe_removal_schema()
+    )
+  }
   collect_enrichment <- function(attribute, field) {
     data.table::rbindlist(lapply(names(artifacts), function(name) {
       report <- attr(artifacts[[name]], attribute, exact = TRUE)
@@ -11349,6 +13264,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     ]
   }
   list(
+    source_correlation_dedupe_groups = source_correlation_dedupe$groups,
+    source_correlation_dedupe_removals = source_correlation_dedupe$removals,
     class_prediction = prediction,
     class_coverage = coverage,
     type_coverage = type_coverage,
@@ -11570,6 +13487,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     build_summary = summary,
     lookup_coverage = lookup_coverage,
     identity_cleanup = identity_cleanup,
+    source_correlation_dedupe_groups =
+      .lib_correlation_dedupe_group_schema(),
+    source_correlation_dedupe_removals =
+      .lib_correlation_dedupe_removal_schema(),
     class_prediction = data.table::data.table(),
     class_coverage = data.table::data.table(),
     type_coverage = data.table::data.table(),
@@ -11846,7 +13767,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   )) return(assessments)
 
   cleanup_names <- c(
-    "lookup_coverage", "identity_cleanup", "class_prediction", "class_coverage",
+    "lookup_coverage", "identity_cleanup",
+    "source_correlation_dedupe_groups",
+    "source_correlation_dedupe_removals", "class_prediction", "class_coverage",
     "type_coverage", "material_form_enrichment", "material_form_matches",
     "material_form_clashes", "common_use_enrichment", "common_use_coverage",
     "other_review", "other_filter", "exclusions_deduplication",
@@ -11938,7 +13861,11 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       "model_class_weights", "medoid_model_summary", "medoid_model_support",
       "model_class_support", "warnings", "old_new_compatibility",
       "build_summary", "assess_spec_shifts", "output_manifest",
-      "pruning_conflicts", "correlation_closure"),
+      "pruning_conflicts", "correlation_closure",
+      "source_hash_chunking", "source_merge_chunking",
+      "metadata_join_chunking", "recipe_staging",
+      "source_correlation_dedupe_groups",
+      "source_correlation_dedupe_removals"),
     names(assessments)
   )
   evidence <- assessments[evidence_names]

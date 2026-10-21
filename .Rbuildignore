@@ -26,6 +26,7 @@
 ^\.claude$
 ^\.specify$
 ^specs$
+^rawrefdata$
 ^\.codex-visual-checks$
 ^\.codex-shiny-source$
 ^\.codex-shiny-smoke$

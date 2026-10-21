@@ -1,16 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.13.0 -> 3.14.0
+Version change: 3.21.0 -> 3.22.0
 Modified principles/sections:
-- Reference Library and External Workflow Verification: add local raw-dataset intake, pre-save scientific gates, transfer-safe boundaries, license provenance, large-source precleaning, and post-save class curation
-- Development Workflow and Quality Gates: route raw reference intake through its dedicated skill before rebuild/curation
-- Governance: block unvalidated or provenance-ambiguous cleaned reference inputs
+- Reference Library and External Workflow Verification: bound diagnostic cardinality and coalesce lookup collisions during the production join pass
+- Development Workflow and Quality Gates: require exact diagnostic totals, explicit collapsed counts, and representative-value limits after an enrichment-stage stop
+- Governance: block official releases whose high-cardinality diagnostics scale one row per unmatched production value without a measured exception
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md, AGENTS.md, shared speckit-plan/implement skills, openspecy-rebuild-reference-library, openspecy-curate-class-reference, and new openspecy-ingest-reference-datasets skill: synchronized
+- .specify/templates/plan-template.md, AGENTS.md, shared speckit-constitution/plan/implement skills, openspecy-rebuild-reference-library, and build-lib diagram: synchronized
 Follow-up TODOs:
 - None
 -->
@@ -447,6 +447,103 @@ whether the comparison is strict or inclusive. Every output-determining field
 MUST participate in the build or evidence signature and remain machine-readable
 in the saved release evidence.
 
+Source-local near-duplicate policy MUST separately state whether it is enabled,
+its cohort keys, correlation threshold and operator, stable-survivor rule, and
+position relative to exact content hashes. It MUST NOT pool distinct source
+identities or molecules merely because they share a broad canonical class.
+Production-scale correlation work MUST inventory cohort cardinalities first and
+use bounded query/candidate blocks unless a recorded preflight proves a dense
+allocation is both smaller and within the declared memory budget. The official
+driver MUST make its allocation mode explicit; telemetry MUST report the
+largest comparison block and the square allocation avoided or intentionally
+accepted. Chunking that only changes memory use MUST preserve deterministic
+decisions and exact threshold semantics.
+
+Production source hashing MUST also bound every column-scaled intermediate,
+including missing-value/envelope discovery and current plus legacy identifier
+transforms; labeling only the final transform as chunked is insufficient. The
+official contract MUST freeze the maximum source-hash block, and assessments
+MUST report source dimensions, block count, and largest block. A same-output
+hash-memory refactor MUST prove identical current and legacy identifiers across
+complete axes, staggered leading/trailing gaps, internal missing values, and a
+no-common-range fallback, then benchmark a representative large source before
+a fresh production target is launched.
+
+When explicit file-backed sources cannot all remain live within the frozen
+memory budget, the production merge MUST use path-backed two-pass staging. The
+first pass MUST validate and hash one source, apply frozen source-local exact
+and near-duplicate policy before global allocation, persist every removal to
+quarantine immediately, write only retained normalized metadata and bounded
+spectral blocks, then release its matrix. The second pass MUST verify that each
+source file is unchanged, preallocate the final retained target once, and merge
+only the staged blocks; it MUST NOT reread a whole large source. Known global
+exclusions and cross-source exact hashes MUST likewise be captured and removed
+from the staged descriptors before target allocation. The contract MUST freeze
+separate source-hash and merge-block maxima; assessments MUST report per-source
+input/removal/retained counts, chunks, largest blocks, and target-axis size.
+
+Fields already designated for final removal and globally empty fields SHOULD
+be dropped before the metadata union is allocated. Repeated character fields
+MAY use a lossless factor-like staging representation when protected identity,
+source, material, and spectral-type keys stay character. Such compaction MUST
+record columns and bytes saved, MUST be reversed before public in-memory or
+released `OpenSpecy` metadata is returned, and MUST NOT change column order,
+values, missingness, or classes in the public contract. The staged path MUST
+prove identical source order, identifiers, wavenumbers, spectra, public
+metadata, unit conversion, and relevant attributes against the retained-record
+path on same- and variable-axis fixtures, and keep the frozen retained
+implementation in a repeated benchmark. These are storage transformations, not
+scientific transformations.
+
+The staged merger MUST release the original path/source-list reference before
+allocating an exact-filter replacement matrix. When repeated bounded blocks can
+leave reclaimed vectors in the R heap long enough to cross the frozen system
+budget, the official contract MUST set an explicit garbage-collection cadence;
+the merger MUST collect at that bounded interval and at each source boundary,
+and telemetry MUST record it. A transient observed threshold crossing counts as
+a threshold crossing even when the next collection recovers memory: stop the
+candidate before promotion, verify the bounded-lifetime replacement, refreeze,
+and restart in a new output target.
+
+Once the retained spectral target is resident, metadata enrichment MUST be
+treated as a production-scale memory boundary rather than a lightweight
+epilogue. The official path MUST NOT copy the complete metadata table for each
+lookup, hierarchy update, retention count, or recipe serialization. Exact
+lookups MUST update only their output columns in bounded row blocks; hierarchy
+updates and retention summaries MUST operate by reference or on the minimum
+projected columns; and recipe serialization MUST temporarily swap only the
+recipe-specific metadata column before restoring it. Public helpers MAY retain
+copy-on-call semantics, but production telemetry MUST distinguish that path and
+record rows, chunks, the largest block, and whether a full metadata copy was
+made. The contract MUST freeze the maximum metadata-join block, and a restart
+after an enrichment-stage memory stop MUST prove identical values plus a lower
+representative allocation before launch.
+
+Diagnostic evidence for production-scale metadata keys MUST also be cardinality
+bounded. Exact aggregate row counts MUST be retained, along with a frozen limit
+on representative distinct values and an explicit count of rows collapsed
+beyond that limit; a diagnostic MUST NOT materialize one row per unmatched or
+missing high-cardinality value unless a measured preflight proves that exact
+detail fits the declared budget. When lookup columns collide with existing
+metadata, the production path SHOULD coalesce them during the bounded join pass
+rather than allocating suffixed full columns and copying them afterward.
+Telemetry MUST state the report limit, represented values, collapsed rows, and
+whether collisions were coalesced in pass. Public diagnostic helpers MAY keep
+their complete-detail behavior when that remains their documented contract.
+
+When a merged object, simultaneous recipe set, or quarantine payload would
+exceed the frozen memory budget, production completion MUST keep raw,
+derivative, and no-baseline spectra file-backed and process one recipe plus one
+bounded block at a time through quality gates and type partitioning. The
+contract MUST freeze the large-build trigger and block size. Medoid selection
+MUST group by canonical source plus reviewed class and materialize no more than
+one group at a time; final user-facing recipe RDS artifacts MUST be promoted one
+at a time and retain ordinary `OpenSpecy` objects. The file-backed path MUST
+prove the same small-fixture output and record its block/count/disk telemetry.
+It MUST NOT silently substitute broad-class correlation pruning for the frozen
+identity-local deduplication policy; global `prune_lib()` enablement or
+disablement is an explicit scientific setting.
+
 Official assessments MUST reconcile every input spectrum through named
 dispositions that are mutually exclusive within each declared balance boundary,
 including retained, reassigned, and removed. Reassignment MUST preserve its
@@ -466,6 +563,12 @@ spectra at each declared balance boundary, without double-counting a spectrum
 removed once. An empty quarantine is valid only when no successfully ingested
 spectrum was removed. The handoff MUST summarize removals by stage and reason
 and reconcile retained plus removed spectra to the corresponding stage input.
+When one quarantine object would exceed the memory budget, each removal block
+MUST be serialized as a valid `OpenSpecy` shard. A lightweight quarantine index
+MUST record every shard's path, count, size, and strong hash; validation and
+release promotion MUST prove that shard counts equal the unique removal ledger
+and that every promoted hash is unchanged. Sharding changes storage only and
+MUST NOT weaken spectrum values or removal provenance.
 
 At production launch, the source files, lookup data, package code, and settings
 consumed by the run MUST be treated as frozen. Parallel work MAY continue only
@@ -733,6 +836,9 @@ Before implementation is complete:
 - Production-scale stages MUST have a representative kernel benchmark, an
   expected time/memory envelope, progress at meaningful boundaries, and a safe
   checkpoint/abort decision when observed scaling materially misses the plan.
+  This includes enrichment after a large target has merged: lookup, hierarchy,
+  retention, diagnostic cardinality, and recipe-metadata work MUST expose
+  bounded/no-copy telemetry with exact aggregate diagnostic counts.
 - Bundled Shiny app changes MUST apply the
   `openspecy-develop-shiny-app` workflow: parse the canonical app sources, run
   focused noninteractive tests, verify the affected app-state matrix, create
@@ -822,6 +928,13 @@ updating that diagram in the same change.
 They MUST also block an official reference-library release whose quarantine
 omits any successfully ingested spectrum that was later removed, lacks its
 stage/rule/reason provenance, or does not balance against the removal ledger.
+They MUST also block an official reference-library release that enriches a
+resident production-scale target by repeatedly copying its full metadata table,
+or that lacks evidence for the frozen metadata block and no-copy production
+path.
+They MUST also block a production-scale metadata diagnostic that allocates one
+record per distinct unmatched value without a measured safe exception, or that
+caps detail without preserving exact aggregate and collapsed-row counts.
 They MUST also block admission of a cleaned reference dataset that lacks the
 type/unit/plot/serialization/`check_OpenSpecy()` gate, writes into an active
 transfer boundary, curates classes before a validated output exists, or records
@@ -829,4 +942,4 @@ a maintainer license assumption as though it were source-declared terms.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.14.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-19
+**Version**: 3.22.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-21

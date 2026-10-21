@@ -180,6 +180,25 @@ test_that("reference workflow uses manifest-selected cleaned outputs", {
   expect_match(code, "reference_collect_admitted_inputs", fixed = TRUE)
   expect_match(code, "reference_intake_validation.csv", fixed = TRUE)
   expect_match(code, "reference_intake_source_failures.csv", fixed = TRUE)
+  expect_match(code, "OPENSPECY_REFERENCE_INCLUDE_RAW_SOURCE", fixed = TRUE)
+  expect_match(code, "OPENSPECY_REFERENCE_MANIFEST_ONLY", fixed = TRUE)
+  expect_match(code, "exact admitted manifest only", fixed = TRUE)
+  expect_match(code, "unset = \"false\"", fixed = TRUE)
+  expect_match(code, "OpenSpecy.correlation_cache = \"bounded\"", fixed = TRUE)
+  expect_match(code, "OpenSpecy.source_hash_chunk_size = 20000L", fixed = TRUE)
+  expect_match(code, "OpenSpecy.source_record_staging = TRUE", fixed = TRUE)
+  expect_match(code, "OpenSpecy.source_prefilter_staging = TRUE", fixed = TRUE)
+  expect_match(code, "OpenSpecy.compact_staged_metadata = TRUE", fixed = TRUE)
+  expect_match(code, "OpenSpecy.source_merge_chunk_size = 5000L", fixed = TRUE)
+  expect_match(code, "OpenSpecy.source_merge_gc_interval = 10L", fixed = TRUE)
+  expect_match(code, "OpenSpecy.metadata_join_chunk_size = 100000L",
+               fixed = TRUE)
+  expect_match(code, "OpenSpecy.recipe_record_staging = TRUE", fixed = TRUE)
+  expect_match(code, "OpenSpecy.recipe_chunk_size = 5000L", fixed = TRUE)
+  expect_match(code, "OpenSpecy.staged_completion_threshold = 250000L",
+               fixed = TRUE)
+  expect_match(code, "prune = list()", fixed = TRUE)
+  expect_match(code, "dedupe_correlation_threshold = 0.99", fixed = TRUE)
   expect_equal(
     length(gregexpr(
       "reference_library_build <- build_lib\\(", code, perl = TRUE

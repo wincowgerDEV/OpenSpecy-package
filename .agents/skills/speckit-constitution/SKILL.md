@@ -28,6 +28,11 @@ workflow preferences that should survive individual features.
    existing skill or create one concise project skill for commands, failure
    triage, or interaction patterns. Reuse maintained scripts instead of copying
    their implementation into skills.
+   When a stopped production run exposes a repeatable resource boundary, name
+   the boundary and required evidence in the constitution, place the operational
+   checklist in the owning workflow skill, and keep run-specific measurements
+   and attempt history in the active plan. This avoids repeating incident detail
+   across durable guidance while still preventing the same failure mode.
 6. Use the system `skill-creator` workflow for new skills. If its Python
    initializer is unavailable after executable discovery, create only the
    required `SKILL.md` (add `agents/openai.yaml` for Codex display metadata
@@ -51,3 +56,6 @@ workflow preferences that should survive individual features.
 - Do not weaken generated-file, test, benchmark, OpenSpecy, or Shiny-boundary
   requirements unless the user explicitly asks to amend those principles.
 - Leave no unexplained `[PLACEHOLDER]` tokens in the constitution.
+- Synchronize only the affected planning/workflow surfaces, then use targeted
+  searches for the new obligation and old version string as a lightweight
+  completeness check before broader repository verification.

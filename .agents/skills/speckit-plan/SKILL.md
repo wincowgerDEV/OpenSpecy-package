@@ -70,7 +70,17 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
 - A short work checklist with exact paths.
 - Official reference rebuilds must declare the build contract: source/code/
   artifact hashes and freeze boundary, per-artifact pruning and reassignment,
-  exact cross-class threshold and operator plus enablement,
+  bounded source-hash block size and per-source telemetry,
+  path-backed merge staging enablement, maximum block, unchanged-file guard,
+  quarantine-first source prefilter/retained-only policy, metadata
+  drop/compaction plus public expansion check, output-equivalence benchmark,
+  early superseded-source release, merge GC cadence, and per-source telemetry,
+  bounded no-copy production metadata joins, in-place hierarchy/retention
+  work, join-copy telemetry, and recipe metadata-column swapping,
+  file-backed recipe trigger/block size and hashed quarantine-shard contract,
+  source-local dedupe cohort/threshold/operator/survivor order and placement
+  after exact hashes, correlation allocation mode and block budget,
+  global prune enablement and exact cross-class threshold/operator plus enablement,
   model/hierarchy/selection method, seed/holdout,
   output, signatures/reuse, spectrum dispositions, a quarantine containing
   every removed ingested spectrum plus stage/rule/reason provenance, and legacy

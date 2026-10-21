@@ -42,7 +42,7 @@ repo_root <- function() {
   root
 }
 
-runner_version <- "reference-release-postbuild-audit-v5"
+runner_version <- "reference-release-postbuild-audit-v6"
 fit_runtime_ceiling_seconds <- 3600
 prior_signature <-
   "bb8cd82c7ecbff60349f02cadbb37d86c2ecf8e46f0b4665fea21fb9d40bdb0a"
@@ -52,8 +52,9 @@ prior_manifest_sha256 <-
 new_rds_files <- c(
   "raw.rds", "derivative.rds", "nobaseline.rds",
   "medoid_derivative.rds", "medoid_nobaseline.rds",
-  "model_gated_hierarchical_logistic_regression_derivative.rds",
-  "model_gated_hierarchical_logistic_regression_nobaseline.rds",
+  "model_logistic_regression_derivative.rds",
+  "model_logistic_regression_nobaseline.rds",
+  "model_derivative.rds", "model_nobaseline.rds",
   "quarantined_spectra.rds", "assessments.rds",
   "reference_library_build.rds", "release_manifest.rds"
 )
@@ -242,6 +243,44 @@ read_assessment_parts <- function(path, checks) {
     paste0("evidence tables=", length(evidence))
   )
   list(review = loaded$value, evidence = evidence, upstream = upstream)
+}
+
+audit_metadata_join_chunking <- function(evidence, checks) {
+  telemetry <- as_dt(evidence$metadata_join_chunking)
+  required <- c(
+    "lookup", "rows", "matched", "unmatched", "value_columns", "chunks",
+    "chunk_size", "max_chunk_rows", "copied_metadata",
+    "coalesced_existing", "report_value_limit",
+    "reported_unmatched_values", "collapsed_unmatched_rows",
+    "collapsed_missing_value_rows"
+  )
+  shape_ok <- nrow(telemetry) > 0L && all(required %in% names(telemetry))
+  bounded <- shape_ok && all(
+    is.finite(telemetry$chunk_size) & telemetry$chunk_size > 0L &
+      telemetry$max_chunk_rows <= telemetry$chunk_size &
+      telemetry$rows == telemetry$matched + telemetry$unmatched &
+      telemetry$chunks == ceiling(telemetry$rows / telemetry$chunk_size) &
+      !telemetry$copied_metadata & telemetry$coalesced_existing &
+      telemetry$report_value_limit == 1000 &
+      telemetry$reported_unmatched_values <= telemetry$report_value_limit &
+      telemetry$collapsed_unmatched_rows >= 0L &
+      telemetry$collapsed_missing_value_rows >= 0L
+  )
+  checks$add(
+    "metadata_join_chunking_contract", bounded,
+    paste0(
+      "lookups=", nrow(telemetry),
+      "; largest block=",
+      if (shape_ok) max(telemetry$max_chunk_rows) else NA_integer_,
+      "; copied=",
+      if (shape_ok) any(telemetry$copied_metadata) else NA,
+      "; report limit=",
+      if (shape_ok) max(telemetry$report_value_limit) else NA_integer_,
+      "; collapsed unmatched rows=",
+      if (shape_ok) sum(telemetry$collapsed_unmatched_rows) else NA_integer_
+    )
+  )
+  telemetry
 }
 
 validate_release <- function(directory, label, expected_files, checks,
@@ -803,6 +842,17 @@ audit_generic_reassignment <- function(upstream, final_rows, checks) {
 audit_saved_closure <- function(evidence, upstream, checks) {
   closure <- as_dt(evidence$correlation_closure %||%
                      upstream$correlation_closure)
+  if (!nrow(closure)) {
+    checks$add(
+      "global_class_correlation_closure_disabled", TRUE,
+      paste0(
+        "rows=0; source-local identity correlation removals=",
+        nrow(as_dt(evidence$source_correlation_dedupe_removals %||%
+                     upstream$source_correlation_dedupe_removals))
+      )
+    )
+    return(closure)
+  }
   expected <- data.table::CJ(
     artifact = c("derivative", "nobaseline"),
     spectrum_type = c("ftir", "nir", "raman")
@@ -1110,6 +1160,154 @@ audit_gated_models <- function(new_dir, evidence, checks) {
   )
 }
 
+audit_flat_models <- function(new_dir, evidence, checks) {
+  recipes <- c("derivative", "nobaseline")
+  required_types <- c("raman", "ftir", "both")
+  rows <- list()
+  for (recipe in recipes) {
+    path <- file.path(
+      new_dir, paste0("model_logistic_regression_", recipe, ".rds")
+    )
+    collection <- readRDS(path)
+    checks$add(
+      paste0("flat_collection_types_", recipe),
+      all(required_types %in% names(collection)),
+      paste(names(collection), collapse = "|")
+    )
+    for (type in names(collection)) {
+      model <- collection[[type]]
+      required <- c(
+        "model", "model_type", "lambda_selected", "coefficients",
+        "class_names", "class_num", "observation_count", "fill",
+        "all_variables", "selection_rule", "selection_accuracy_tolerance",
+        "lambda_path_complete", "selected_lambda_converged",
+        "training_elapsed_seconds"
+      )
+      complete <- is.list(model) && all(required %in% names(model)) &&
+        is_reference_object(model$fill) &&
+        identical(model$model_type, "logistic_regression") &&
+        identical(model$selection_rule, "guardrailed") &&
+        isTRUE(all.equal(
+          as.numeric(model$selection_accuracy_tolerance), 0.01,
+          tolerance = 0
+        ))
+      runtime <- suppressWarnings(as.numeric(model$training_elapsed_seconds))
+      runtime_ok <- length(runtime) == 1L && is.finite(runtime) && runtime >= 0
+      rows[[length(rows) + 1L]] <- data.table::data.table(
+        algorithm = "logistic_regression", artifact = recipe, model = type,
+        complete = complete,
+        selected_lambda_converged = complete && model_converged(model),
+        training_elapsed_seconds = if (length(runtime)) runtime[[1L]] else NA_real_,
+        within_one_hour_target = runtime_ok &&
+          runtime < fit_runtime_ceiling_seconds,
+        classes = length(model$class_names %||% character()),
+        observations = as.integer(model$observation_count %||% NA_integer_)
+      )
+    }
+    rm(collection)
+    gc(verbose = FALSE)
+  }
+  audit <- data.table::rbindlist(rows, fill = TRUE)
+  expected_keys <- data.table::CJ(
+    artifact = recipes, model = required_types, unique = TRUE
+  )
+  required_rows <- audit[expected_keys, on = .(artifact, model)]
+  checks$add(
+    "all_required_flat_models_complete",
+    nrow(required_rows) == nrow(expected_keys) &&
+      all(required_rows$complete %in% TRUE),
+    paste0("valid=", sum(required_rows$complete %in% TRUE), "/",
+           nrow(expected_keys))
+  )
+  checks$add(
+    "all_flat_models_converged",
+    nrow(audit) > 0L && all(audit$selected_lambda_converged %in% TRUE),
+    paste0("converged=", sum(audit$selected_lambda_converged %in% TRUE),
+           "/", nrow(audit))
+  )
+  checks$add(
+    "flat_training_runtime_target",
+    nrow(audit) > 0L && all(audit$within_one_hour_target %in% TRUE),
+    paste0("maximum seconds=", suppressWarnings(max(
+      audit$training_elapsed_seconds, na.rm = TRUE
+    )), "; ceiling seconds=", fit_runtime_ceiling_seconds)
+  )
+
+  required_tables <- c(
+    "model_training_tests", "model_lambda_metrics", "model_class_metrics",
+    "model_fold_assignments"
+  )
+  coverage <- data.table::rbindlist(lapply(required_tables, function(table_name) {
+    table <- as_dt(evidence[[table_name]])
+    if (!all(c("algorithm", "artifact", "model") %in% names(table))) {
+      return(data.table::data.table(
+        artifact = expected_keys$artifact, model = expected_keys$model,
+        evidence_table = table_name, rows = 0L, required = TRUE
+      ))
+    }
+    counts <- table[algorithm == "logistic_regression", .(rows = .N),
+                    by = .(artifact, model)]
+    out <- counts[expected_keys, on = .(artifact, model)]
+    out[is.na(rows), rows := 0L]
+    out[, `:=`(evidence_table = table_name, required = TRUE)]
+    out
+  }), fill = TRUE)
+  checks$add(
+    "all_flat_model_evidence_present", all(coverage$rows > 0L),
+    paste0("missing required tables=", nrow(coverage[rows == 0L]))
+  )
+
+  training_tests <- as_dt(evidence$model_training_tests)
+  flat_tests <- if (all(c("algorithm", "artifact", "model") %in%
+                         names(training_tests))) {
+    training_tests[algorithm == "logistic_regression"]
+  } else data.table::data.table()
+  folds <- as_dt(evidence$model_fold_assignments)
+  flat_folds <- if (all(c("algorithm", "artifact", "model") %in% names(folds))) {
+    folds[algorithm == "logistic_regression"]
+  } else data.table::data.table()
+  group_leaks <- if (nrow(flat_folds) && all(c("group_id", "fold") %in%
+                                              names(flat_folds))) {
+    flat_folds[, .(folds = data.table::uniqueN(fold)),
+               by = .(artifact, model, group_id)][folds > 1L]
+  } else data.table::data.table(issue = "missing fold evidence")
+  source_leaks <- if (nrow(flat_folds) && all(c(
+      "source_component_id", "source_fold"
+    ) %in% names(flat_folds))) {
+    flat_folds[, .(source_folds = data.table::uniqueN(source_fold)),
+               by = .(artifact, model, source_component_id)][source_folds > 1L]
+  } else data.table::data.table(issue = "missing source-fold evidence")
+  keys <- c("algorithm", "artifact", "model", "spectrum_id")
+  missing_fold <- if (nrow(flat_tests) && nrow(flat_folds) &&
+                      all(keys %in% names(flat_tests)) &&
+                      all(keys %in% names(flat_folds))) {
+    unique(flat_tests[, keys, with = FALSE])[
+      !unique(flat_folds[, keys, with = FALSE]), on = keys
+    ]
+  } else data.table::data.table(issue = "missing tests or folds")
+  training_provenance_ok <- nrow(flat_tests) > 0L &&
+    all(c("provenance", "split") %in% names(flat_tests)) &&
+    all(flat_tests$provenance == "model_fit") &&
+    all(flat_tests$split == "training")
+  checks$add("flat_identity_fold_leakage", nrow(group_leaks) == 0L,
+             paste0("leaking groups=", nrow(group_leaks)))
+  checks$add("flat_source_fold_leakage", nrow(source_leaks) == 0L,
+             paste0("leaking source components=", nrow(source_leaks)))
+  checks$add("flat_training_evidence_provenance", training_provenance_ok,
+             paste0("rows=", nrow(flat_tests)))
+  checks$add("flat_training_rows_have_fold_evidence", nrow(missing_fold) == 0L,
+             paste0("missing fold rows=", nrow(missing_fold)))
+  leakage <- data.table::rbindlist(list(
+    group_leaks[, leakage_kind := "identity_group_multiple_folds"],
+    source_leaks[, leakage_kind := "source_component_multiple_source_folds"],
+    missing_fold[, leakage_kind := "oof_row_missing_fold"]
+  ), fill = TRUE)
+  list(
+    audit = audit, coverage = coverage, leakage = leakage,
+    gated_tests = flat_tests, gated_folds = flat_folds
+  )
+}
+
 untyped_model_label <- function(value) {
   sub("^[^_]+_", "", as.character(value))
 }
@@ -1134,7 +1332,7 @@ audit_vinyl_evidence <- function(gated, external_path, checks) {
       expected_material_group = material_group,
       predicted_material_group = if ("gate_2_name" %in% names(detail)) {
         as.character(gate_2_name)
-      } else NA_character_
+      } else rep(NA_character_, .N)
     )]
     detail[, `:=`(
       expected_material_group_taxonomy = untyped_model_label(
@@ -1146,12 +1344,10 @@ audit_vinyl_evidence <- function(gated, external_path, checks) {
       expected_class_taxonomy = untyped_model_label(expected_class),
       predicted_class_taxonomy = untyped_model_label(predicted_class)
     )]
-    detail <- detail[
-      tolower(trimws(expected_material_group_taxonomy)) ==
-        "vinyl alcohol-acetate-acetal" |
-        tolower(trimws(predicted_material_group_taxonomy)) ==
-        "vinyl alcohol-acetate-acetal"
-    ]
+    detail <- detail[tolower(trimws(expected_material_group_taxonomy)) ==
+                       "vinyl alcohol-acetate-acetal" |
+                       tolower(trimws(predicted_material_group_taxonomy)) ==
+                       "vinyl alcohol-acetate-acetal"]
   }
   summary <- if (nrow(detail)) {
     detail[, .(
@@ -1160,9 +1356,10 @@ audit_vinyl_evidence <- function(gated, external_path, checks) {
       identity_folds = data.table::uniqueN(fold),
       source_folds = data.table::uniqueN(source_fold),
       leaf_accuracy = mean(expected_class == predicted_class, na.rm = TRUE),
-      group_route_accuracy = mean(
-        predicted_material_group_taxonomy ==
-          expected_material_group_taxonomy,
+      group_route_accuracy = if (all(is.na(predicted_material_group_taxonomy))) {
+        NA_real_
+      } else mean(
+        predicted_material_group_taxonomy == expected_material_group_taxonomy,
         na.rm = TRUE
       )
     ), by = .(artifact, model)]
@@ -1175,7 +1372,7 @@ audit_vinyl_evidence <- function(gated, external_path, checks) {
     expected_class_taxonomy
   ]) else character()
   checks$add(
-    "vinyl_family_oof_evidence",
+    "vinyl_family_model_fit_evidence",
     nrow(detail) > 0L && all(vinyl_classes %in% observed_vinyl_classes),
     paste0(
       "rows=", nrow(detail), "; model/type groups=", nrow(summary),
@@ -1224,7 +1421,10 @@ audit_vinyl_evidence <- function(gated, external_path, checks) {
   } else {
     checks$add(
       "source_held_vinyl_external_evidence", TRUE,
-      "not supplied; identity-grouped OOF evidence with source-fold metadata retained",
+      paste0(
+        "not supplied; model-fit evidence and separate fold-assignment ",
+        "diagnostics retained without calling them source-held predictions"
+      ),
       severity = "info"
     )
   }
@@ -1300,20 +1500,48 @@ audit_aliases_and_prior_models <- function(new_dir, prior_dir, checks) {
 audit_special_artifacts <- function(new_dir, prior_dir, new_signature, checks) {
   new_quarantine <- readRDS(file.path(new_dir, "quarantined_spectra.rds"))
   prior_quarantine <- readRDS(file.path(prior_dir, "quarantined_spectra.rds"))
-  quarantine_total <- if (is.list(new_quarantine$spectra)) {
+  schema <- as.character(new_quarantine$manifest$schema)
+  embedded <- identical(schema, "OpenSpecy_quarantined_spectra_v2")
+  sharded <- identical(schema, "OpenSpecy_quarantined_spectra_v3")
+  shard_valid <- if (sharded) vapply(new_quarantine$spectra, function(shard) {
+    is.list(shard) && file.exists(shard$path) &&
+      identical(as.numeric(file.info(shard$path)$size),
+                as.numeric(shard$bytes)) &&
+      identical(sha256_file(shard$path), as.character(shard$sha256)) &&
+      is.numeric(shard$spectra) && length(shard$spectra) == 1L &&
+      shard$spectra >= 1L
+  }, logical(1L)) else logical()
+  quarantine_total <- if (embedded && is.list(new_quarantine$spectra)) {
     sum(vapply(new_quarantine$spectra, function(object) {
       ncol(object$spectra)
+    }, integer(1L)))
+  } else if (sharded && is.list(new_quarantine$spectra) &&
+             all(shard_valid)) {
+    sum(vapply(new_quarantine$spectra, function(shard) {
+      as.integer(shard$spectra)
     }, integer(1L)))
   } else {
     NA_integer_
   }
+  shard_balance <- if (sharded && nrow(new_quarantine$removals) &&
+      "quarantine_object" %in% names(new_quarantine$removals)) {
+    counts <- as_dt(new_quarantine$removals)[, .N, by = quarantine_object]
+    expected <- data.table::data.table(
+      quarantine_object = names(new_quarantine$spectra),
+      N = vapply(new_quarantine$spectra, function(shard) {
+        as.integer(shard$spectra)
+      }, integer(1L))
+    )
+    identical(
+      counts[order(quarantine_object)], expected[order(quarantine_object)]
+    )
+  } else embedded
   quarantine_ok <- inherits(new_quarantine, "OpenSpecyQuarantine") &&
     all(c("spectra", "removals", "conflicts", "source_failures",
           "manifest") %in% names(new_quarantine)) &&
-    identical(
-      new_quarantine$manifest$schema,
-      "OpenSpecy_quarantined_spectra_v2"
-    ) &&
+    (embedded || sharded) &&
+    (!sharded || (length(shard_valid) > 0L && all(shard_valid) &&
+                    shard_balance)) &&
     identical(new_quarantine$manifest$release_signature, new_signature) &&
     identical(as.integer(new_quarantine$manifest$removed_spectra),
               as.integer(quarantine_total)) &&
@@ -1328,11 +1556,14 @@ audit_special_artifacts <- function(new_dir, prior_dir, new_signature, checks) {
     }, logical(1L))) &&
     is.data.frame(new_quarantine$conflicts) &&
     is.data.frame(new_quarantine$source_failures) &&
-    all(vapply(new_quarantine$spectra, is_reference_object, logical(1L)))
+    (!embedded || all(vapply(
+      new_quarantine$spectra, is_reference_object, logical(1L)
+    )))
   checks$add(
     "quarantine_artifact_contract", quarantine_ok,
     paste0(
       "new partitions=", length(new_quarantine$spectra %||% list()),
+      "; schema=", schema,
       "; prior partitions=", length(prior_quarantine$spectra %||% list())
     )
   )
@@ -1455,13 +1686,12 @@ write_outputs <- function(cli, outputs, checks, new_state, prior_state) {
     "",
     "The CSV files beside this report contain both release inventories, direct",
     "15 typed-reference comparisons, taxonomy-route completeness, generic",
-    "reassignment trace, saved closure, all eight gated-model checks, fold",
+    "reassignment trace, frozen correlation policy, flat-model checks, fold",
     "leakage checks, vinyl-family evidence, and representative matches.",
     "",
     "The source-held vinyl CSV is optional external evidence. When it is not",
-    "supplied, the audit preserves the release's identity-grouped OOF rows with",
-    "their source and source-fold assignments without mislabelling them as a",
-    "separate source-held prediction run."
+    "supplied, the audit preserves model-fit rows and the separate fold-assignment",
+    "diagnostics without mislabelling them as a source-held prediction run."
   )
   writeLines(report, file.path(cli$output_dir, "audit_report.md"))
 
@@ -1530,16 +1760,19 @@ run_audit <- function(cli) {
   assessment <- read_assessment_parts(
     file.path(cli$new_release, "assessments.rds"), checks
   )
+  metadata_join <- audit_metadata_join_chunking(assessment$evidence, checks)
   generic <- audit_generic_reassignment(
     assessment$upstream, reference$final_rows, checks
   )
   closure <- audit_saved_closure(
     assessment$evidence, assessment$upstream, checks
   )
-  gated <- audit_gated_models(
+  fitted_models <- audit_flat_models(
     cli$new_release, assessment$evidence, checks
   )
-  vinyl <- audit_vinyl_evidence(gated, cli$vinyl_evidence, checks)
+  vinyl <- audit_vinyl_evidence(
+    fitted_models, cli$vinyl_evidence, checks
+  )
   legacy_models <- audit_aliases_and_prior_models(
     cli$new_release, cli$prior_release, checks
   )
@@ -1560,12 +1793,13 @@ run_audit <- function(cli) {
     material_group_conflicts = groups$conflicts,
     generic_reassignment_audit = generic$status,
     generic_reassignment_failures = generic$invalid,
+    metadata_join_chunking = metadata_join,
     saved_parent_medoid_closure = closure,
-    gated_model_audit = gated$audit,
-    gated_model_evidence_coverage = gated$coverage,
-    fold_leakage_audit = gated$leakage,
-    vinyl_family_oof_evidence = vinyl$detail,
-    vinyl_family_oof_summary = vinyl$summary,
+    flat_model_audit = fitted_models$audit,
+    flat_model_evidence_coverage = fitted_models$coverage,
+    fold_leakage_audit = fitted_models$leakage,
+    vinyl_family_model_fit_evidence = vinyl$detail,
+    vinyl_family_model_fit_summary = vinyl$summary,
     source_held_vinyl_external_evidence = vinyl$external,
     representative_matching = matching
   )

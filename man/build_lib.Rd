@@ -22,6 +22,7 @@ build_lib(
   id_col = "sample_name",
   exclude_ids = NULL,
   dedupe = TRUE,
+  dedupe_correlation_threshold = NULL,
   metadata_lookups = NULL,
   material_hierarchy = NULL,
   metadata_name_lookup = lib_metadata_name_lookup(),
@@ -155,8 +156,9 @@ The official workflow requires \code{x}; it does not guess source-library
 locations.
 Each RDS path may store either one \code{OpenSpecy} or a list of them; other
 paths are read with \code{\link{read_any}()}.
-Large same-axis source lists are prepared in bulk to avoid repeated legacy
-object coercion.
+Large same-axis in-memory source lists are prepared in bulk to avoid repeated
+legacy object coercion. The maintained file-backed production workflow uses
+path-backed two-pass staging so source matrices are not retained together.
 For \code{rebuild_lib_artifacts()}, a completed four-part build object, its
 RDS path, or a build/output directory containing completed \code{libraries}
 checkpoints.}
@@ -173,6 +175,22 @@ when \code{build_lib()} combines multiple sources.}
 
 \item{dedupe}{logical; whether to generate stable IDs and remove duplicated
 spectra in \code{build_lib()}.}
+
+\item{dedupe_correlation_threshold}{\code{NULL} to retain all nonidentical
+spectra after content-hash deduplication, or one finite value in
+\code{[0, 1)}. Supplying a value removes a spectrum only when its Pearson
+correlation is strictly greater than the threshold to an earlier
+deterministic survivor from the same \code{library_name}, spectral type,
+and cleaned \code{spectrum_identity}. Rows without that source identity use
+canonical material; rows without either identity are not correlation
+deduplicated. This avoids quadratic comparisons across scientifically
+distinct molecules that share only a broad material class. Comparisons are
+block-streamed and every removal is retained
+in quarantine with its survivor and correlation evidence. Pearson
+correlation is unitless: higher thresholds retain more spectra, lower
+thresholds remove more, and \code{NULL} is a no-op. Flat/nonfinite
+comparisons are retained. Values outside \code{[0, 1)} are rejected. This
+argument requires \code{dedupe = TRUE}.}
 
 \item{metadata_lookups}{a lookup table, csv path, or list of lookup tables and
 paths. A lookup may instead be supplied as \code{list(lookup = x, by = key)}
@@ -227,7 +245,9 @@ after processing and assessment. \code{NULL} preserves unpruned source-only
 outputs; the official end-to-end workflow interprets \code{NULL} as its
 derivative/no-baseline cross-class pruning default. Supply explicit recipe
 lists with \code{cross_class = FALSE} to retain ordinary pruning and generic
-reassignment without cross-class conflict removal or closure.}
+reassignment without cross-class conflict removal or closure. The maintained
+large reference build supplies \code{list()} to freeze global pruning off
+while retaining exact and source-local correlation deduplication.}
 
 \item{progress}{logical; whether \code{build_lib()} reports named processing
 stages and elapsed time, or \code{reduce_lib()} reports group sizes and
@@ -383,7 +403,21 @@ that neighbor has the same \code{class_col} value.}
 \value{
 Each library returned by \code{build_lib()} includes a
 \code{spectrum_identity_cleanup_report} attribute listing changed original
-and normalized identities with their counts.
+and normalized identities with their counts. It also includes a
+\code{correlation_dedupe_report} containing the source cohort summaries,
+deterministic survivor/removal evidence, threshold/operator, and largest
+comparison block; the official assessments retain these tables as hashed
+evidence. File-backed staged builds additionally include
+\code{source_merge_chunk_report} with per-source spectra, chunk counts,
+largest block, and target-axis size, plus
+\code{metadata_join_chunk_report} with row, match, chunk, and copy-mode
+evidence for each lookup. Once a staged recipe exceeds the
+maintained 250,000-spectrum threshold, completion, quality gates, type/range
+partitioning, medoid grouping, and release promotion remain file-backed.
+Only one bounded recipe block, one source/class medoid group, or one final
+ordinary RDS artifact is materialized at a time. Such builds return a
+lightweight \code{OpenSpecyFileBackedReferenceBuild} index instead of loading
+every final library into one R session.
 In composable mode, \code{build_lib()} returns a named list of
 \code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
 \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
@@ -413,10 +447,11 @@ release directories instead store global build and model diagnostics only in
 \code{assessments.rds}; library, medoid, and model files retain only runtime
 data, scientific attributes, and prediction state. The companion
 \code{reference_library_build.rds} is a lightweight release index. The
-companion \code{quarantined_spectra.rds} stores valid \code{OpenSpecy}
-objects by recipe/type/axis, a complete removal ledger, a long conflict
-table, source failures, and build provenance for every post-ingestion
-exclusion.
+companion \code{quarantined_spectra.rds} stores embedded valid
+\code{OpenSpecy} objects by recipe/type/axis for ordinary builds, or hashed
+valid-\code{OpenSpecy} shard descriptors for large builds. Both contracts
+include a complete removal ledger, a long conflict table, source failures,
+and build provenance for every post-ingestion exclusion.
 \code{join_lib_metadata()}, \code{join_material_hierarchy()},
 \code{dedupe_spec()}, \code{prune_lib()}, and \code{reduce_lib()} return an updated spectral
 object unless \code{return} requests a table, report, or ids. A
@@ -477,6 +512,27 @@ copy. Signal-to-noise is added by default, and optional
 spectrum.
 Progress messages report named stages and elapsed time by default so
 long-running builds remain observable.
+The maintained production driver enables path-backed two-pass source
+staging: the first pass validates, hashes, and source-locally correlation
+deduplicates one independent source while staging cleaned metadata plus
+bounded spectral blocks. Exact cross-source hashes and exclusions are then
+resolved from metadata before the retained target matrix is allocated. The
+second pass reads/interpolates one retained staged block at a time. Internal
+options \code{OpenSpecy.source_record_staging},
+\code{OpenSpecy.source_prefilter_staging},
+\code{OpenSpecy.compact_staged_metadata}, and
+\code{OpenSpecy.source_merge_chunk_size} control this same-value strategy;
+\code{OpenSpecy.source_merge_gc_interval} bounds released temporary merge
+blocks between explicit garbage collections. Metadata lookups update only
+their output columns by reference and use
+\code{OpenSpecy.metadata_join_chunk_size} (100,000 rows by default), avoiding
+full copies of the combined metadata while the retained spectra matrix is
+resident.
+Metadata columns already designated for final removal can be discarded
+before the combined allocation, while repeated strings use a reversible
+compact representation until file-backed completion. The workflow trades
+temporary disk use for bounded live matrices and reports source prefilter,
+compaction, staging, merge-chunk, and metadata-join telemetry.
 
 The official workflow requires explicit source paths and an output
 directory. When \code{workflow_data} is omitted, \code{build_lib()} looks
@@ -508,7 +564,15 @@ tails are trimmed and reassessed, failed corrections are removed, and
 spectra with running signal-to-noise below two are removed before pruning.
 Full artifacts are then partitioned into Raman (200--4000), FTIR
 (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-After pruning and class reassignment, the official workflow joins the
+The maintained large-library workflow does not run global class-based
+\code{prune_lib()} correlations: exact hashes and strict greater-than-0.99
+correlation deduplication within one independent source, spectral type, and
+cleaned source identity are its authoritative redundancy policy. This avoids
+allocating a global square correlation matrix and avoids comparing distinct
+molecules that merely share a broad material class. Global pruning remains
+available for smaller explicitly selected recipe artifacts through
+\code{prune}, and is a separate policy decision from source-local deduplication.
+After any requested pruning and class reassignment, the official workflow joins the
 complete \code{material_group_reference.csv} crosswalk so every final
 \code{material_class} has exactly one \code{material_type} and
 \code{material_group} route. It then derives \code{material_form} from the
@@ -547,12 +611,16 @@ queries, generic reassignment, and medoid checks index that matrix. After
 arbitrary-score consumers finish, a full-range view is losslessly compacted
 to its exact directed greater-than-threshold edges before a changed range is
 allocated; lower-threshold reuse is rejected. Bounded blocks remain the
-lower-memory fallback. Official builds repeat closure on the rounded typed and
-model-range views before deriving medoids. Every successfully ingested
-spectrum later excluded is retained as a valid \code{OpenSpecy} object in
-\code{quarantined_spectra.rds}, with a disposition ledger naming its source,
-artifact, stage, rule, reason, and available comparison evidence. Source
-records that cannot be ingested are reported separately from quarantine.
+lower-memory fallback. When global pruning is requested, builds repeat
+closure on the rounded typed and model-range views before deriving medoids.
+Every successfully ingested
+spectrum later excluded is retained in \code{quarantined_spectra.rds}, with a
+disposition ledger naming its source, artifact, stage, rule, reason, and
+available comparison evidence. Ordinary builds embed valid \code{OpenSpecy}
+payloads. Large builds write hashed valid-\code{OpenSpecy} shards as each
+bounded block is removed, then publish a v3 descriptor ledger whose payload
+count and hashes must balance. Source records that cannot be ingested are
+reported separately from quarantine.
 Pruning then
 reassigns generic classes by nearest same-technique correlation:
 \code{"other"} may use any established class,
