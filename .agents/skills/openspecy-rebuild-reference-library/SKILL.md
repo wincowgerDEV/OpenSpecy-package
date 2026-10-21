@@ -28,7 +28,8 @@ Before code changes or production launch, record:
   prefilter enablement, retained-only block policy, metadata drop/compaction
   policy and public expansion check, early path-reference release and explicit
   merge garbage-collection cadence, metadata-join block size and no-copy
-  production policy for lookups/hierarchy/retention, recipe metadata-column
+  production policy for lookups/hierarchy/retention, bounded diagnostic-value
+  limit with exact aggregate/collapsed counts and in-pass collision coalescing, recipe metadata-column
   swap policy, file-backed recipe trigger and
   block size, quarantine schema/shard root, and whether global class-based
   `prune_lib()` is enabled independently of source-local deduplication,
@@ -85,6 +86,11 @@ defaults, or an earlier run.
     and serialize recipe metadata by temporarily swapping only the recipe-specific
     column and restoring it. Record rows, chunks, largest block, and whether a
     metadata copy occurred; the production path must report no full copy.
+    Bound high-cardinality unmatched/missing-value reports to the frozen number
+    of representative values while preserving exact aggregate and collapsed-row
+    counts. Coalesce colliding columns in that same pass, and record both the
+    report limit and coalescing mode in telemetry. Do not treat a diagnostic as
+    cheap merely because it contains no spectral matrix.
     Expand staging-only metadata
    representations before any public object is returned. Prove same- and
    variable-axis results equal the retained-record path, exercise both ordinary

@@ -76,7 +76,9 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   drop/compaction plus public expansion check, output-equivalence benchmark,
   early superseded-source release, merge GC cadence, and per-source telemetry,
   bounded no-copy production metadata joins, in-place hierarchy/retention
-  work, join-copy telemetry, and recipe metadata-column swapping,
+  work, bounded representative diagnostic values with exact aggregate and
+  collapsed counts, in-pass collision coalescing, join-copy telemetry, and
+  recipe metadata-column swapping,
   file-backed recipe trigger/block size and hashed quarantine-shard contract,
   source-local dedupe cohort/threshold/operator/survivor order and placement
   after exact hashes, correlation allocation mode and block budget,

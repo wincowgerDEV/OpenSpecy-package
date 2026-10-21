@@ -33,6 +33,9 @@ workflow preferences that should survive individual features.
    checklist in the owning workflow skill, and keep run-specific measurements
    and attempt history in the active plan. This avoids repeating incident detail
    across durable guidance while still preventing the same failure mode.
+   Treat high-cardinality diagnostics as a resource boundary too: durable rules
+   should require exact aggregate evidence plus bounded representative detail,
+   while run-specific cardinalities stay in the plan.
 6. Use the system `skill-creator` workflow for new skills. If its Python
    initializer is unavailable after executable discovery, create only the
    required `SKILL.md` (add `agents/openai.yaml` for Codex display metadata

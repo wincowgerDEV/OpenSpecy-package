@@ -54,7 +54,9 @@ are not required.
     quarantine-first source prefiltering, retained-only blocks, and lossless
     metadata drop/compaction with public expansion evidence,
     bounded no-copy production metadata lookups, in-place hierarchy/retention
-    work, metadata-join telemetry, and recipe metadata-column swapping,
+    work, bounded representative diagnostic values with exact aggregate and
+    collapsed counts, in-pass collision coalescing, metadata-join telemetry,
+    and recipe metadata-column swapping,
     early superseded-source release and bounded merge GC cadence/telemetry,
     file-backed recipe trigger/block size and hashed quarantine-shard policy,
     global `prune_lib()` enablement separately from identity-local dedupe,

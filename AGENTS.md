@@ -70,7 +70,10 @@ equivalence on same/variable axes, and record prefilter/compaction/merge
 telemetry. Once the merged target is resident, join only output metadata columns
 in frozen row blocks without copying the full table; update hierarchy and count
 retention in place/on minimum projections, swap only recipe-specific metadata
-columns for serialization, and record block/copy telemetry. If a production
+columns for serialization, and record block/copy telemetry. Bound unmatched or
+missing-value diagnostics to representative values while preserving exact
+aggregate and explicit collapsed-row counts, and coalesce colliding lookup
+columns in the same join pass. If a production
 target crosses its stop threshold, preserve it,
 isolate the exact read/hash/merge/recipe kernel, prove an output-identical
 bounded replacement, refreeze, and restart into a fresh target. Balance retained, reassigned, ordinary
