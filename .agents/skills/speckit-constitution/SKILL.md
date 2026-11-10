@@ -36,6 +36,16 @@ workflow preferences that should survive individual features.
    Treat high-cardinality diagnostics as a resource boundary too: durable rules
    should require exact aggregate evidence plus bounded representative detail,
    while run-specific cardinalities stay in the plan.
+   Treat the merged spectral target as its own resource boundary: when its
+   modeled dense allocation plus measured baseline cannot stay under budget,
+   require direct bounded writes to a temporary file-backed target, exact
+   materialized equivalence, storage telemetry, and cleanup after success or
+   failure. Keep attempt-specific dimensions and thresholds in the active plan.
+   Treat a production metadata union as a separate resource boundary: require
+   global filter planning before union, source-local quarantine capture,
+   retained-row-only binding, by-reference blank-column removal, exact
+   equivalence, and a repeated allocation benchmark. Keep observed row counts
+   and memory peaks in the active plan.
 6. Use the system `skill-creator` workflow for new skills. If its Python
    initializer is unavailable after executable discovery, create only the
    required `SKILL.md` (add `agents/openai.yaml` for Codex display metadata

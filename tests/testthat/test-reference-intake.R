@@ -190,8 +190,11 @@ test_that("reference workflow uses manifest-selected cleaned outputs", {
   expect_match(code, "OpenSpecy.source_prefilter_staging = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.compact_staged_metadata = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.source_merge_chunk_size = 5000L", fixed = TRUE)
+  expect_match(code, "OpenSpecy.source_merge_file_backed = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.source_merge_gc_interval = 10L", fixed = TRUE)
   expect_match(code, "OpenSpecy.metadata_join_chunk_size = 100000L",
+               fixed = TRUE)
+  expect_match(code, "OpenSpecy.metadata_join_report_value_limit = 1000L",
                fixed = TRUE)
   expect_match(code, "OpenSpecy.recipe_record_staging = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.recipe_chunk_size = 5000L", fixed = TRUE)

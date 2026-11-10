@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-Version change: 3.21.0 -> 3.22.0
+Version change: 3.23.0 -> 3.24.0
 Modified principles/sections:
-- Reference Library and External Workflow Verification: bound diagnostic cardinality and coalesce lookup collisions during the production join pass
-- Development Workflow and Quality Gates: require exact diagnostic totals, explicit collapsed counts, and representative-value limits after an enrichment-stage stop
-- Governance: block official releases whose high-cardinality diagnostics scale one row per unmatched production value without a measured exception
+- Reference Library and External Workflow Verification: require global filtering before production metadata union and retained-row-only binding
+- Development Workflow and Quality Gates: require old/new metadata equivalence, allocation benchmarks, and production-scale replay after a metadata-copy stop
+- Governance: block full-table post-bind filtering or blank-column copies at production scale
 Added sections:
 - None
 Removed sections:
@@ -475,12 +475,27 @@ first pass MUST validate and hash one source, apply frozen source-local exact
 and near-duplicate policy before global allocation, persist every removal to
 quarantine immediately, write only retained normalized metadata and bounded
 spectral blocks, then release its matrix. The second pass MUST verify that each
-source file is unchanged, preallocate the final retained target once, and merge
-only the staged blocks; it MUST NOT reread a whole large source. Known global
+source file is unchanged and merge only the staged blocks; it MUST NOT reread a
+whole large source. A dense final target MAY be allocated only when its modeled
+allocation plus the measured baseline remains within the frozen budget.
+Otherwise each bounded, target-axis-complete block MUST be written directly to
+a temporary file-backed target and read blockwise by recipe staging, without
+ever materializing the complete merged matrix in R. Known global
 exclusions and cross-source exact hashes MUST likewise be captured and removed
 from the staged descriptors before target allocation. The contract MUST freeze
 separate source-hash and merge-block maxima; assessments MUST report per-source
-input/removal/retained counts, chunks, largest blocks, and target-axis size.
+input/removal/retained counts, chunks, largest blocks, target-axis size,
+storage mode, modeled dense bytes, and staged bytes.
+
+At production scale, global exclusions and cross-source exact-hash decisions
+MUST be planned from staged IDs or streamed key columns before the metadata
+union is allocated. Removed spectra MUST be captured from their source-local
+metadata and spectral shards, and the union MUST bind retained rows only. A
+nearly all-retained filter MUST NOT create a second complete metadata table;
+globally blank columns MUST be removed by reference on an exclusively owned
+table. Assessments MUST record pre-bind and retained row counts plus the
+pre-bind/copy-free modes, and the old post-bind path MUST remain in a repeated
+same-output allocation benchmark.
 
 Fields already designated for final removal and globally empty fields SHOULD
 be dropped before the metadata union is allocated. Repeated character fields
@@ -496,7 +511,11 @@ implementation in a repeated benchmark. These are storage transformations, not
 scientific transformations.
 
 The staged merger MUST release the original path/source-list reference before
-allocating an exact-filter replacement matrix. When repeated bounded blocks can
+allocating or opening the exact-filter replacement target. A temporary
+file-backed merged core MUST preserve unique column names, `NA` range envelopes,
+metadata alignment, and ordinary `OpenSpecy` values exactly when materialized;
+it MUST be deleted after all recipe artifacts are durably closed or after an
+error. When repeated bounded blocks can
 leave reclaimed vectors in the R heap long enough to cross the frozen system
 budget, the official contract MUST set an explicit garbage-collection cadence;
 the merger MUST collect at that bounded interval and at each source boundary,
@@ -505,7 +524,8 @@ a threshold crossing even when the next collection recovers memory: stop the
 candidate before promotion, verify the bounded-lifetime replacement, refreeze,
 and restart in a new output target.
 
-Once the retained spectral target is resident, metadata enrichment MUST be
+Once the retained spectral target is available in memory or file-backed,
+metadata enrichment MUST be
 treated as a production-scale memory boundary rather than a lightweight
 epilogue. The official path MUST NOT copy the complete metadata table for each
 lookup, hierarchy update, retention count, or recipe serialization. Exact
@@ -932,9 +952,17 @@ They MUST also block an official reference-library release that enriches a
 resident production-scale target by repeatedly copying its full metadata table,
 or that lacks evidence for the frozen metadata block and no-copy production
 path.
+They MUST also block a production rebuild that binds all staged metadata before
+applying known global exclusions or cross-source hashes, subsets a nearly
+all-retained full table, or copies that table merely to remove globally blank
+columns when retained-row binding and by-reference removal are available.
 They MUST also block a production-scale metadata diagnostic that allocates one
 record per distinct unmatched value without a measured safe exception, or that
 caps detail without preserving exact aggregate and collapsed-row counts.
+They MUST also block a production rebuild that allocates a dense merged spectral
+target after its modeled allocation plus measured baseline cannot stay below
+the frozen stop threshold, or substitutes a file-backed target without exact
+same/variable-axis equivalence, bounded block telemetry, and verified cleanup.
 They MUST also block admission of a cleaned reference dataset that lacks the
 type/unit/plot/serialization/`check_OpenSpecy()` gate, writes into an active
 transfer boundary, curates classes before a validated output exists, or records
@@ -942,4 +970,4 @@ a maintainer license assumption as though it were source-declared terms.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.22.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-21
+**Version**: 3.24.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-21

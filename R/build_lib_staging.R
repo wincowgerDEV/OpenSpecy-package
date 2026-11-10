@@ -7,6 +7,77 @@
   value
 }
 
+.lib_source_merge_file_backed_enabled <- function() {
+  value <- getOption("OpenSpecy.source_merge_file_backed", FALSE)
+  if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+    stop("Option 'OpenSpecy.source_merge_file_backed' must be TRUE or FALSE",
+         call. = FALSE)
+  }
+  value
+}
+
+.lib_new_staged_matrix <- function(path, dataset, nrow, ncol,
+                                   spectrum_names) {
+  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  out <- structure(list(
+    path = path, dataset = dataset, nrow = as.integer(nrow),
+    ncol = as.integer(ncol), spectrum_names = as.character(spectrum_names)
+  ), class = c("OpenSpecyStagedMatrix", "list"))
+  .lib_validate_staged_matrix(out)
+  out
+}
+
+.lib_validate_staged_matrix <- function(x) {
+  if (!inherits(x, "OpenSpecyStagedMatrix") ||
+      !is.character(x$path) || length(x$path) != 1L ||
+      !is.character(x$dataset) || length(x$dataset) != 1L ||
+      !is.numeric(x$nrow) || length(x$nrow) != 1L || x$nrow < 1L ||
+      !is.numeric(x$ncol) || length(x$ncol) != 1L || x$ncol < 1L ||
+      !is.character(x$spectrum_names) ||
+      length(x$spectrum_names) != x$ncol ||
+      anyDuplicated(x$spectrum_names) || !file.exists(x$path)) {
+    stop("File-backed merged spectrum matrix is malformed", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+#' @exportS3Method base::dim
+#' @noRd
+dim.OpenSpecyStagedMatrix <- function(x) {
+  c(x$nrow, x$ncol)
+}
+
+#' @exportS3Method base::dimnames
+#' @noRd
+dimnames.OpenSpecyStagedMatrix <- function(x) {
+  list(NULL, x$spectrum_names)
+}
+
+.lib_read_staged_matrix_block <- function(x, columns, rows = NULL) {
+  .lib_validate_staged_matrix(x)
+  columns <- as.integer(columns)
+  if (!length(columns) || anyNA(columns) || min(columns) < 1L ||
+      max(columns) > x$ncol) {
+    stop("File-backed merged spectrum columns are outside the matrix",
+         call. = FALSE)
+  }
+  if (is.null(rows)) rows <- seq_len(x$nrow)
+  rows <- as.integer(rows)
+  if (!length(rows) || anyNA(rows) || min(rows) < 1L ||
+      max(rows) > x$nrow) {
+    stop("File-backed merged spectrum rows are outside the matrix",
+         call. = FALSE)
+  }
+  handle <- hdf5r::H5File$new(x$path, mode = "r")
+  on.exit(try(handle$close_all(), silent = TRUE), add = TRUE)
+  value <- handle[[x$dataset]][rows, columns, drop = FALSE]
+  if (!is.matrix(value)) {
+    value <- matrix(value, nrow = length(rows))
+  }
+  colnames(value) <- x$spectrum_names[columns]
+  value
+}
+
 .lib_recipe_chunk_size <- function() {
   value <- suppressWarnings(as.integer(getOption(
     "OpenSpecy.recipe_chunk_size", 20000L
@@ -1039,8 +1110,14 @@
   )
 }
 
-.lib_drop_blank_staged_metadata <- function(metadata) {
-  metadata <- data.table::copy(data.table::as.data.table(metadata))
+.lib_drop_blank_staged_metadata <- function(metadata, copy = TRUE) {
+  if (!is.logical(copy) || length(copy) != 1L || is.na(copy)) {
+    stop("'copy' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!inherits(metadata, "data.table")) {
+    metadata <- data.table::as.data.table(metadata)
+  }
+  if (isTRUE(copy)) metadata <- data.table::copy(metadata)
   blank <- vapply(metadata, function(column) {
     if (is.character(column)) {
       all(is.na(column) | !nzchar(trimws(column)))
@@ -1386,10 +1463,12 @@
   source_hash <- first_attributes$source_hash_chunk_report
   source_merge <- first_attributes$source_merge_chunk_report
   metadata_join <- first_attributes$metadata_join_chunk_report
+  metadata_compaction <- first_attributes$metadata_compaction_report
   source_correlation <- first_attributes$correlation_dedupe_report
   if (is.null(source_hash)) source_hash <- data.table::data.table()
   if (is.null(source_merge)) source_merge <- data.table::data.table()
   if (is.null(metadata_join)) metadata_join <- data.table::data.table()
+  if (is.null(metadata_compaction)) metadata_compaction <- data.table::data.table()
   if (is.null(source_correlation)) {
     source_correlation <- list(
       groups = .lib_correlation_dedupe_group_schema(),
@@ -1406,6 +1485,7 @@
       source_hash_chunking = source_hash,
       source_merge_chunking = source_merge,
       metadata_join_chunking = metadata_join,
+      metadata_compaction = metadata_compaction,
       recipe_staging = libraries$telemetry,
       source_correlation_dedupe_groups = source_correlation$groups,
       source_correlation_dedupe_removals = source_correlation$removals,

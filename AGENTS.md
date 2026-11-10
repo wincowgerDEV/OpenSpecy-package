@@ -57,17 +57,25 @@ record the largest block and avoided/accepted square allocation. Bound source
 hashing end to end, including its missing-value scan and current/legacy hash
 transforms; freeze the maximum column block and record per-source chunk
 telemetry. When file-backed source records do not fit together, use path-backed
-two-pass staging: capture source-local hash/correlation removals in quarantine,
-persist only retained normalized metadata plus bounded spectral blocks, release
-each first-pass matrix, apply global exclusions/hashes before target allocation,
-then preallocate once and merge only staged blocks. Drop approved/globally empty
+  two-pass staging: capture source-local hash/correlation removals in quarantine,
+  persist only retained normalized metadata plus bounded spectral blocks, release
+  each first-pass matrix, plan global exclusions/hashes from staged IDs or
+  streamed keys before allocating the metadata union, capture removals from
+  source-local shards, bind retained metadata rows only, and then merge only
+  staged blocks. Never subset or copy a nearly all-retained full metadata table
+  merely to apply those filters or drop blank columns. Allocate a dense target only when its modeled
+bytes plus measured baseline stay under the frozen threshold; otherwise write
+target-axis-complete blocks directly to temporary HDF5, consume that target
+blockwise during recipe staging, and remove it after success or failure. Prove
+exact same/variable-axis values, unique names, NA envelopes, alignment, and
+cleanup; record storage mode plus modeled/staged bytes. Drop approved/globally empty
 metadata early and compact repeated non-key character fields only losslessly;
 restore public metadata values, classes, and order before return. Freeze separate
 hash/merge blocks, release superseded source references before replacement
 matrices, and freeze a bounded merge garbage-collection cadence when temporary
 heap retention can breach the budget. Verify unchanged files between passes, prove output
 equivalence on same/variable axes, and record prefilter/compaction/merge
-telemetry. Once the merged target is resident, join only output metadata columns
+  telemetry, including pre-bind/retained rows and copy-free blank removal. Once the merged target is available in memory or file-backed, join only output metadata columns
 in frozen row blocks without copying the full table; update hierarchy and count
 retention in place/on minimum projections, swap only recipe-specific metadata
 columns for serialization, and record block/copy telemetry. Bound unmatched or

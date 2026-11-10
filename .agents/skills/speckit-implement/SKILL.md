@@ -51,8 +51,12 @@ are not required.
     stable survivor order after hashes, correlation allocation mode/peak block,
     bounded source-hash block plus per-source chunk telemetry,
     path-backed merge staging plus maximum block and per-source telemetry,
-    quarantine-first source prefiltering, retained-only blocks, and lossless
-    metadata drop/compaction with public expansion evidence,
+    dense-target budget decision plus direct file-backed merged-core writes,
+    modeled/staged bytes, exact same/variable-axis equivalence, and cleanup,
+    quarantine-first source prefiltering, retained-only blocks, global filter
+    planning before metadata union, source-local quarantine capture,
+    retained-row-only binding, copy-free blank removal, and lossless metadata
+    compaction with public expansion and allocation-benchmark evidence,
     bounded no-copy production metadata lookups, in-place hierarchy/retention
     work, bounded representative diagnostic values with exact aggregate and
     collapsed counts, in-pass collision coalescing, metadata-join telemetry,

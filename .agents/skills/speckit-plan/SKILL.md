@@ -72,8 +72,12 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   artifact hashes and freeze boundary, per-artifact pruning and reassignment,
   bounded source-hash block size and per-source telemetry,
   path-backed merge staging enablement, maximum block, unchanged-file guard,
-  quarantine-first source prefilter/retained-only policy, metadata
-  drop/compaction plus public expansion check, output-equivalence benchmark,
+  dense-target budget decision, direct file-backed merged-core mode and
+  lifecycle, modeled/staged bytes, exact same/variable-axis equivalence,
+  quarantine-first source prefilter/retained-only policy, global filter
+  planning before metadata union, source-local quarantine capture,
+  retained-row-only binding and copy-free blank removal, metadata
+  compaction plus public expansion check, output/allocation benchmark,
   early superseded-source release, merge GC cadence, and per-source telemetry,
   bounded no-copy production metadata joins, in-place hierarchy/retention
   work, bounded representative diagnostic values with exact aggregate and

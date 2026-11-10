@@ -101,6 +101,8 @@ test_that("metadata joins use bounded chunks without mutating public inputs", {
   expect_equal(telemetry$chunks, 3L)
   expect_equal(telemetry$max_chunk_rows, 3L)
   expect_true(telemetry$copied_metadata)
+  expect_false(telemetry$coalesced_existing)
+  expect_true(is.infinite(telemetry$report_value_limit))
 
   internal_metadata <- data.table::copy(original)
   internal <- OpenSpecy:::.lib_join_metadata_table(
@@ -164,6 +166,8 @@ test_that("in-pass metadata coalescing preserves legacy join results", {
     legacy <- OpenSpecy:::.lib_coalesce_joined_metadata(
       legacy, "material", lookup_precedence = lookup_precedence
     )
+    attr(legacy, "join_report") <- NULL
+    attr(legacy, "metadata_join_chunk_report") <- NULL
     bounded_input <- data.table::copy(original)
     bounded <- suppressWarnings(OpenSpecy:::.lib_join_metadata_table(
       bounded_input, lookup, by = "spectrum_identity", copy_metadata = FALSE,
@@ -171,10 +175,33 @@ test_that("in-pass metadata coalescing preserves legacy join results", {
       coalesce_existing = TRUE,
       lookup_precedence = lookup_precedence
     ))
+    attr(bounded$data, "join_report") <- NULL
+    attr(bounded$data, "metadata_join_chunk_report") <- NULL
     expect_equal(bounded$data, legacy)
     expect_false(bounded$telemetry$copied_metadata)
     expect_true(bounded$telemetry$coalesced_existing)
   }
+})
+
+test_that("in-pass metadata coalescing restores factor labels safely", {
+  original <- data.table::data.table(
+    spectrum_identity = c("a", "b"),
+    material_class = factor(c("existing", NA_character_))
+  )
+  lookup <- data.table::data.table(
+    spectrum_identity = c("a", "b"),
+    material_class = c("replacement-a", "replacement-b")
+  )
+
+  expect_silent(joined <- OpenSpecy:::.lib_join_metadata_table(
+    original, lookup, by = "spectrum_identity", copy_metadata = FALSE,
+    coalesce_existing = TRUE, lookup_precedence = TRUE
+  ))
+  expect_type(joined$data$material_class, "character")
+  expect_identical(
+    joined$data$material_class,
+    c("replacement-a", "replacement-b")
+  )
 })
 
 test_that("join_material_hierarchy() matches user-specified levels", {
@@ -1359,6 +1386,76 @@ test_that("path-backed staging preserves variable-axis full-range merging", {
   expect_true(check_OpenSpecy(staged))
 })
 
+test_that("file-backed source merging is value-equivalent and temporary", {
+  skip_if_not_installed("hdf5r")
+  old_options <- options(
+    OpenSpecy.source_record_staging = FALSE,
+    OpenSpecy.source_prefilter_staging = FALSE,
+    OpenSpecy.source_merge_file_backed = FALSE,
+    OpenSpecy.recipe_record_staging = FALSE,
+    OpenSpecy.source_merge_chunk_size = 2L,
+    OpenSpecy.recipe_chunk_size = 2L
+  )
+  on.exit(options(old_options), add = TRUE)
+  staging_dir <- tempfile("OpenSpecy-file-backed-merge-")
+  dir.create(staging_dir)
+  on.exit(unlink(staging_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  left <- filter_spec(tiny_build_lib(), 1:3)
+  right <- filter_spec(tiny_build_lib(), 4:8)
+  right$wavenumber <- right$wavenumber[6:55]
+  right$spectra <- right$spectra[6:55, , drop = FALSE]
+  left_file <- tempfile(fileext = ".rds")
+  right_file <- tempfile(fileext = ".rds")
+  saveRDS(left, left_file)
+  saveRDS(right, right_file)
+  arguments <- list(
+    x = c(left_file, right_file), recipes = list(raw = list()),
+    range = "full", res = 100, dedupe = FALSE,
+    signal_noise = FALSE, progress = FALSE
+  )
+  expected <- do.call(build_lib, arguments)$raw
+
+  options(
+    OpenSpecy.source_record_staging = TRUE,
+    OpenSpecy.source_prefilter_staging = TRUE,
+    OpenSpecy.source_merge_file_backed = TRUE,
+    OpenSpecy.recipe_record_staging = TRUE,
+    OpenSpecy.recipe_staging_dir = staging_dir
+  )
+  staged <- do.call(build_lib, arguments)
+  observed <- OpenSpecy:::.lib_materialize_staged_recipe(
+    staged$artifacts$raw
+  )
+  telemetry <- staged$artifacts$raw$object_attributes$
+    source_merge_chunk_report
+
+  expect_equal(observed$wavenumber, expected$wavenumber)
+  expect_equal(observed$spectra, expected$spectra)
+  expect_equal(observed$metadata, expected$metadata)
+  expect_true(check_OpenSpecy(observed))
+  expect_true(all(telemetry$file_backed_target))
+  expect_true(all(telemetry$target_storage == "hdf5_chunked"))
+  expect_true(all(telemetry$target_bytes ==
+                    length(expected$wavenumber) * ncol(expected$spectra) * 8))
+  expect_false(file.exists(file.path(staging_dir, "merged-core.h5")))
+
+  error_dir <- tempfile("OpenSpecy-file-backed-error-")
+  dir.create(error_dir)
+  on.exit(unlink(error_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  options(OpenSpecy.recipe_staging_dir = error_dir)
+  expect_error(
+    build_lib(
+      c(left_file, right_file),
+      recipes = list(failing = function(x) stop("recipe fixture failure")),
+      range = "full", res = 100, dedupe = FALSE,
+      signal_noise = FALSE, progress = FALSE
+    ),
+    "recipe fixture failure"
+  )
+  expect_false(file.exists(file.path(error_dir, "merged-core.h5")))
+})
+
 test_that("source prefilter staging preserves bounded dedupe results", {
   old_options <- options(
     OpenSpecy.source_record_staging = FALSE,
@@ -1407,10 +1504,141 @@ test_that("source prefilter staging preserves bounded dedupe results", {
     parts, inherits, logical(1L), "OpenSpecyQuarantinePartPath"
   )))
   expect_true(all(file.exists(vapply(parts, `[[`, character(1L), "path"))))
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(parts)
+  expect_true(OpenSpecy:::.lib_validate_quarantine(bundle))
+  expect_equal(bundle$manifest$removed_spectra,
+               sum(vapply(parts, function(part) {
+                 ncol(OpenSpecy:::.lib_read_quarantine_part_path(part)$spectra)
+               }, integer(1L))))
   correlation <- attr(
     staged$raw, "correlation_dedupe_report", exact = TRUE
   )
   expect_gt(nrow(correlation$removals), 0L)
+  compaction <- attr(staged$raw, "metadata_compaction_report", exact = TRUE)
+  expect_true(compaction$prebind_filtering)
+  expect_true(compaction$copy_free_blank_drop)
+  expect_equal(compaction$prebind_rows, 3L)
+  expect_equal(compaction$retained_rows, ncol(staged$raw$spectra))
+})
+
+test_that("staged global filters bind only retained metadata rows", {
+  path_1 <- tempfile(fileext = ".rds")
+  path_2 <- tempfile(fileext = ".rds")
+  metadata_1 <- data.table::data.table(
+    sample_name = c("hash-1", "hash-2"),
+    sample_name_old = c("old-excluded", "old-2"),
+    source_value = c("a", "b")
+  )
+  metadata_2 <- data.table::data.table(
+    sample_name = c("hash-2", "hash-3"),
+    sample_name_old = c("old-3", "old-4"),
+    source_value = c("c", "d")
+  )
+  saveRDS(metadata_1, path_1, compress = FALSE)
+  saveRDS(metadata_2, path_2, compress = FALSE)
+  records <- list(
+    list(
+      n = 2L, spectrum_names = metadata_1$sample_name,
+      metadata_path = path_1, metadata_prototype = metadata_1[0]
+    ),
+    list(
+      n = 2L, spectrum_names = metadata_2$sample_name,
+      metadata_path = path_2, metadata_prototype = metadata_2[0]
+    )
+  )
+
+  plan <- OpenSpecy:::.lib_staged_global_filter_plan(
+    records, id_col = "sample_name", exclude_ids = "old-excluded",
+    dedupe_duplicate = "first", report = function(...) NULL
+  )
+  combined <- OpenSpecy:::.lib_combine_staged_metadata(
+    records, report = function(...) NULL, record_rows = plan$merge_keep
+  )
+
+  expect_equal(plan$report$removed, c(1L, 1L))
+  expect_equal(plan$merge_keep, list(2L, 2L))
+  expect_equal(combined$sample_name, c("hash-2", "hash-3"))
+  expect_equal(combined$source_value, c("b", "d"))
+  expect_error(
+    OpenSpecy:::.lib_combine_staged_metadata(
+      records, report = function(...) NULL, record_rows = list(1L)
+    ),
+    "row selections must match"
+  )
+})
+
+test_that("cross-source staged hash removals retain local quarantine metadata", {
+  old_options <- options(
+    OpenSpecy.source_record_staging = FALSE,
+    OpenSpecy.source_prefilter_staging = FALSE,
+    OpenSpecy.compact_staged_metadata = FALSE,
+    OpenSpecy.source_merge_file_backed = FALSE,
+    OpenSpecy.recipe_record_staging = FALSE,
+    OpenSpecy.source_merge_chunk_size = 1L
+  )
+  on.exit(options(old_options), add = TRUE)
+  staging_dir <- tempfile("OpenSpecy-cross-source-filter-")
+  dir.create(staging_dir)
+  on.exit(unlink(staging_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  left <- filter_spec(tiny_build_lib(), 1:2)
+  right <- filter_spec(tiny_build_lib(), 3:4)
+  left$metadata$source_marker <- "left"
+  right$metadata$source_marker <- "right"
+  left$spectra[, 2L] <- left$spectra[, 2L] +
+    sin(seq_len(nrow(left$spectra))) / 10
+  right$spectra[, 1L] <- left$spectra[, 1L]
+  right$spectra[, 2L] <- right$spectra[, 2L] +
+    cos(seq_len(nrow(right$spectra))) / 10
+  left_file <- tempfile(fileext = ".rds")
+  right_file <- tempfile(fileext = ".rds")
+  saveRDS(left, left_file)
+  saveRDS(right, right_file)
+  arguments <- list(
+    x = c(left_file, right_file), recipes = list(raw = list()),
+    range = NULL, dedupe = TRUE, signal_noise = FALSE, progress = FALSE
+  )
+  expected <- do.call(build_lib, arguments)$raw
+
+  options(
+    OpenSpecy.source_record_staging = TRUE,
+    OpenSpecy.source_prefilter_staging = TRUE,
+    OpenSpecy.compact_staged_metadata = TRUE,
+    OpenSpecy.recipe_staging_dir = staging_dir
+  )
+  staged <- do.call(build_lib, arguments)
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(
+    attr(staged, "quarantine_parts", exact = TRUE)
+  )
+
+  expect_equal(staged$raw$wavenumber, expected$wavenumber)
+  expect_equal(staged$raw$spectra, expected$spectra)
+  expect_equal(staged$raw$metadata, expected$metadata)
+  global_hash <- bundle$removals[
+    quarantine_stage == "source_deduplication" &
+      quarantine_reason == "duplicate_content"
+  ]
+  expect_equal(nrow(global_hash), 1L)
+  expect_equal(global_hash$source_marker, "right")
+  expect_true(nzchar(global_hash$duplicate_hash))
+})
+
+test_that("blank staged metadata can be dropped without a full table copy", {
+  metadata <- data.table::data.table(
+    sample_name = c("a", "b"), blank = c(NA_character_, ""),
+    material_form = NA_character_
+  )
+  copied <- OpenSpecy:::.lib_drop_blank_staged_metadata(metadata)
+  expect_true("blank" %in% names(metadata))
+  expect_false("blank" %in% names(copied))
+
+  same <- OpenSpecy:::.lib_drop_blank_staged_metadata(metadata, copy = FALSE)
+  expect_false("blank" %in% names(metadata))
+  expect_identical(same, metadata)
+  expect_error(
+    OpenSpecy:::.lib_drop_blank_staged_metadata(metadata, copy = NA),
+    "'copy' must be TRUE or FALSE"
+  )
 })
 
 test_that("staged metadata compaction is lossless and reversible", {
@@ -1436,7 +1664,9 @@ test_that("staged metadata compaction is lossless and reversible", {
 test_that("source-record staging options reject invalid values", {
   old_options <- options(
     OpenSpecy.source_record_staging = "yes",
-    OpenSpecy.source_merge_chunk_size = 2L
+    OpenSpecy.source_merge_chunk_size = 2L,
+    OpenSpecy.metadata_join_report_value_limit = 1000L,
+    OpenSpecy.source_merge_file_backed = FALSE
   )
   on.exit(options(old_options), add = TRUE)
   path <- tempfile(fileext = ".rds")
@@ -1478,6 +1708,7 @@ test_that("source-record staging options reject invalid values", {
           OpenSpecy.source_merge_chunk_size = 2L,
           OpenSpecy.source_merge_gc_interval = 10L,
           OpenSpecy.metadata_join_chunk_size = 100000L,
+          OpenSpecy.metadata_join_report_value_limit = 1000L,
           OpenSpecy.source_prefilter_staging = "yes")
   expect_error(
     build_lib(path, recipes = list(raw = list()), progress = FALSE),
@@ -1489,6 +1720,21 @@ test_that("source-record staging options reject invalid values", {
   expect_error(
     OpenSpecy:::.lib_compact_staged_metadata(data.table::data.table(x = "a")),
     "compact_staged_metadata.*TRUE or FALSE"
+  )
+
+  options(OpenSpecy.compact_staged_metadata = FALSE,
+          OpenSpecy.source_merge_file_backed = "yes")
+  expect_error(
+    OpenSpecy:::.lib_source_merge_file_backed_enabled(),
+    "source_merge_file_backed.*TRUE or FALSE"
+  )
+  options(OpenSpecy.source_record_staging = TRUE,
+          OpenSpecy.source_prefilter_staging = FALSE,
+          OpenSpecy.source_merge_file_backed = TRUE,
+          OpenSpecy.recipe_record_staging = FALSE)
+  expect_error(
+    build_lib(path, recipes = list(raw = list()), progress = FALSE),
+    "requires source-record, source-prefilter, and recipe-record staging"
   )
 })
 
@@ -3472,6 +3718,25 @@ test_that("reference workflow tables encode reviewed taxonomy and source rules",
       "r 8. white bike tire fragment"
     ), material] == "styrene-butadiene"
   ))
+  smiles_sbr <- predict_class_reference(
+    data.table::data.table(
+      spectrum_identity = c(
+        "smiles: sbr [transpec qm14s]",
+        "smiles: s=c(sbr)sbr [transpec qm14s]",
+        "smiles: o=c(sbr)sbr [transpec qm14s]",
+        "sample sbr rubber"
+      ),
+      material = NA_character_
+    ),
+    regex_classes,
+    return = "report"
+  )
+  expect_identical(smiles_sbr$summary$clashes, 0L)
+  expect_identical(
+    smiles_sbr$data$material,
+    c("other material", "organic matter", "organic matter",
+      "styrene-butadiene")
+  )
   expect_equal(classes[spectrum_identity == "pva", material], "other plastic")
   expect_equal(
     hierarchy[material == "poly(4-vinyl phenol)", material_class],
@@ -4347,7 +4612,8 @@ test_that("build_lib() discovers helper data and reuses one artifact bundle", {
                      names(release_assessments$ref_lib$accuracy)))
   expect_true(all(c(
     "model_training_tests", "source_hash_chunking",
-    "source_merge_chunking", "metadata_join_chunking"
+    "source_merge_chunking", "metadata_join_chunking",
+    "metadata_compaction"
   ) %in% names(attr(release_assessments, "evidence"))))
 
   report_attributes <- c(

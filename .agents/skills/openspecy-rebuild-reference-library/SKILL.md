@@ -24,7 +24,9 @@ Before code changes or production launch, record:
 - build signature inputs, clean/reuse choice, compatible checkpoints, worker
   count, source-hash block size and per-source telemetry, correlation allocation
   mode/block size and largest source cohort, path-backed merge enablement and
-  block size plus per-source merge telemetry, quarantine-first source
+  block size plus per-source merge telemetry, dense-target budget decision,
+  direct file-backed merged-core mode, modeled/staged bytes and lifecycle,
+  quarantine-first source
   prefilter enablement, retained-only block policy, metadata drop/compaction
   policy and public expansion check, early path-reference release and explicit
   merge garbage-collection cadence, metadata-join block size and no-copy
@@ -71,16 +73,24 @@ defaults, or an earlier run.
    When retaining source records exceeds the budget, apply exact hashes and
    frozen identity-local correlation within each live source, persist every
    removal to hashed quarantine immediately, and stage only retained normalized
-   metadata and bounded spectral blocks. Before allocating the target, capture
-   global exclusions and cross-source hashes from the descriptors, drop fields
-   already designated for removal and globally empty fields, and losslessly
-   compact repeated non-key character metadata. Verify unchanged source files,
+   metadata and bounded spectral blocks. Before allocating the metadata union or
+   spectral target, plan global exclusions and cross-source hashes from staged
+   IDs or streamed key columns, capture removals from source-local shards, and
+   bind retained metadata rows only. Drop globally empty fields by reference on
+   that exclusively owned table, then losslessly compact repeated non-key
+   character metadata. Do not subset or copy a nearly all-retained full table.
+   Verify unchanged source files,
    release the original path-list reference before an exact-filter replacement,
-   then merge only staged retained blocks into one preallocated target; do not
-   reread a whole large source during assembly. If empirical heap retention can
+   then merge only staged retained blocks. Allocate one dense target only when
+   its modeled bytes plus measured baseline stay below the frozen threshold;
+   otherwise write target-axis-complete blocks directly to temporary HDF5 and
+   let recipe staging read that target blockwise. Preserve unique names and NA
+   envelopes exactly, record modeled/staged bytes and storage mode, and remove
+   the temporary merged core after recipe artifacts close or after failure. Do
+   not reread a whole large source during assembly. If empirical heap retention can
     breach the budget, collect released temporaries at a frozen chunk cadence
     and every source boundary, and report that cadence in merge telemetry.
-    Once the merged target is resident, update lookup output columns in bounded
+    Once the merged target is available in memory or file-backed, update lookup output columns in bounded
     row blocks without copying the whole metadata table. Apply hierarchy updates
     by reference, compute retention counts from the minimum projected columns,
     and serialize recipe metadata by temporarily swapping only the recipe-specific
@@ -94,8 +104,8 @@ defaults, or an earlier run.
     Expand staging-only metadata
    representations before any public object is returned. Prove same- and
    variable-axis results equal the retained-record path, exercise both ordinary
-   and forced file-backed completion, and record prefilter, compaction, and
-   merge telemetry.
+    and forced file-backed completion, and record prefilter, pre-bind/retained
+    metadata rows, copy-free blank removal, compaction, and merge telemetry.
    If the merged target fits but simultaneous raw/derivative/no-baseline or
    quarantine payloads do not, retain HDF5-backed recipes through class,
    quality, and type-partition stages. Process one recipe/block at a time,

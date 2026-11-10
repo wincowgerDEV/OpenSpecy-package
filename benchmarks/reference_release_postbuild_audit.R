@@ -42,7 +42,7 @@ repo_root <- function() {
   root
 }
 
-runner_version <- "reference-release-postbuild-audit-v6"
+runner_version <- "reference-release-postbuild-audit-v7"
 fit_runtime_ceiling_seconds <- 3600
 prior_signature <-
   "bb8cd82c7ecbff60349f02cadbb37d86c2ecf8e46f0b4665fea21fb9d40bdb0a"
@@ -278,6 +278,63 @@ audit_metadata_join_chunking <- function(evidence, checks) {
       if (shape_ok) max(telemetry$report_value_limit) else NA_integer_,
       "; collapsed unmatched rows=",
       if (shape_ok) sum(telemetry$collapsed_unmatched_rows) else NA_integer_
+    )
+  )
+  telemetry
+}
+
+audit_source_merge_chunking <- function(evidence, checks) {
+  telemetry <- as_dt(evidence$source_merge_chunking)
+  required <- c(
+    "source_index", "spectra", "chunk_size", "max_chunk_columns",
+    "target_wavenumbers", "file_backed_target", "target_bytes",
+    "target_storage", "target_staging_bytes"
+  )
+  shape_ok <- nrow(telemetry) > 0L && all(required %in% names(telemetry))
+  bounded <- shape_ok && all(
+    telemetry$chunk_size > 0L &
+      telemetry$max_chunk_columns <= telemetry$chunk_size &
+      telemetry$file_backed_target &
+      telemetry$target_storage == "hdf5_chunked" &
+      telemetry$target_bytes > 0 & telemetry$target_staging_bytes > 0
+  ) && length(unique(telemetry$target_bytes)) == 1L &&
+    length(unique(telemetry$target_staging_bytes)) == 1L
+  checks$add(
+    "source_merge_file_backed_contract", bounded,
+    paste0(
+      "sources=", nrow(telemetry),
+      "; largest block=",
+      if (shape_ok) max(telemetry$max_chunk_columns) else NA_integer_,
+      "; modeled dense bytes=",
+      if (shape_ok) unique(telemetry$target_bytes)[[1L]] else NA_real_,
+      "; staged bytes=",
+      if (shape_ok) unique(telemetry$target_staging_bytes)[[1L]] else NA_real_
+    )
+  )
+  telemetry
+}
+
+audit_metadata_prebind <- function(evidence, checks) {
+  telemetry <- as_dt(evidence$metadata_compaction)
+  required <- c(
+    "bytes_before", "bytes_after", "bytes_saved", "prebind_rows",
+    "retained_rows", "prebind_filtering", "copy_free_blank_drop"
+  )
+  shape_ok <- nrow(telemetry) > 0L && all(required %in% names(telemetry))
+  bounded <- shape_ok && all(
+    telemetry$prebind_filtering & telemetry$copy_free_blank_drop &
+      telemetry$prebind_rows >= telemetry$retained_rows &
+      telemetry$retained_rows > 0 &
+      telemetry$bytes_before >= telemetry$bytes_after &
+      telemetry$bytes_saved == telemetry$bytes_before - telemetry$bytes_after
+  )
+  checks$add(
+    "metadata_prebind_filtering_contract", bounded,
+    paste0(
+      "rows=", if (shape_ok) telemetry$prebind_rows[[1L]] else NA_integer_,
+      " -> ", if (shape_ok) telemetry$retained_rows[[1L]] else NA_integer_,
+      "; bytes=", if (shape_ok) telemetry$bytes_before[[1L]] else NA_real_,
+      " -> ", if (shape_ok) telemetry$bytes_after[[1L]] else NA_real_
     )
   )
   telemetry
@@ -1760,7 +1817,9 @@ run_audit <- function(cli) {
   assessment <- read_assessment_parts(
     file.path(cli$new_release, "assessments.rds"), checks
   )
+  source_merge <- audit_source_merge_chunking(assessment$evidence, checks)
   metadata_join <- audit_metadata_join_chunking(assessment$evidence, checks)
+  metadata_prebind <- audit_metadata_prebind(assessment$evidence, checks)
   generic <- audit_generic_reassignment(
     assessment$upstream, reference$final_rows, checks
   )
@@ -1793,7 +1852,9 @@ run_audit <- function(cli) {
     material_group_conflicts = groups$conflicts,
     generic_reassignment_audit = generic$status,
     generic_reassignment_failures = generic$invalid,
+    source_merge_chunking = source_merge,
     metadata_join_chunking = metadata_join,
+    metadata_prebind_filtering = metadata_prebind,
     saved_parent_medoid_closure = closure,
     flat_model_audit = fitted_models$audit,
     flat_model_evidence_coverage = fitted_models$coverage,

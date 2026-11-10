@@ -59,6 +59,7 @@ options(
   OpenSpecy.source_record_staging = TRUE,
   OpenSpecy.source_prefilter_staging = TRUE,
   OpenSpecy.compact_staged_metadata = TRUE,
+  OpenSpecy.source_merge_file_backed = TRUE,
   OpenSpecy.source_merge_chunk_size = 5000L,
   OpenSpecy.source_merge_gc_interval = 10L,
   OpenSpecy.metadata_join_chunk_size = 100000L,
@@ -181,8 +182,14 @@ message(paste0(
   "5,000 retained spectra; temporary blocks collected every 10 chunks"
 ))
 message("  Source prefilter: per-source hash/correlation before global merge")
-message("  Metadata: deprecated/blank fields dropped early; repeated values compacted")
-message("  Metadata joins: in-place output columns in blocks of at most 100,000 rows")
+message(paste0(
+  "  Metadata: cross-source filters planned before retained-row binding; ",
+  "blank fields dropped without a full-table copy; repeated values compacted"
+))
+message(paste0(
+  "  Metadata joins: in-place/coalesced output columns in blocks of at most ",
+  "100,000 rows; at most 1,000 representative diagnostic values with exact totals"
+))
 message("  Recipe materialization: HDF5-backed blocks of at most 5,000 spectra")
 message(paste0(
   "  Global class-based prune_lib pass: disabled; source-local exact/hash ",

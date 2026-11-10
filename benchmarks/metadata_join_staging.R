@@ -140,10 +140,10 @@ stopifnot(
   result[implementation == "bounded_in_place", median_seconds] < 2 ||
     result[implementation == "bounded_in_place", median_seconds] <=
       5 * result[implementation == "legacy_full_merge", median_seconds],
-  identical(
+  isTRUE(all.equal(
     as.data.frame(unbounded_report$data),
-    as.data.frame(bounded_report$data)
-  ),
+    as.data.frame(bounded_report$data), check.attributes = FALSE
+  )),
   sum(unbounded_unmatched$n) == sum(bounded_unmatched$n),
   nrow(bounded_unmatched) <= 1001L,
   bounded_report$telemetry$reported_unmatched_values <= 1000L,

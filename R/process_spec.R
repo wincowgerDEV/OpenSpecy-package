@@ -233,7 +233,11 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
 
 .subset_open_specy_columns <- function(x, cols) {
   out <- x
-  out$spectra <- x$spectra[, cols, drop = FALSE]
+  out$spectra <- if (inherits(x$spectra, "OpenSpecyStagedMatrix")) {
+    .lib_read_staged_matrix_block(x$spectra, cols)
+  } else {
+    x$spectra[, cols, drop = FALSE]
+  }
   out$metadata <- data.table::copy(x$metadata[cols, ])
   out
 }

@@ -409,9 +409,9 @@ deterministic survivor/removal evidence, threshold/operator, and largest
 comparison block; the official assessments retain these tables as hashed
 evidence. File-backed staged builds additionally include
 \code{source_merge_chunk_report} with per-source spectra, chunk counts,
-largest block, and target-axis size, plus
-\code{metadata_join_chunk_report} with row, match, chunk, and copy-mode
-evidence for each lookup. Once a staged recipe exceeds the
+largest block, target-axis size, target storage, and modeled/file bytes, plus
+\code{metadata_join_chunk_report} with row, match, chunk, copy-mode,
+coalescing, and bounded-report evidence for each lookup. Once a staged recipe exceeds the
 maintained 250,000-spectrum threshold, completion, quality gates, type/range
 partitioning, medoid grouping, and release promotion remain file-backed.
 Only one bounded recipe block, one source/class medoid group, or one final
@@ -516,18 +516,25 @@ The maintained production driver enables path-backed two-pass source
 staging: the first pass validates, hashes, and source-locally correlation
 deduplicates one independent source while staging cleaned metadata plus
 bounded spectral blocks. Exact cross-source hashes and exclusions are then
-resolved from metadata before the retained target matrix is allocated. The
-second pass reads/interpolates one retained staged block at a time. Internal
+resolved from metadata before the retained target is allocated. The second
+pass reads/interpolates one retained staged block at a time; production
+writes those blocks directly into a temporary HDF5 target so the complete
+merged matrix is never resident. Internal
 options \code{OpenSpecy.source_record_staging},
 \code{OpenSpecy.source_prefilter_staging},
 \code{OpenSpecy.compact_staged_metadata}, and
-\code{OpenSpecy.source_merge_chunk_size} control this same-value strategy;
+\code{OpenSpecy.source_merge_file_backed} control this same-value strategy;
+\code{OpenSpecy.source_merge_chunk_size} bounds each read, interpolation,
+and HDF5 write;
 \code{OpenSpecy.source_merge_gc_interval} bounds released temporary merge
 blocks between explicit garbage collections. Metadata lookups update only
 their output columns by reference and use
 \code{OpenSpecy.metadata_join_chunk_size} (100,000 rows by default), avoiding
-full copies of the combined metadata while the retained spectra matrix is
-resident.
+full copies of the combined metadata while retained spectra remain available
+in memory or file-backed. Production diagnostics preserve exact unmatched-row
+totals while limiting distinct reported values with
+\code{OpenSpecy.metadata_join_report_value_limit} (1,000 by default), and
+colliding lookup columns are coalesced during the same bounded pass.
 Metadata columns already designated for final removal can be discarded
 before the combined allocation, while repeated strings use a reversible
 compact representation until file-backed completion. The workflow trades
