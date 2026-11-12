@@ -110,9 +110,10 @@ weights, centered at zero.}
 
 \item{make_rel}{logical, whether to make the spectra relative or use the raw values}
 
-\item{z}{optional numeric vector specifying the intensity values for the
-heatmap. If not provided, the function will use the intensity values from the
-\code{OpenSpecy} object.}
+\item{z}{optional numeric or categorical vector specifying the displayed
+values. Processed particle-centroid objects produced by
+\code{automate_particle_analysis()} are drawn as selectable centroid points;
+ordinary spatial maps retain the gridded heatmap display.}
 
 \item{sn}{optional numeric value specifying the signal-to-noise ratio
 threshold. If provided along with \code{min_sn}, regions with SNR below the

@@ -28,6 +28,12 @@
 #' @param revision optional AWS S3 \code{versionId}. A single value applies to
 #' every requested type; a named character vector can pin each type separately.
 #' If \code{NULL}, the current unversioned object is downloaded.
+#' @param date optional target library date as one \code{Date} or strict
+#' \code{"YYYY-MM-DD"} value. For each requested type, \code{get_lib()} uses
+#' the catalogued version with the smallest calendar-date difference, preferring
+#' the earlier version on an exact tie. The current AWS object is discovered
+#' live and included among the candidates. \code{date} and \code{revision}
+#' cannot be supplied together.
 #' @param condition determines if \code{check_lib()} should warn
 #' (\code{"warning"}, the default) or throw and error (\code{"error"}).
 #' @param \ldots further arguments passed to \code{\link[utils]{download.file}()}.
@@ -44,6 +50,9 @@
 #' 
 #' #get the library stored in your system from online repo
 #' get_lib("derivative")
+#'
+#' #get the catalogued release closest to a target date
+#' get_lib("derivative", date = "2026-10-01")
 #' 
 #' #load the library into the working environment
 #' spec_lib <- load_lib("derivative")
@@ -196,6 +205,135 @@ check_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_deriva
   )
 }
 
+# Historical versions remain package-owned because the CloudFront distribution
+# permits exact object reads but its private S3 origin does not expose version
+# listings. The live current version is appended by .library_versions_for().
+.openspecy_library_versions <- function() {
+  data.frame(
+    type = rep(
+      c(
+        "derivative", "nobaseline", "raw", "medoid_derivative",
+        "medoid_nobaseline", "model_derivative", "model_nobaseline"
+      ),
+      each = 2L
+    ),
+    date = as.Date(rep(c("2026-09-22", "2026-10-21"), 7L)),
+    version_id = c(
+      "plEFh7vekJt_2rcBqEud6KeNTU07FfUy",
+      "PYhevbuo1qsTfvGyV8952X6oOk863L5k",
+      "6rVVsE1G9TaCoAsAa21FZaNNjgXsmhwj",
+      "lG.bJ00N5WkUCNUlEmKNQ8oBoxzyGe7n",
+      "ysLLpg5ORhA2sWl6R0hnhaV7CfROPOEU",
+      "LMOcxnkXhqXG_vVdXLY33smJXI9jtMK1",
+      "qWwA0_NJo59R38afYgI7vo7Js.paPDWA",
+      "lw5qXSqPAV2njxPkMUmfJGqJJzIOaj58",
+      "t7lzVXWzVVVIuLn9uce.OQrnx79aHJD0",
+      ".h0XGZJ8K9j2tkIT_qaD3Lw7kHhRR9v2",
+      "ExI.nMpxauEqSgXLr48yO.teTD9NemHz",
+      "MjpnerGc_ECQL0NWuHW5XTcls1f9ceNp",
+      "WnkXuBzPHSC7GKrG.bgz2ztqtszfLRc2",
+      "vfJc3OWlBKEhZIFNifzggvIZegSX44F1"
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+.library_target_date <- function(date) {
+  if (is.null(date)) return(NULL)
+
+  if (inherits(date, "Date")) {
+    if (length(date) != 1L || is.na(date)) {
+      stop("'date' must contain one non-missing calendar date", call. = FALSE)
+    }
+    return(date)
+  }
+
+  if (!is.character(date) || length(date) != 1L || is.na(date) ||
+      !grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date)) {
+    stop("'date' must be one Date or a 'YYYY-MM-DD' string", call. = FALSE)
+  }
+
+  parsed <- suppressWarnings(as.Date(date, format = "%Y-%m-%d"))
+  if (is.na(parsed) || !identical(format(parsed, "%Y-%m-%d"), date)) {
+    stop("'date' must be a valid calendar date in 'YYYY-MM-DD' format",
+         call. = FALSE)
+  }
+  parsed
+}
+
+.library_http_date <- function(value) {
+  match <- regexec(
+    "^[A-Za-z]{3}, ([0-9]{2}) ([A-Za-z]{3}) ([0-9]{4}) ", value
+  )
+  parts <- regmatches(value, match)[[1L]]
+  months <- setNames(sprintf("%02d", seq_len(12L)), month.abb)
+  if (length(parts) != 4L || !parts[[3L]] %in% names(months)) {
+    stop("AWS returned an invalid Last-Modified library date", call. = FALSE)
+  }
+  parsed <- as.Date(paste(parts[[4L]], months[[parts[[3L]]]], parts[[2L]],
+                          sep = "-"))
+  if (is.na(parsed)) {
+    stop("AWS returned an invalid Last-Modified library date", call. = FALSE)
+  }
+  parsed
+}
+
+.library_header_value <- function(headers, name) {
+  values <- grep(
+    paste0("^", name, "[[:space:]]*:"), headers,
+    ignore.case = TRUE, value = TRUE
+  )
+  if (!length(values)) return(NULL)
+  trimws(sub("^[^:]+:", "", tail(values, 1L)))
+}
+
+.library_remote_metadata <- function(url) {
+  headers <- curlGetHeaders(url, timeout = 30L)
+  status <- attr(headers, "status")
+  if (length(status) != 1L || is.na(status) || status < 200L || status >= 300L) {
+    stop("AWS did not return library release metadata for '", url, "'",
+         call. = FALSE)
+  }
+
+  modified <- .library_header_value(headers, "Last-Modified")
+  version_id <- .library_header_value(headers, "x-amz-version-id")
+  if (is.null(modified) || is.null(version_id) || !nzchar(version_id)) {
+    stop("AWS library metadata is missing Last-Modified or x-amz-version-id",
+         call. = FALSE)
+  }
+
+  list(date = .library_http_date(modified), version_id = version_id)
+}
+
+.library_versions_for <- function(type, current) {
+  versions <- .openspecy_library_versions()
+  versions <- versions[versions$type == type, , drop = FALSE]
+  current_row <- data.frame(
+    type = type, date = current$date, version_id = current$version_id,
+    stringsAsFactors = FALSE
+  )
+  versions <- rbind(versions, current_row)
+  versions <- versions[!duplicated(versions$version_id, fromLast = TRUE), ,
+                       drop = FALSE]
+  versions$is_current <- versions$version_id == current$version_id
+  rownames(versions) <- NULL
+  versions
+}
+
+.library_version_nearest <- function(type, target, current) {
+  versions <- .library_versions_for(type, current)
+  if (!nrow(versions)) {
+    stop("No dated library versions are catalogued for '", type, "'",
+         call. = FALSE)
+  }
+
+  distance <- abs(as.integer(versions$date - target))
+  # Earlier calendar dates win ties; for two versions on that same date, the
+  # live current object wins so a same-day replacement remains targetable.
+  selected <- order(distance, versions$date, !versions$is_current)[[1L]]
+  versions[selected, , drop = FALSE]
+}
+
 .library_revision <- function(revision, type) {
   if (is.null(revision)) return(NULL)
   if (!is.character(revision) || anyNA(revision) ||
@@ -222,7 +360,12 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
                     path = "system",
                     mode = "wb",
                     revision = NULL,
+                    date = NULL,
                     ...) {
+  if (!is.null(revision) && !is.null(date)) {
+    stop("supply only one of 'revision' or 'date'", call. = FALSE)
+  }
+  target_date <- .library_target_date(date)
   lp <- ifelse(path == "system",
                system.file("extdata", package = "OpenSpecy"),
                path)
@@ -238,15 +381,47 @@ get_lib <- function(type = c("derivative", "nobaseline", "raw", "medoid_derivati
       next
     }
 
-    message("Fetching ", gsub("_", " ", t), " library...")
+    label <- gsub("_", " ", t)
     version_id <- .library_revision(revision, t)
     url <- paste0("https://d2jrxerjcsjhs7.cloudfront.net/", row$filename)
+    if (!is.null(target_date)) {
+      current <- .library_remote_metadata(url)
+      selected <- .library_version_nearest(t, target_date, current)
+      version_id <- selected$version_id[[1L]]
+      metadata <- list(date = selected$date[[1L]], version_id = version_id)
+      message(
+        "Selected ", label, " library dated ", metadata$date,
+        " for requested date ", target_date, "."
+      )
+    } else {
+      metadata_url <- url
+      if (!is.null(version_id)) {
+        metadata_url <- paste0(
+          metadata_url, "?versionId=",
+          utils::URLencode(version_id, reserved = TRUE)
+        )
+      }
+      metadata <- .library_remote_metadata(metadata_url)
+      if (!is.null(version_id) &&
+          !identical(metadata$version_id, version_id)) {
+        stop(
+          "AWS returned version '", metadata$version_id,
+          "' instead of requested revision '", version_id, "'",
+          call. = FALSE
+        )
+      }
+    }
     if (!is.null(version_id)) {
       url <- paste0(url, "?versionId=",
                     utils::URLencode(version_id, reserved = TRUE))
     }
+    message("Fetching ", label, " library...")
     destfile <- file.path(lp, row$filename)
     download.file(url, destfile = destfile, mode = mode, ...)
+    message(
+      "Downloaded ", label, " library dated ", metadata$date,
+      " (AWS version ", metadata$version_id, ")."
+    )
 
   }
 

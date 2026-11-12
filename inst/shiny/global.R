@@ -203,7 +203,7 @@ app_tab_switch_ids <- function() {
     advanced = c(
       "cor_threshold_decision", "threshold_decision", "collapse_decision",
       "spatial_decision", "simple_metadata", "show_peak_positions",
-      "load_entire_map", "xy_grid"
+      "load_entire_map", "xy_grid", "xy_crop_decision"
     )
   )
 }
@@ -724,6 +724,59 @@ app_ordinary_heatmap_data <- function(metadata, values, categorical,
     list(type = "heatmap", x = grid$x, y = grid$y, z = grid$z,
          legend_title = legend_title, rejected = rejected_grid,
          rejection_reason = reason_grid, axis_unit = axis_unit)
+  }
+}
+
+app_particle_point_data <- function(object, metadata, values, categorical,
+                                    legend_title, rejected = NULL,
+                                    rejection_reason = NULL,
+                                    axis_unit = "pixel") {
+  if(!OpenSpecy:::.is_particle_centroid_object(object)) {
+    stop("Particle point data require a processed particle-centroid object.",
+         call. = FALSE)
+  }
+  metadata <- data.table::copy(data.table::as.data.table(metadata))
+  if(nrow(metadata) != ncol(object$spectra) ||
+     length(values) != nrow(metadata)) {
+    stop("Particle point values and coordinates do not align.", call. = FALSE)
+  }
+  rejected <- if(is.null(rejected)) rep(FALSE, length(values)) else {
+    out <- as.logical(rejected)
+    if(length(out) != length(values)) {
+      stop("The particle threshold mask does not align with its values.",
+           call. = FALSE)
+    }
+    out[is.na(out)] <- FALSE
+    out
+  }
+  if(is.null(rejection_reason)) {
+    rejection_reason <- rep("active threshold", length(values))
+  }
+  if(length(rejection_reason) != length(values)) {
+    stop("Particle rejection reasons do not align with their values.",
+         call. = FALSE)
+  }
+  object$metadata <- data.table::copy(data.table::as.data.table(object$metadata))
+  object$metadata[, `:=`(x = as.numeric(metadata$x), y = as.numeric(metadata$y))]
+  object <- OpenSpecy:::.mark_particle_centroid_object(object)
+  if(isTRUE(categorical)) {
+    values <- droplevels(factor(values))
+    levels <- levels(values)
+    list(
+      type = "points_categorical", object = object,
+      x = object$metadata$x, y = object$metadata$y, z = values,
+      levels = levels, palette = app_category_palette(levels),
+      legend_title = legend_title, rejected = rejected,
+      rejection_reason = as.character(rejection_reason), axis_unit = axis_unit
+    )
+  } else {
+    list(
+      type = "points", object = object,
+      x = object$metadata$x, y = object$metadata$y,
+      z = suppressWarnings(as.numeric(values)), legend_title = legend_title,
+      rejected = rejected, rejection_reason = as.character(rejection_reason),
+      axis_unit = axis_unit
+    )
   }
 }
 
@@ -1900,6 +1953,57 @@ app_calibrate_spatial_metadata <- function(metadata, pixel_size = 1,
   result
 }
 
+app_xy_crop_bounds <- function(enabled, x_min, x_max, y_min, y_max,
+                               allow_incomplete = FALSE) {
+  if(!isTRUE(enabled)) return(NULL)
+  values <- suppressWarnings(as.numeric(c(x_min, x_max, y_min, y_max)))
+  if(length(values) != 4L || any(!is.finite(values))) {
+    if(isTRUE(allow_incomplete)) return(NULL)
+    stop("Crop XY Range requires finite X and Y minimum and maximum values.",
+         call. = FALSE)
+  }
+  values <- c(sort(values[1:2]), sort(values[3:4]))
+  if(values[[1L]] >= values[[2L]] || values[[3L]] >= values[[4L]]) {
+    if(isTRUE(allow_incomplete)) return(NULL)
+    stop("Crop XY Range must have positive width and height.", call. = FALSE)
+  }
+  stats::setNames(values, c("xmin", "xmax", "ymin", "ymax"))
+}
+
+app_effective_xy_crop_bounds <- function(enabled, x_min, x_max, y_min, y_max,
+                                         default_bounds = NULL,
+                                         allow_incomplete = FALSE) {
+  if(!isTRUE(enabled)) return(NULL)
+  values <- suppressWarnings(as.numeric(c(x_min, x_max, y_min, y_max)))
+  if(length(values) == 4L && all(!is.finite(values)) &&
+     !is.null(default_bounds)) {
+    defaults <- suppressWarnings(as.numeric(default_bounds))
+    if(length(defaults) == 4L && all(is.finite(defaults))) {
+      return(app_xy_crop_bounds(
+        TRUE, defaults[[1L]], defaults[[2L]],
+        defaults[[3L]], defaults[[4L]],
+        allow_incomplete = allow_incomplete
+      ))
+    }
+  }
+  app_xy_crop_bounds(
+    TRUE, x_min, x_max, y_min, y_max,
+    allow_incomplete = allow_incomplete
+  )
+}
+
+app_plotly_selection_bounds <- function(selection) {
+  if(is.null(selection) || !is.list(selection) ||
+     !all(c("x", "y") %in% names(selection))) return(NULL)
+  x <- suppressWarnings(as.numeric(selection$x))
+  y <- suppressWarnings(as.numeric(selection$y))
+  if(length(x) < 2L || length(y) < 2L ||
+     any(!is.finite(c(x, y)))) return(NULL)
+  app_xy_crop_bounds(
+    TRUE, min(x), max(x), min(y), max(y), allow_incomplete = TRUE
+  )
+}
+
 app_project_source_coordinates <- function(source, metadata,
                                            pixel_size = 1,
                                            pixel_unit = "pixel") {
@@ -1912,6 +2016,17 @@ app_project_source_coordinates <- function(source, metadata,
       result[, `:=`(grid_x = x, grid_y = y, x = stage_x, y = stage_y)]
       attr(result, "openspecy_spatial_unit") <- "nm"
       return(list(metadata = result, unit = "nm", source = "H5 stage"))
+    }
+  }
+  spatial_unit <- attr(source, "openspecy_spatial_unit", exact = TRUE)
+  if(isTruthy(spatial_unit)) {
+    spatial_unit <- trimws(as.character(spatial_unit)[[1L]])
+    if(nzchar(spatial_unit)) {
+      attr(result, "openspecy_spatial_unit") <- spatial_unit
+      return(list(
+        metadata = result, unit = spatial_unit,
+        source = "processed particle metadata"
+      ))
     }
   }
   calibration <- app_source_coordinate_calibration(source)
@@ -1929,6 +2044,49 @@ app_project_source_coordinates <- function(source, metadata,
   fallback <- app_calibrate_spatial_metadata(result, pixel_size, pixel_unit)
   list(metadata = fallback, unit = attr(fallback, "openspecy_spatial_unit"),
        source = "manual pixel calibration")
+}
+
+app_spatial_extent <- function(source, pixel_size = 1,
+                               pixel_unit = "pixel") {
+  metadata <- if(is_Specs(source)) {
+    specs_metadata(source)
+  } else if(is_OpenSpecy(source)) {
+    data.table::as.data.table(source$metadata)
+  } else {
+    return(NULL)
+  }
+  projection <- app_project_source_coordinates(
+    source, metadata, pixel_size = pixel_size, pixel_unit = pixel_unit
+  )
+  x <- suppressWarnings(as.numeric(projection$metadata$x))
+  y <- suppressWarnings(as.numeric(projection$metadata$y))
+  keep <- is.finite(x) & is.finite(y)
+  if(!any(keep)) return(NULL)
+  stats::setNames(
+    c(range(x[keep]), range(y[keep])),
+    c("xmin", "xmax", "ymin", "ymax")
+  )
+}
+
+app_crop_spatial_source <- function(source, bounds, pixel_size = 1,
+                                    pixel_unit = "pixel") {
+  metadata <- if(is_Specs(source)) {
+    specs_metadata(source)
+  } else {
+    data.table::as.data.table(source$metadata)
+  }
+  projection <- app_project_source_coordinates(
+    source, metadata, pixel_size = pixel_size, pixel_unit = pixel_unit
+  )
+  result <- OpenSpecy:::.crop_spatial_spec(
+    source, bounds,
+    coordinates = projection$metadata[, c("x", "y"), with = FALSE]
+  )
+  crop <- attr(result, "spatial_crop", exact = TRUE)
+  crop$unit <- projection$unit
+  crop$coordinate_source <- projection$source
+  attr(result, "spatial_crop") <- crop
+  result
 }
 
 app_registered_visual <- function(source) {
@@ -1999,19 +2157,34 @@ app_visual_layout_image <- function(x, y, image, opacity = 1) {
   )
 }
 
-app_selection_shape <- function(x, y, select) {
+app_selection_shapes <- function(x, y, select) {
   if(is.null(select) || length(select$x) != 1L || length(select$y) != 1L ||
-     !is.finite(select$x) || !is.finite(select$y)) return(NULL)
+     !is.finite(select$x) || !is.finite(select$y)) return(list())
   x_boundary <- app_heatmap_cell_range(x)
   y_boundary <- app_heatmap_cell_range(y)
   x_radius <- diff(x_boundary) / max(length(unique(x)), 1L) * 0.4
   y_radius <- diff(y_boundary) / max(length(unique(y)), 1L) * 0.4
+  color <- "#FF2D2D"
   list(
-    type = "circle", xref = "x", yref = "y",
-    x0 = select$x - x_radius, x1 = select$x + x_radius,
-    y0 = select$y - y_radius, y1 = select$y + y_radius,
-    fillcolor = "#FFFFFF", opacity = 1,
-    line = list(color = "#FFFFFF", width = 2), layer = "above"
+    list(
+      type = "circle", xref = "x", yref = "y",
+      x0 = select$x - x_radius, x1 = select$x + x_radius,
+      y0 = select$y - y_radius, y1 = select$y + y_radius,
+      fillcolor = "rgba(0,0,0,0)", opacity = 1,
+      line = list(color = color, width = 2), layer = "above"
+    ),
+    list(
+      type = "line", xref = "x", yref = "y",
+      x0 = select$x - 1.45 * x_radius, x1 = select$x + 1.45 * x_radius,
+      y0 = select$y, y1 = select$y,
+      line = list(color = color, width = 2), layer = "above"
+    ),
+    list(
+      type = "line", xref = "x", yref = "y",
+      x0 = select$x, x1 = select$x,
+      y0 = select$y - 1.45 * y_radius, y1 = select$y + 1.45 * y_radius,
+      line = list(color = color, width = 2), layer = "above"
+    )
   )
 }
 
@@ -2492,41 +2665,78 @@ app_histogram_ggplot <- function(values, thresholds = numeric(), xlab) {
 }
 
 app_heatmap_ggplot <- function(data) {
-  grid <- expand.grid(x = data$x, y = data$y)
-  grid$value <- as.vector(data$z)
-  rejected <- if(is.null(data$rejected)) rep(FALSE, nrow(grid)) else
+  point_geometry <- data$type %in% c("points", "points_categorical")
+  grid <- if(point_geometry) {
+    data.frame(x = data$x, y = data$y, value = data$z)
+  } else {
+    result <- expand.grid(x = data$x, y = data$y)
+    result$value <- as.vector(data$z)
+    result
+  }
+  rejected <- if(is.null(data$rejected)) {
+    rep(FALSE, nrow(grid))
+  } else if(point_geometry) {
+    as.logical(data$rejected)
+  } else {
     !is.na(as.vector(data$rejected))
+  }
+  rejected[is.na(rejected)] <- FALSE
   grid$rejected <- rejected
-  categorical <- identical(data$type, "heatmap_categorical") ||
+  categorical <- identical(data$type, "points_categorical") ||
+    identical(data$type, "heatmap_categorical") ||
     identical(data$type, "heatmap_binary")
   if(categorical) {
     levels <- if(identical(data$type, "heatmap_binary")) data$labels else
       data$levels
-    grid$value <- factor(levels[as.integer(grid$value)], levels = levels)
+    grid$value <- if(point_geometry) {
+      factor(as.character(grid$value), levels = levels)
+    } else {
+      factor(levels[as.integer(grid$value)], levels = levels)
+    }
     palette <- if(!is.null(data$palette)) data$palette[levels] else
       app_category_palette(levels)
-    plot <- ggplot2::ggplot(grid, ggplot2::aes(x = x, y = y, fill = value)) +
-      ggplot2::geom_tile() +
-      ggplot2::scale_fill_manual(values = palette, na.value = app_theme$panel_2,
-                                 drop = FALSE)
+    plot <- ggplot2::ggplot(grid, ggplot2::aes(x = x, y = y))
+    if(point_geometry) {
+      plot <- plot +
+        ggplot2::geom_point(ggplot2::aes(color = value), size = 3) +
+        ggplot2::scale_color_manual(
+          values = palette, na.value = app_theme$panel_2, drop = FALSE
+        )
+    } else {
+      plot <- plot +
+        ggplot2::geom_tile(ggplot2::aes(fill = value), color = NA) +
+        ggplot2::scale_fill_manual(
+          values = palette, na.value = app_theme$panel_2, drop = FALSE
+        )
+    }
   } else {
-    plot <- ggplot2::ggplot(grid, ggplot2::aes(x = x, y = y, fill = value)) +
-      ggplot2::geom_tile() +
-      ggplot2::scale_fill_gradientn(
-        colours = vapply(app_heatmap_colorscale, `[[`, "", 2L),
-        na.value = app_theme$panel_2
-      )
+    colors <- vapply(app_heatmap_colorscale, `[[`, "", 2L)
+    plot <- ggplot2::ggplot(grid, ggplot2::aes(x = x, y = y))
+    plot <- if(point_geometry) {
+      plot + ggplot2::geom_point(ggplot2::aes(color = value), size = 3) +
+        ggplot2::scale_color_gradientn(colours = colors,
+                                       na.value = app_theme$panel_2)
+    } else {
+      plot + ggplot2::geom_tile(ggplot2::aes(fill = value)) +
+        ggplot2::scale_fill_gradientn(colours = colors,
+                                      na.value = app_theme$panel_2)
+    }
   }
   if(any(rejected)) {
-    plot <- plot + ggplot2::geom_tile(
-      data = grid[rejected, , drop = FALSE], fill = "black"
-    )
+    plot <- plot + if(point_geometry) {
+      ggplot2::geom_point(
+        data = grid[rejected, , drop = FALSE], color = "black", size = 3
+      )
+    } else {
+      ggplot2::geom_tile(data = grid[rejected, , drop = FALSE], fill = "black")
+    }
   }
   axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
   plot <- plot + ggplot2::coord_equal() + theme_black_minimal(base_size = 13) +
     ggplot2::labs(
       x = paste0("X (", axis_unit, ")"),
-      y = paste0("Y (", axis_unit, ")"), fill = data$legend_title
+      y = paste0("Y (", axis_unit, ")"), fill = data$legend_title,
+      color = data$legend_title
     )
   # Particle Unit and Match ID are per-particle identifiers -- essentially
   # as many categories as there are particles -- so a legend is never
@@ -2763,7 +2973,8 @@ app_matches_for_object <- function(matches, object_id) {
 
 app_map_color_choices <- function(identification_active, model_library,
                                   collapse, availability = NULL,
-                                  signal_label = "Signal/Noise") {
+                                  signal_label = "Signal/Noise",
+                                  quantification = character()) {
   choices <- c(
     if(isTRUE(identification_active)) "Material Class" else NA_character_,
     if(isTRUE(identification_active) && !isTRUE(model_library))
@@ -2773,12 +2984,23 @@ app_map_color_choices <- function(identification_active, model_library,
     if(isTRUE(collapse)) "Particle Unit" else NA_character_
   )
   choices <- choices[!is.na(choices)]
+  labels <- choices
+  quantification_names <- names(quantification)
+  quantification <- as.character(quantification)
+  names(quantification) <- quantification_names
+  if(length(quantification)) {
+    quantification <- quantification[
+      !is.na(quantification) & nzchar(trimws(quantification))
+    ]
+    choices <- c(choices, unname(quantification))
+    labels <- c(labels, names(quantification))
+  }
   if(!is.null(availability)) {
     available <- as.logical(availability[choices])
     available[is.na(available)] <- FALSE
     choices <- choices[available]
+    labels <- labels[available]
   }
-  labels <- choices
   signal_label <- as.character(signal_label)[1L]
   if(is.na(signal_label) || !nzchar(trimws(signal_label))) {
     signal_label <- "Signal/Noise"
@@ -3223,7 +3445,9 @@ app_user_metadata_input_ids <- c(
   "threshold_decision", "signal_basis", "MinSNR", "MaxSNR",
   "signal_selection",
   "cor_threshold_decision", "MinCor", "spatial_decision", "sigma",
-  "xy_grid", "load_entire_map", "identify_batch_size",
+  "xy_grid", "xy_crop_decision", "xy_crop_x_min", "xy_crop_x_max",
+  "xy_crop_y_min", "xy_crop_y_max", "load_entire_map",
+  "identify_batch_size",
   "collapse_decision", "collapse_type",
   "particle_id_strategy",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
@@ -3266,7 +3490,8 @@ app_logical_setting_ids <- c(
   "range_automate", "co2_decision", "co2_automate",
   "identification_active", "top_n_per_organization", "filter_lib",
   "threshold_decision", "cor_threshold_decision", "spatial_decision",
-  "xy_grid", "load_entire_map", "collapse_decision", "simple_metadata",
+  "xy_grid", "xy_crop_decision", "load_entire_map", "collapse_decision",
+  "simple_metadata",
   "show_peak_positions", "visual_overlay"
 )
 
@@ -3278,7 +3503,8 @@ app_numeric_setting_ids <- c(
   "conform_res", "baseline", "baseline_lambda", "baseline_hwi",
   "iterations", "range_artifact_ratio", "MinRange", "MaxRange",
   "co2_artifact_ratio", "MinFlat", "MaxFlat", "top_n_input", "MinSNR",
-  "MaxSNR", "MinCor", "sigma", "identify_batch_size",
+  "MaxSNR", "MinCor", "sigma", "xy_crop_x_min", "xy_crop_x_max",
+  "xy_crop_y_min", "xy_crop_y_max", "identify_batch_size",
   "particle_pca_components", "particle_cluster_k", "particle_area_threshold",
   "pixel_size", "peak_count", "overlay_transparency",
   "quant_numerator_area_min", "quant_numerator_area_max",
@@ -3676,6 +3902,14 @@ app_user_metadata_import <- function(snapshot, defaults) {
       }
       settings[[id]] <- text %in% c("true", "1")
     } else if(id %in% app_numeric_setting_ids) {
+      optional_crop_bound <- id %in% c(
+        "xy_crop_x_min", "xy_crop_x_max", "xy_crop_y_min", "xy_crop_y_max"
+      )
+      if(optional_crop_bound &&
+         (length(raw) != 1L || is.na(raw) || !nzchar(trimws(as.character(raw))))) {
+        settings[[id]] <- NA_real_
+        next
+      }
       value <- suppressWarnings(as.numeric(raw))
       if(length(value) != 1L || !is.finite(value)) {
         stop("Setting '", id, "' must be a finite number.", call. = FALSE)
@@ -3687,6 +3921,11 @@ app_user_metadata_import <- function(snapshot, defaults) {
       settings[[id]] <- as.character(raw)
     }
   }
+  app_xy_crop_bounds(
+    isTRUE(settings$xy_crop_decision),
+    settings$xy_crop_x_min, settings$xy_crop_x_max,
+    settings$xy_crop_y_min, settings$xy_crop_y_max
+  )
   saved_value <- function(name) {
     if(name %in% names(snapshot)) snapshot[[name]][[1L]] else NA_character_
   }
@@ -3698,6 +3937,7 @@ app_user_metadata_import <- function(snapshot, defaults) {
     saved_value("quant_saved_measurement_definitions"),
     app_empty_measurement_definitions()
   )
+  app_validate_quantification_names(ratios, measurements)
   ranges <- app_parse_saved_definitions(
     saved_value("range_saved_definitions"),
     app_empty_range_definitions()
@@ -3733,6 +3973,24 @@ app_user_metadata_import <- function(snapshot, defaults) {
 
 app_quantification_source_value <- "displayed_processed_spectra"
 
+app_validate_quantification_names <- function(
+    ratios = app_empty_ratio_definitions(),
+    measurements = app_empty_measurement_definitions()) {
+  names <- c(as.character(ratios$name), as.character(measurements$name))
+  normalized <- tolower(trimws(names))
+  if(any(is.na(normalized) | !nzchar(normalized))) {
+    stop("Every ratio and measurement requires a nonempty name.",
+         call. = FALSE)
+  }
+  if(anyDuplicated(normalized)) {
+    stop(
+      "Ratio and measurement names must be unique across all quantification definitions.",
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
 app_ratio_column_name <- function(name, type) {
   if(!is.character(name) || length(name) != 1L || is.na(name) ||
      !nzchar(trimws(name))) {
@@ -3750,13 +4008,19 @@ app_ratio_column_name <- function(name, type) {
 }
 
 app_add_ratio_definition <- function(definitions, name, type, numerator,
-                                     denominator, axis = NULL) {
+                                     denominator, axis = NULL,
+                                     other_names = character()) {
   expected <- names(app_empty_ratio_definitions())
   if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
     stop("Ratio definitions have an unexpected structure.", call. = FALSE)
   }
   type <- match.arg(type, c("area", "peak"))
   name <- trimws(name)
+  existing_names <- c(as.character(definitions$name), as.character(other_names))
+  if(tolower(name) %in% tolower(trimws(existing_names))) {
+    stop("A ratio or measurement with the same quantification name has already been added.",
+         call. = FALSE)
+  }
   column <- app_ratio_column_name(name, type)
   if(column %in% definitions$column) {
     stop("A ratio with the same metadata name has already been added.",
@@ -3933,7 +4197,8 @@ app_measurement_column_name <- function(name, type) {
 }
 
 app_add_measurement_definition <- function(definitions, name, type, values,
-                                           axis = NULL) {
+                                           axis = NULL,
+                                           other_names = character()) {
   expected <- names(app_empty_measurement_definitions())
   if(!is.data.frame(definitions) || !identical(names(definitions), expected)) {
     stop("Measurement definitions have an unexpected structure.",
@@ -3941,6 +4206,11 @@ app_add_measurement_definition <- function(definitions, name, type, values,
   }
   type <- match.arg(type, c("area", "point"))
   name <- trimws(name)
+  existing_names <- c(as.character(definitions$name), as.character(other_names))
+  if(tolower(name) %in% tolower(trimws(existing_names))) {
+    stop("A ratio or measurement with the same quantification name has already been added.",
+         call. = FALSE)
+  }
   column <- app_measurement_column_name(name, type)
   if(column %in% definitions$column) {
     stop("A measurement with the same metadata name has already been added.",
@@ -4157,6 +4427,10 @@ app_attach_quantification <- function(
     }
     x$metadata[[definition$column[[1L]]]] <- as.numeric(values)
   }
+  attr(x, "openspecy_quantification_labels") <- stats::setNames(
+    c(as.character(definitions$name), as.character(measurements$name)),
+    c(as.character(definitions$column), as.character(measurements$column))
+  )
   x
 }
 
@@ -4455,7 +4729,8 @@ app_heatmap_legend_layout <- function(title = NULL) {
 
 app_heatmap_legend_model <- function(data, max_categories = 30L) {
   title <- if(isTruthy(data$legend_title)) data$legend_title else "Value"
-  categorical <- identical(data$type, "heatmap_categorical") ||
+  categorical <- identical(data$type, "points_categorical") ||
+    identical(data$type, "heatmap_categorical") ||
     identical(data$type, "heatmap_binary")
   if(categorical) {
     levels <- if(identical(data$type, "heatmap_binary")) {
@@ -5225,11 +5500,12 @@ app_heatmap_hover_text <- function(data, legend_title, levels = NULL) {
 
 # Render one automate_particle_analysis() plot-data list (see
 # R/automate_particle_analysis.R) as a themed, interactive plotly object.
-# Uses the shared heatmapA/MyPlotC Plotly theme: a heatmap trace
-# (hover-only metadata, no click popover) plus a second, always-present
-# plus an optional registered raster in Plotly's explicit above-trace image
-# layer. A selected cell is drawn in the still-higher shape layer. `select` is
-# the currently selected point's data coordinates (list(x=, y=)) or NULL.
+# Uses the shared heatmapA/MyPlotC Plotly theme: grid maps have primary and
+# rejection heatmaps plus a transparent four-corner scatter selection carrier;
+# particle maps use centroid markers directly. An optional registered raster
+# occupies Plotly's above-trace image layer, while the selected location uses
+# the still-higher shape layer. `select` is the selected point's data
+# coordinates (list(x=, y=)) or NULL.
 app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
   if (is.null(data) || identical(data$type, "empty")) {
     reason <- if (!is.null(data$reason)) data$reason else "no data available"
@@ -5266,6 +5542,68 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       ) |>
       app_style_plotly()
     return(plot)
+  }
+
+  if(data$type %in% c("points", "points_categorical")) {
+    legend_title <- if(isTruthy(data$legend_title)) data$legend_title else
+      "Value"
+    categorical <- identical(data$type, "points_categorical")
+    plot_values <- if(categorical) factor(data$z, levels = data$levels) else
+      suppressWarnings(as.numeric(data$z))
+    colorscale <- if(categorical) {
+      colors <- if(!is.null(data$palette)) data$palette[data$levels] else
+        app_category_palette(data$levels)
+      app_indexed_colorscale(colors[data$levels])
+    } else {
+      app_heatmap_colorscale
+    }
+    point_object <- data$object
+    point_object$metadata$x <- as.numeric(data$x)
+    point_object$metadata$y <- as.numeric(data$y)
+    plot <- OpenSpecy::heatmap_spec(
+      point_object, z = plot_values, colorscale = colorscale,
+      showlegend = FALSE, source = source
+    )
+    rejected <- as.logical(data$rejected)
+    rejected[is.na(rejected)] <- FALSE
+    if(any(rejected)) {
+      reasons <- as.character(data$rejection_reason)
+      plot <- plotly::add_markers(
+        plot, x = data$x[rejected], y = data$y[rejected],
+        text = paste0("Rejected: ", reasons[rejected]),
+        hoverinfo = "text", name = "Rejected",
+        marker = list(color = "#000000", size = 11, symbol = "x",
+                      line = list(color = "#000000", width = 2))
+      )
+    }
+    overlay_opacity <- suppressWarnings(as.numeric(data$overlay_opacity))
+    if(length(overlay_opacity) != 1L || !is.finite(overlay_opacity)) {
+      overlay_opacity <- 1
+    }
+    layout_images <- list()
+    if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
+      image <- pmin(pmax(data$visual_image, 0), 1)
+      layout_images <- list(app_visual_layout_image(
+        if(is.null(data$visual_x)) data$x else data$visual_x,
+        if(is.null(data$visual_y)) data$y else data$visual_y,
+        image, pmin(pmax(overlay_opacity, 0), 1)
+      ))
+    }
+    layout_shapes <- app_selection_shapes(data$x, data$y, select)
+    axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
+    plot <- plotly::layout(
+      plot,
+      xaxis = list(title = paste0("X (", axis_unit, ")")),
+      yaxis = list(title = paste0("Y (", axis_unit, ")"),
+                   scaleanchor = "x", scaleratio = 1),
+      images = layout_images, shapes = layout_shapes,
+      dragmode = "select",
+      showlegend = FALSE,
+      margin = app_heatmap_legend_layout(legend_title)$margin
+    ) |>
+      app_style_plotly()
+    plot <- plotly::event_register(plot, "plotly_click")
+    return(plotly::event_register(plot, "plotly_brushed"))
   }
 
   legend_title <- if (isTruthy(data$legend_title)) data$legend_title else
@@ -5331,6 +5669,8 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
     overlay_opacity <- 1
   }
   overlay_opacity <- pmin(pmax(overlay_opacity, 0), 1)
+  selection_x <- range(data$x, finite = TRUE)
+  selection_y <- range(data$y, finite = TRUE)
   plot <- plotly::plot_ly(source = source) |>
     plotly::add_trace(
       x = data$x, y = data$y, z = z, type = "heatmap",
@@ -5346,26 +5686,37 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       zmin = 0, zmax = 1, showscale = FALSE,
       hoverinfo = "text", text = rejected_text, hoverongaps = FALSE,
       name = "Rejected"
+    ) |>
+    plotly::add_trace(
+      x = rep(selection_x, times = 2L),
+      y = rep(selection_y, each = 2L),
+      type = "scatter", mode = "markers", inherit = FALSE,
+      marker = list(size = 1, color = "rgba(0,0,0,0)"),
+      opacity = 0, hoverinfo = "skip", showlegend = FALSE,
+      name = "XY crop box selector"
     )
   layout_images <- list()
   if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
     image <- pmin(pmax(data$visual_image, 0), 1)
     layout_images <- list(app_visual_layout_image(
-      data$x, data$y, image, overlay_opacity
+      if(is.null(data$visual_x)) data$x else data$visual_x,
+      if(is.null(data$visual_y)) data$y else data$visual_y,
+      image, overlay_opacity
     ))
   }
-  selection_shape <- app_selection_shape(data$x, data$y, select)
-  layout_shapes <- if(is.null(selection_shape)) list() else list(selection_shape)
+  layout_shapes <- app_selection_shapes(data$x, data$y, select)
   plot <- plot |>
     plotly::layout(
       xaxis = list(title = paste0("X (", axis_unit, ")")),
       yaxis = list(title = paste0("Y (", axis_unit, ")"),
                    scaleanchor = "x", scaleratio = 1),
       images = layout_images, shapes = layout_shapes,
+      dragmode = "select",
       showlegend = FALSE, margin = legend_layout$margin
     ) |>
     app_style_plotly()
-  plotly::event_register(plot, "plotly_click")
+  plot <- plotly::event_register(plot, "plotly_click")
+  plotly::event_register(plot, "plotly_brushed")
 }
 
 app_style_plotly <- function(plot) {

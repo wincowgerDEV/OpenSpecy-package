@@ -996,6 +996,8 @@ test_that("User Metadata settings restore atomically and reset omissions", {
     }), env$app_user_metadata_input_ids
   )
   defaults$lib_org <- character()
+  defaults[c("xy_crop_x_min", "xy_crop_x_max",
+             "xy_crop_y_min", "xy_crop_y_max")] <- rep(list(NA_real_), 4L)
   settings <- defaults
   settings$threshold_decision <- TRUE
   settings$MinSNR <- 4.567
@@ -1020,6 +1022,9 @@ test_that("User Metadata settings restore atomically and reset omissions", {
   expect_equal(parsed$settings$MinSNR, 4.567)
   expect_identical(parsed$settings$lib_org, c("polymer", "fiber"))
   expect_identical(parsed$settings$pixel_unit, defaults$pixel_unit)
+  expect_true(all(is.na(unlist(parsed$settings[c(
+    "xy_crop_x_min", "xy_crop_x_max", "xy_crop_y_min", "xy_crop_y_max"
+  )]))))
   expect_equal(parsed$ratios$name, "Carbonyl")
   expect_equal(parsed$ranges[, c("minimum", "maximum")],
                ranges[, c("minimum", "maximum")])
@@ -1045,7 +1050,10 @@ test_that("particle plotly places the alpha image above the heatmap boundary", {
   expect_true(is.null(built$x$data[[1L]]$opacity) ||
                 identical(built$x$data[[1L]]$opacity, 1))
   expect_identical(built$x$data[[2L]]$name, "Rejected")
-  expect_length(built$x$data, 2L)
+  expect_length(built$x$data, 3L)
+  expect_identical(built$x$data[[3L]]$name, "XY crop box selector")
+  expect_length(unlist(built$x$data[[3L]]$x), 4L)
+  expect_identical(built$x$layout$dragmode, "select")
   overlay <- built$x$layout$images[[1L]]
   expect_match(overlay$source, "^data:image/png;base64,")
   expect_equal(overlay$opacity, 0.35)
@@ -1054,13 +1062,17 @@ test_that("particle plotly places the alpha image above the heatmap boundary", {
   expect_equal(overlay$sizex, 2)
   expect_equal(overlay$sizey, 2)
   expect_identical(overlay$layer, "above")
+  expect_length(built$x$layout$shapes, 3L)
   selection <- built$x$layout$shapes[[1L]]
   expect_identical(selection$type, "circle")
   expect_identical(selection$layer, "above")
-  expect_identical(selection$fillcolor, "#FFFFFF")
-  expect_identical(selection$line$color, "#FFFFFF")
+  expect_identical(selection$fillcolor, "rgba(0,0,0,0)")
+  expect_identical(selection$line$color, "#FF2D2D")
   expect_equal(c(selection$x0, selection$x1), c(0.6, 1.4))
   expect_equal(c(selection$y0, selection$y1), c(-0.4, 0.4))
+  expect_identical(built$x$layout$shapes[[2L]]$type, "line")
+  expect_identical(built$x$layout$shapes[[3L]]$type, "line")
+  expect_identical(built$x$layout$shapes[[2L]]$line$color, "#FF2D2D")
 })
 
 test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
@@ -1080,6 +1092,7 @@ test_that("threshold-rejected heatmap pixels are black and gaps stay empty", {
 
   widget <- env$app_particle_plotly(data)
   expect_contains(widget$x$shinyEvents, "plotly_click")
+  expect_contains(widget$x$shinyEvents, "plotly_brushed")
   built <- suppressWarnings(plotly::plotly_build(widget))
   rejected_trace <- built$x$data[[2L]]
   expect_identical(rejected_trace$type, "heatmap")
@@ -1732,9 +1745,59 @@ test_that("processed particle RDS metadata restores heatmap coordinates", {
   mapping <- env$app_identity_pixel_mapping(restored)
   expect_equal(mapping$x, c(2, 5, 8))
   expect_equal(mapping$y, c(3, 4, 7))
-  heatmap <- env$app_ordinary_heatmap_data(
-    restored$metadata, c(1, 2, 3), FALSE, "Signal/Noise"
+  restored <- OpenSpecy:::.mark_particle_centroid_object(restored)
+  heatmap <- env$app_particle_point_data(
+    restored, restored$metadata, c(1, 2, 3), FALSE, "Signal/Noise"
   )
-  expect_identical(heatmap$type, "heatmap")
-  expect_true(any(is.finite(heatmap$z)))
+  expect_identical(heatmap$type, "points")
+  built <- suppressWarnings(plotly::plotly_build(env$app_particle_plotly(
+    heatmap, select = list(x = 5, y = 4)
+  )))
+  expect_identical(built$x$data[[1L]]$type, "scattergl")
+  expect_equal(as.numeric(unlist(built$x$data[[1L]]$x)), c(2, 5, 8))
+  expect_identical(built$x$layout$dragmode, "select")
+  widget <- env$app_particle_plotly(heatmap)
+  expect_contains(widget$x$shinyEvents, "plotly_brushed")
+})
+
+test_that("XY crop helpers normalize box selections and crop displayed units", {
+  env <- .source_in_memory_app_helpers()
+  bounds <- env$app_xy_crop_bounds(TRUE, 8, 2, 6, 1)
+  expect_equal(unname(bounds), c(2, 8, 1, 6))
+  expect_null(env$app_xy_crop_bounds(FALSE, NA, NA, NA, NA))
+  expect_null(env$app_xy_crop_bounds(
+    TRUE, NA, NA, NA, NA, allow_incomplete = TRUE
+  ))
+  expect_error(env$app_xy_crop_bounds(TRUE, 1, 1, 0, 2), "positive width")
+  expect_equal(
+    unname(env$app_effective_xy_crop_bounds(
+      TRUE, NA, NA, NA, NA, default_bounds = c(-2, 8, -3, 7)
+    )),
+    c(-2, 8, -3, 7)
+  )
+  expect_error(
+    env$app_effective_xy_crop_bounds(
+      TRUE, 1, NA, NA, NA, default_bounds = c(-2, 8, -3, 7)
+    ),
+    "requires finite"
+  )
+
+  selection <- list(x = c(9, 3), y = c(7, 2))
+  expect_equal(
+    unname(env$app_plotly_selection_bounds(selection)), c(3, 9, 2, 7)
+  )
+  expect_null(env$app_plotly_selection_bounds(list(x = 1, y = c(1, 2))))
+
+  source <- as_OpenSpecy(
+    1:2, spectra = matrix(1:8, nrow = 2),
+    metadata = data.frame(x = c(0, 1, 2, 3), y = c(0, 0, 0, 0))
+  )
+  attr(source, "openspecy_spatial_unit") <- "um"
+  expect_equal(
+    unname(env$app_spatial_extent(source)), c(0, 3, 0, 0)
+  )
+  cropped <- env$app_crop_spatial_source(source, c(1, 2, -1, 1))
+  expect_equal(ncol(cropped$spectra), 2L)
+  expect_equal(cropped$metadata$x, c(1, 2))
+  expect_identical(attr(cropped, "spatial_crop")$unit, "um")
 })

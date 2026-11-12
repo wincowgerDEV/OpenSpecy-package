@@ -19,9 +19,10 @@
 #' @param model_colorscale continuous Plotly colorscale for signed model
 #' weights, centered at zero.
 #' @param model_opacity opacity of the model-weight background from zero to one.
-#' @param z optional numeric vector specifying the intensity values for the
-#' heatmap. If not provided, the function will use the intensity values from the
-#' \code{OpenSpecy} object.
+#' @param z optional numeric or categorical vector specifying the displayed
+#' values. Processed particle-centroid objects produced by
+#' \code{automate_particle_analysis()} are drawn as selectable centroid points;
+#' ordinary spatial maps retain the gridded heatmap display.
 #' @param sn optional numeric value specifying the signal-to-noise ratio
 #' threshold. If provided along with \code{min_sn}, regions with SNR below the
 #' threshold will be excluded from the heatmap.
@@ -287,6 +288,146 @@ heatmap_spec.default <- function(x, ...) {
   stop("object 'x' needs to be of class 'OpenSpecy'")
 }
 
+.mark_particle_centroid_object <- function(x) {
+  if (!is_OpenSpecy(x)) {
+    stop("particle centroids must be stored as an OpenSpecy object",
+         call. = FALSE)
+  }
+  attr(x, "openspecy_object_type") <- "particle_centroids"
+  x
+}
+
+.is_particle_centroid_object <- function(x) {
+  if (!is_OpenSpecy(x)) return(FALSE)
+  if (identical(attr(x, "openspecy_object_type", exact = TRUE),
+                "particle_centroids")) return(TRUE)
+
+  # Backward compatibility for processed particle RDS files written before
+  # the explicit object-type attribute was introduced.
+  metadata <- data.table::as.data.table(x$metadata)
+  coordinates <- if (all(c("centroid_x", "centroid_y") %in% names(metadata))) {
+    c("centroid_x", "centroid_y")
+  } else if (all(c("x", "y") %in% names(metadata)) &&
+             any(c("area", "pixel_count", "unit_id", "particle_id") %in%
+                 names(metadata))) {
+    c("x", "y")
+  } else {
+    character()
+  }
+  length(coordinates) == 2L && any(
+    is.finite(suppressWarnings(as.numeric(metadata[[coordinates[[1L]]]]))) &
+      is.finite(suppressWarnings(as.numeric(metadata[[coordinates[[2L]]]])))
+  )
+}
+
+.spatial_crop_bounds <- function(bounds) {
+  bounds <- suppressWarnings(as.numeric(bounds))
+  if (length(bounds) != 4L || any(!is.finite(bounds))) {
+    stop("spatial crop bounds must contain finite xmin, xmax, ymin, and ymax",
+         call. = FALSE)
+  }
+  bounds <- c(sort(bounds[1:2]), sort(bounds[3:4]))
+  if (bounds[[1L]] >= bounds[[2L]] || bounds[[3L]] >= bounds[[4L]]) {
+    stop("spatial crop bounds must have positive width and height",
+         call. = FALSE)
+  }
+  stats::setNames(bounds, c("xmin", "xmax", "ymin", "ymax"))
+}
+
+.crop_spatial_spec <- function(x, bounds, coordinates = NULL) {
+  bounds <- .spatial_crop_bounds(bounds)
+  metadata <- if (is.null(coordinates)) {
+    if (is_Specs(x)) specs_coordinates(x) else x$metadata
+  } else {
+    coordinates
+  }
+  metadata <- data.table::as.data.table(metadata)
+  if (!all(c("x", "y") %in% names(metadata))) {
+    stop("spatial cropping requires aligned x and y coordinates",
+         call. = FALSE)
+  }
+  expected <- if (is_Specs(x)) specs_source_count(x) else {
+    if (!is_OpenSpecy(x)) {
+      stop("spatial cropping requires an OpenSpecy, Specs, or FileSpecs object",
+           call. = FALSE)
+    }
+    ncol(x$spectra)
+  }
+  if (nrow(metadata) != expected) {
+    stop("spatial crop coordinates do not align with the source spectra",
+         call. = FALSE)
+  }
+  x_coordinate <- suppressWarnings(as.numeric(metadata$x))
+  y_coordinate <- suppressWarnings(as.numeric(metadata$y))
+  keep <- is.finite(x_coordinate) & is.finite(y_coordinate) &
+    x_coordinate >= bounds[["xmin"]] & x_coordinate <= bounds[["xmax"]] &
+    y_coordinate >= bounds[["ymin"]] & y_coordinate <= bounds[["ymax"]]
+  if (!any(keep)) {
+    stop("the spatial crop does not contain any spectrum centroids",
+         call. = FALSE)
+  }
+
+  if (inherits(x, "FileSpecs")) {
+    index <- .filespec_index(x)
+    out <- x
+    out$view <- index$index[keep]
+    record <- list(method = "spatial_crop", bounds = unname(bounds),
+                   retained = sum(keep), source = length(keep))
+    out$recipe <- c(x$recipe, list(record))
+    attr(out, "transformations") <- c(attr(x, "transformations"), list(record))
+  } else if (is_Specs(x)) {
+    coords <- specs_coordinates(x)
+    old_mapping <- .specs_value_index(x)[keep]
+    used <- sort(unique(old_mapping[old_mapping > 0L]))
+    values <- x$values[, used, drop = FALSE]
+    value_ids <- colnames(values)
+    remap <- integer(ncol(x$values))
+    remap[used] <- seq_along(used)
+    mapping <- old_mapping
+    foreground <- mapping > 0L
+    mapping[foreground] <- remap[mapping[foreground]]
+    coords <- data.table::copy(coords[keep])
+    coords[, value_index := mapping]
+    coords[, value_id := "0"]
+    if (any(foreground)) {
+      coords[foreground, value_id := value_ids[mapping[foreground]]]
+    }
+    value_metadata <- data.table::as.data.table(x$metadata)[used]
+    source_metadata <- specs_metadata(x)[keep]
+    technical_metadata <- intersect(
+      c("value_id", "value_index"), names(source_metadata)
+    )
+    if (length(technical_metadata)) {
+      source_metadata[, (technical_metadata) := NULL]
+    }
+    background <- attr(x, "background")
+    if (!is.null(background)) {
+      for (name in intersect(c("mask", "signal_to_noise", "reason"),
+                             names(background))) {
+        background[[name]] <- background[[name]][keep]
+      }
+    }
+    out <- Specs(
+      x$variables, values, coords, value_metadata,
+      attributes = .specs_attrs(x, list(
+        source_metadata = .encode_specs_metadata(source_metadata),
+        background = background
+      ))
+    )
+    out <- .append_specs_transformation(out, list(
+      method = "spatial_crop", bounds = unname(bounds),
+      retained = sum(keep), source = length(keep)
+    ))
+  } else {
+    out <- filter_spec(x, keep)
+  }
+  attr(out, "spatial_crop") <- list(
+    bounds = bounds, retained = sum(keep), source = length(keep),
+    inclusive = TRUE
+  )
+  out
+}
+
 #' @rdname interactive_plots
 #'
 #' @export
@@ -325,19 +466,26 @@ heatmap_spec.OpenSpecy <- function(x,
     plot_z = rep(-88, length.out = length(plot_z))
 
   if(type == "interactive"){
+      point_geometry <- .is_particle_centroid_object(x)
+      plot_values <- if(!is.numeric(plot_z)) {
+          as.numeric(as.factor(plot_z))
+      } else {
+          plot_z
+      }
       p <- plot_ly(...) |>
           add_trace(
               x = x$metadata$x,
               y = x$metadata$y,
-              z = if(!is.numeric(plot_z)) {
-                  as.numeric(as.factor(plot_z))
-              } else {
-                  plot_z
-              },
-              colorscale = colorscale,
-              type = "heatmap",
+              z = if(point_geometry) NULL else plot_values,
+              colorscale = if(point_geometry) NULL else colorscale,
+              type = if(point_geometry) "scattergl" else "heatmap",
+              mode = if(point_geometry) "markers" else NULL,
+              marker = if(point_geometry) list(
+                  size = 10, opacity = 0.9, color = plot_values,
+                  colorscale = colorscale, showscale = showlegend
+              ) else NULL,
               hoverinfo = 'text',
-              showscale = showlegend,
+              showscale = if(point_geometry) NULL else showlegend,
               text = ~ paste0(
                   if(!"file_name" %in% names(x$metadata)) 
                         paste0("row: ", 1:nrow(x$metadata))
@@ -383,11 +531,35 @@ heatmap_spec.OpenSpecy <- function(x,
               p |> add_markers(
                   x = x$metadata$x[select],
                   y = x$metadata$y[select],
-                  name = "Selected Spectrum"
+                  name = "Selected Spectrum",
+                  marker = list(color = "#FF2D2D", symbol = "circle-cross",
+                                size = 14, line = list(width = 2,
+                                                       color = "#FF2D2D"))
               )
       }
   }
   if(type == "static"){
+      if (.is_particle_centroid_object(x)) {
+          static_values <- if(is.numeric(plot_z)) {
+              as.numeric(plot_z)
+          } else {
+              as.numeric(as.factor(plot_z))
+          }
+          finite <- static_values[is.finite(static_values)]
+          color_index <- if(!length(finite) || diff(range(finite)) == 0) {
+              rep(50L, length(static_values))
+          } else {
+              pmax(1L, pmin(100L, as.integer(
+                1 + 99 * (static_values - min(finite)) / diff(range(finite))
+              )))
+          }
+          return(graphics::plot(
+            x$metadata$x, x$metadata$y, col = grDevices::heat.colors(100)[
+              color_index
+            ], pch = 19, asp = 1, xlab = "X-axis", ylab = "Y-axis",
+            main = "Particle centroids"
+          ))
+      }
       mat <- matrix(plot_z, nrow = length(unique(x$metadata$x)), ncol = length(unique(x$metadata$y)))
       return(image(unique(x$metadata$x), unique(x$metadata$y), mat, col = heat.colors(100), main = "Heatmap", xlab = "X-axis", ylab = "Y-axis", asp = 1))
   }

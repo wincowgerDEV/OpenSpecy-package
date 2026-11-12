@@ -1,5 +1,18 @@
 # OpenSpecy 2.0.3
 
+- `get_lib()` now reports the UTC date and exact AWS version ID of every
+  downloaded reference library. Its new `date` argument selects the closest
+  catalogued release for each requested library type while `revision` remains
+  available for exact version-ID pins.
+- The bundled app seeds crop bounds from each uploaded map's full X/Y extent
+  and keeps Plotly Box Select active to replace those bounds whether cropping
+  is enabled or not. It also offers saved ratios and measurements as heatmap
+  colors under their user-supplied names, draws processed particle RDS objects
+  as selectable centroid points, and marks the selected location with a red
+  scope sight.
+- Processed particle outputs now carry a serialized `openspecy_object_type`
+  attribute, and `heatmap_spec()` uses it (with a legacy metadata fallback) to
+  distinguish centroid point maps from regular gridded heatmaps.
 - Official reference builds now preserve every successfully ingested spectrum
   removed by source exclusion/deduplication, class completion, quality gates,
   pruning, type/range partitioning, or final support closure. Ordinary builds
@@ -64,8 +77,6 @@
   strict correlation `> 0.99` within one independent source, spectral type, and
   cleaned identity remain authoritative, keeping correlations identity-local
   and block-streamed rather than allocating a multi-million-square matrix.
-- The landing-page timeline now includes Win Cowger's 2026 TOPSCINET Top 2%
-  Scientist badge and links to the corresponding scientist profile.
 - `train_spec_model()` and `build_model_lib()` now accept ordered hierarchy
   columns and produce schema-versioned, strictly gated logistic models. The
   official type-to-polymer-group-to-class model takes the top-1 route at every

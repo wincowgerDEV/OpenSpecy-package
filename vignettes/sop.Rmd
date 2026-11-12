@@ -397,6 +397,18 @@ heatmap_spec(spectral_map,
              z = spectral_map$metadata$x)
 ```
 
+Processed particle objects returned as `particles_rds` by
+`automate_particle_analysis()` carry an `openspecy_object_type` attribute.
+`heatmap_spec()` recognizes that serialized marker and plots one selectable
+point at each particle centroid instead of expanding the sparse centroids into
+a grid of isolated heatmap pixels. Older processed particle files with aligned
+centroid metadata are detected for compatibility.
+
+```{r, eval=FALSE}
+particles <- particle_result$samples[[1]]$particles_rds
+heatmap_spec(particles, z = particles$metadata$max_cor_val)
+```
+
 An interactive plot of the heatmap and spectra overlayed can be generated with
 the `interactive_plot()` function. A user can hover over the heatmap to identify
 the next row id they are interested in and update the value of select to see
@@ -891,6 +903,27 @@ you want and where you want them.
 ```{r, eval=FALSE}
 get_lib(type = "derivative")
 ```
+
+`get_lib()` reports the UTC date and exact AWS version ID that it downloads.
+To reproduce work near a particular calendar date, supply one strict
+`YYYY-MM-DD` value (or an R `Date`); each requested library type resolves to the
+catalogued version with the smallest date difference, with the earlier version
+winning an exact tie.
+
+```{r, eval=FALSE}
+get_lib(type = "derivative", date = "2026-10-01")
+```
+
+The live current AWS object is always included among the dated candidates.
+Historical selection uses the version catalog shipped with OpenSpecy because
+the private AWS origin does not expose public version listings. For an exact
+reproducibility pin, use the AWS version ID printed by an earlier download:
+
+```{r, eval=FALSE}
+get_lib(type = "derivative", revision = "exact-aws-version-id")
+```
+
+Supply either `date` or `revision`, not both.
 
 After download you can load the libraries into your active environment one at a time as `OpenSpecy` objects. You
 can use any Open Specy object as a library which makes it easy to work with and create libraries because everything we explained earlier applies to them.

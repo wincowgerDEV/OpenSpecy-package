@@ -23,7 +23,7 @@ test_that("automate_particle_analysis() returns details and summaries", {
     lib,
     sn_threshold_min = 0.001,
     area_threshold = 0,
-    outputs = c("details", "summary"),
+    outputs = c("details", "summary", "processed"),
     process_args = list(smooth_intens = FALSE, make_rel = TRUE)
   )
 
@@ -67,6 +67,10 @@ test_that("automate_particle_analysis() returns details and summaries", {
       "particle_heatmap", "particle_heatmap_thresholded",
       "cor_heatmap", "sn_histogram", "cor_histogram",
       "time_rds")
+  )
+  expect_identical(
+    attr(res$samples[[1]]$particles_rds, "openspecy_object_type"),
+    "particle_centroids"
   )
 })
 
@@ -586,6 +590,7 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
     metadata = data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
   )
   out_dir <- tempfile("apa-images-")
+  on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
 
   res <- automate_particle_analysis(
     list(small = map),
@@ -616,6 +621,10 @@ test_that("automate_particle_analysis() returns and writes image outputs", {
   expect_true(file.exists(file.path(out_dir, "cor_heatmap_small.png")))
   expect_true(file.exists(file.path(out_dir, "sn_histogram_small.png")))
   expect_true(file.exists(file.path(out_dir, "cor_histogram_small.png")))
+  saved_particles <- readRDS(file.path(out_dir, "particles_small.rds"))
+  expect_identical(
+    attr(saved_particles, "openspecy_object_type"), "particle_centroids"
+  )
 
   replay <- tempfile(fileext = ".png")
   grDevices::png(replay, width = 600, height = 600)

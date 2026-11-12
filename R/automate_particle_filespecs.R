@@ -318,6 +318,7 @@ automate_particle_analysis.FileSpecs <- function(
     label_unknown = label_unknown, remove_materials = remove_materials,
     remove_unknown = remove_unknown
   )
+  proc_map <- .mark_particle_centroid_object(proc_map)
   display <- .join_particle_display_matches(display, proc_map, material_col)
   details <- if ("details" %in% outputs) {
     .particle_details_table(proc_map, output_name, material_col,

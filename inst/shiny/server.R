@@ -52,7 +52,19 @@ function(input, output, session) {
   analysis_library <- reactiveVal(NULL)
   heatmap_events_ready <- reactiveVal(FALSE)
   selection_ready_run <- reactiveVal(NULL)
+  crop_bounds_policy <- reactiveVal("default")
+  uploaded_crop_extent <- reactiveVal(NULL)
   quality_modal_observers <- new.env(parent = emptyenv())
+
+  effective_crop_bounds <- function(allow_incomplete = FALSE) {
+    app_effective_xy_crop_bounds(
+      input$xy_crop_decision,
+      input$xy_crop_x_min, input$xy_crop_x_max,
+      input$xy_crop_y_min, input$xy_crop_y_max,
+      default_bounds = uploaded_crop_extent(),
+      allow_incomplete = allow_incomplete
+    )
+  }
 
   identify_batch_size <- reactive({
     value <- suppressWarnings(as.integer(input$identify_batch_size))
@@ -130,6 +142,27 @@ function(input, output, session) {
       lapply(analysis_ids, function(id) input[[id]]), analysis_ids
     )
     settings <- app_effective_range_settings(settings, range_definitions())
+    crop_ids <- c(
+      "xy_crop_x_min", "xy_crop_x_max",
+      "xy_crop_y_min", "xy_crop_y_max"
+    )
+    settings[crop_ids] <- NULL
+    if(isTRUE(input$xy_crop_decision)) {
+      if(crop_bounds_policy() %in% c("default", "seeding")) {
+        settings$spatial_crop_bounds_source <- "uploaded-default"
+      } else {
+        bounds <- effective_crop_bounds(allow_incomplete = TRUE)
+        if(!is.null(bounds)) {
+          settings$xy_crop_x_min <- bounds[["xmin"]]
+          settings$xy_crop_x_max <- bounds[["xmax"]]
+          settings$xy_crop_y_min <- bounds[["ymin"]]
+          settings$xy_crop_y_max <- bounds[["ymax"]]
+        }
+      }
+      settings$crop_coordinate_fallback <- list(
+        pixel_size = input$pixel_size, pixel_unit = input$pixel_unit
+      )
+    }
     filter_enabled <- !identical(settings$lib_type, "model") &&
       isTRUE(settings$filter_lib)
     if(!filter_enabled) {
@@ -598,8 +631,19 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
         automatic_report_gate$clear()
         ai_output_gate$clear()
         pixel_projection_gate$clear()
-        preprocessed$data <- rout
         inferred_calibration <- app_source_pixel_calibration(rout)
+        extent_calibration <- if(isTRUE(input$collapse_decision)) {
+          if(is.null(inferred_calibration)) {
+            app_pixel_calibration(input$pixel_size, input$pixel_unit)
+          } else inferred_calibration
+        } else {
+          app_pixel_calibration(1, "pixel")
+        }
+        full_extent <- app_spatial_extent(
+          rout, extent_calibration$size, extent_calibration$unit
+        )
+        uploaded_crop_extent(full_extent)
+        preprocessed$data <- rout
         if(!is.null(inferred_calibration)) {
           updateNumericInput(
             session, "pixel_size", value = inferred_calibration$size
@@ -607,6 +651,24 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
           updateTextInput(
             session, "pixel_unit", value = inferred_calibration$unit
           )
+        }
+        if(identical(crop_bounds_policy(), "default") &&
+           !is.null(full_extent)) {
+          crop_bounds_policy("seeding")
+          updateNumericInput(
+            session, "xy_crop_x_min", value = full_extent[["xmin"]]
+          )
+          updateNumericInput(
+            session, "xy_crop_x_max", value = full_extent[["xmax"]]
+          )
+          updateNumericInput(
+            session, "xy_crop_y_min", value = full_extent[["ymin"]]
+          )
+          updateNumericInput(
+            session, "xy_crop_y_max", value = full_extent[["ymax"]]
+          )
+        } else {
+          crop_bounds_policy("current")
         }
         set_upload_status(NULL)
         session$sendCustomMessage(
@@ -621,6 +683,20 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
 }
 
 stage_selected_files <- function(file_info, mounted = FALSE) {
+  existing_bounds <- app_xy_crop_bounds(
+    TRUE,
+    isolate(input$xy_crop_x_min), isolate(input$xy_crop_x_max),
+    isolate(input$xy_crop_y_min), isolate(input$xy_crop_y_max),
+    allow_incomplete = TRUE
+  )
+  crop_bounds_policy(
+    if(is.null(preprocessed$data) && !is.null(existing_bounds)) {
+      "manual"
+    } else {
+      "default"
+    }
+  )
+  uploaded_crop_extent(NULL)
   attr(file_info, "mounted") <- isTRUE(mounted)
   active_file_info(file_info)
   preprocessed$data <- NULL
@@ -891,9 +967,75 @@ observeEvent(input$run_analysis, {
   })
   # Corrects spectral intensity units using the user specified correction
 
+  observe({
+    active <- isTRUE(input$xy_crop_decision)
+    for(id in c("xy_crop_x_min", "xy_crop_x_max",
+                "xy_crop_y_min", "xy_crop_y_max", "xy_crop_clear")) {
+      shinyjs::toggleState(id, condition = active)
+    }
+  })
+
+  observeEvent(list(
+    input$xy_crop_x_min, input$xy_crop_x_max,
+    input$xy_crop_y_min, input$xy_crop_y_max
+  ), {
+    if(is.null(preprocessed$data) && !is.null(active_file_info())) {
+      crop_bounds_policy("manual")
+      return()
+    }
+    if(identical(crop_bounds_policy(), "seeding")) {
+      extent <- uploaded_crop_extent()
+      entered <- suppressWarnings(as.numeric(c(
+        input$xy_crop_x_min, input$xy_crop_x_max,
+        input$xy_crop_y_min, input$xy_crop_y_max
+      )))
+      if(length(entered) == 4L && !is.null(extent) &&
+         isTRUE(all.equal(entered, unname(extent), tolerance = 1e-10))) {
+        crop_bounds_policy("current")
+        last_settings_signature(isolate(settings_signature()))
+      }
+    }
+  }, ignoreInit = TRUE, priority = RUN_GATE_PRIORITY_RESET + 2L)
+
+  observeEvent(input$xy_crop_clear, {
+    source <- preprocessed$data
+    bounds <- NULL
+    if(!is.null(source)) {
+      calibration <- if(isTRUE(input$collapse_decision)) {
+        app_pixel_calibration(input$pixel_size, input$pixel_unit)
+      } else {
+        app_pixel_calibration(1, "pixel")
+      }
+      bounds <- app_spatial_extent(
+        source, calibration$size, calibration$unit
+      )
+    }
+    values <- if(is.null(bounds)) {
+      rep(NA_real_, 4L)
+    } else {
+      unname(bounds)
+    }
+    ids <- c("xy_crop_x_min", "xy_crop_x_max",
+             "xy_crop_y_min", "xy_crop_y_max")
+    for(index in seq_along(ids)) {
+      updateNumericInput(session, ids[[index]], value = values[[index]])
+    }
+  }, ignoreInit = TRUE)
+
  data <- reactive({
     req(!is.null(preprocessed$data))
       da <- preprocessed$data
+      bounds <- effective_crop_bounds()
+      if(!is.null(bounds)) {
+        calibration <- if(isTRUE(input$collapse_decision)) {
+          app_pixel_calibration(input$pixel_size, input$pixel_unit)
+        } else {
+          app_pixel_calibration(1, "pixel")
+        }
+        da <- app_crop_spatial_source(
+          da, bounds, calibration$size, calibration$unit
+        )
+      }
       if(is_Specs(da)) {
         if(isTruthy(input$xy_grid)) {
           md <- specs_metadata(da)
@@ -1431,7 +1573,8 @@ observeEvent(input$run_analysis, {
         type = type,
         numerator = numerator,
         denominator = denominator,
-        axis = if(is.null(axis_state)) NULL else axis_state$axis
+        axis = if(is.null(axis_state)) NULL else axis_state$axis,
+        other_names = measurement_definitions()$name
       )
     }, error = function(error) error)
 
@@ -1526,7 +1669,8 @@ observeEvent(input$run_analysis, {
         name = isolate(input$quant_measurement_name),
         type = type,
         values = values,
-        axis = if(is.null(axis_state)) NULL else axis_state$axis
+        axis = if(is.null(axis_state)) NULL else axis_state$axis,
+        other_names = ratio_definitions()$name
       )
     }, error = function(error) error)
     if(inherits(result, "error")) {
@@ -1740,6 +1884,11 @@ observeEvent(input$run_analysis, {
     list(
       signal_basis = input$signal_basis, spatial_decision = input$spatial_decision,
       sigma = input$sigma, signal_selection = input$signal_selection,
+      spatial_crop = if(isTRUE(input$xy_crop_decision)) list(
+        bounds = effective_crop_bounds(allow_incomplete = TRUE),
+        collapse = isTRUE(input$collapse_decision),
+        pixel_size = input$pixel_size, pixel_unit = input$pixel_unit
+      ) else NULL,
       processing = if(identical(input$signal_basis, "fully_processed")) {
         processing
       } else {
@@ -1811,9 +1960,10 @@ observeEvent(input$run_analysis, {
     # Collapsing particle spectra requires a map with more than one spectrum
     # to group; silently ignore the setting for a single uploaded spectrum
     # instead of erroring.
-    count <- if(is_Specs(preprocessed$data)) {
-      specs_source_count(preprocessed$data)
-    } else if(!is.null(preprocessed$data)) ncol(preprocessed$data$spectra) else 0L
+    source <- if(is.null(preprocessed$data)) NULL else data()
+    count <- if(is_Specs(source)) {
+      specs_source_count(source)
+    } else if(!is.null(source)) ncol(source$spectra) else 0L
     isTRUE(input$collapse_decision) && count > 1L
   })
 
@@ -2144,12 +2294,24 @@ observeEvent(input$run_analysis, {
       spatial_sigma = rep(as.numeric(input$sigma), 3L),
       processing = current_processing_settings()
     )
+    run_settings$spatial_crop <- effective_crop_bounds()
     result <- tryCatch({
       run_library <- if(run_settings$identification_active) {
         if(run_settings$model_library) libraryR() else library_filtered()
       } else NULL
       analysis_library(run_library)
       spatial <- spatial_data()
+      crop_record <- attr(spatial, "spatial_crop", exact = TRUE)
+      if(!is.null(crop_record)) {
+        analysis_phase(
+          "Applying spatial crop",
+          paste0(
+            "Retaining ", crop_record$retained, " of ", crop_record$source,
+            " spectrum centroids inside the committed XY bounds."
+          ),
+          18
+        )
+      }
       inspection_source_gate(spatial)
       use_library <- run_settings$identification_active &&
         !run_settings$model_library
@@ -3787,6 +3949,18 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       values[match(mapping$unit_id, colnames(DataR()$spectra))]
     }
 
+    quantified <- quantified_data()
+    quantification_labels <- attr(
+      quantified, "openspecy_quantification_labels", exact = TRUE
+    )
+    quantification_columns <- intersect(
+      names(quantification_labels), names(quantified$metadata)
+    )
+    quantification <- stats::setNames(lapply(
+      quantification_columns,
+      function(column) as.numeric(unit_values(quantified$metadata[[column]]))
+    ), quantification_columns)
+
     state <- canonical_state()
     pixel_matches <- state$pixel_matches
     pixel_best <- if(!is.null(pixel_matches) && nrow(pixel_matches)) {
@@ -3857,7 +4031,11 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       signal_rejected = signal_rejected,
       correlation_rejected = correlation_rejected,
       rejected = rejected,
-      rejection_reason = reason
+      rejection_reason = reason,
+      quantification = quantification,
+      quantification_labels = quantification_labels[quantification_columns],
+      point_geometry = is_OpenSpecy(preprocessed$data) &&
+          OpenSpecy:::.is_particle_centroid_object(preprocessed$data)
     )
   })
   pixel_projection <- reactive(pixel_projection_gate$read())
@@ -3885,12 +4063,25 @@ outputOptions(output, "sidebar_metadata", suspendWhenHidden = FALSE)
       "Signal/Noise" = has_number(preview),
       "Particle Unit" = has_number(projection$unit_index)
     )
+    if(length(projection$quantification)) {
+      availability <- c(
+        availability,
+        vapply(projection$quantification, has_number, logical(1L))
+      )
+    }
+    quantification_choices <- if(length(projection$quantification_labels)) {
+      stats::setNames(
+        names(projection$quantification_labels),
+        unname(projection$quantification_labels)
+      )
+    } else character()
     app_map_color_choices(
       identification_active = state$settings$identification_active,
       model_library = state$settings$model_library,
       collapse = state$settings$collapse,
       availability = availability,
-      signal_label = preview_signal_label()
+      signal_label = preview_signal_label(),
+      quantification = quantification_choices
     )
   })
 
@@ -4142,6 +4333,8 @@ output$progress_bars <- renderUI({
       } else if(identical(map_color, "Material Class")) {
         categorical <- TRUE
         projection$material
+      } else if(map_color %in% names(projection$quantification)) {
+        signif(projection$quantification[[map_color]], 6)
       } else {
         validate(need(FALSE, "The selected map color is not available."))
       }
@@ -4162,7 +4355,8 @@ output$progress_bars <- renderUI({
         categorical = categorical,
         rejected = rejected,
         rejection_reason = rejection_reason,
-        axis_unit = projection$axis_unit
+        axis_unit = projection$axis_unit,
+        point_geometry = isTRUE(projection$point_geometry)
       )
   }
 
@@ -4193,13 +4387,29 @@ output$progress_bars <- renderUI({
       state <- heatmap_state_for(map_color)
       legend_title <- if(identical(map_color, "Signal/Noise")) {
         preview_signal_label()
-      } else map_color
-      app_ordinary_heatmap_data(
-        state$metadata, state$z, state$categorical, legend_title,
-        rejected = state$rejected,
-        rejection_reason = state$rejection_reason,
-        axis_unit = state$axis_unit
-      )
+      } else {
+        choices <- map_color_choices()
+        label <- names(choices)[match(map_color, unname(choices))]
+        if(length(label) && !is.na(label)) label else map_color
+      }
+      if(isTRUE(state$point_geometry)) {
+        object <- quantified_data()
+        if(ncol(object$spectra) != nrow(state$metadata)) object <- data()
+        object <- OpenSpecy:::.mark_particle_centroid_object(object)
+        app_particle_point_data(
+          object, state$metadata, state$z, state$categorical, legend_title,
+          rejected = state$rejected,
+          rejection_reason = state$rejection_reason,
+          axis_unit = state$axis_unit
+        )
+      } else {
+        app_ordinary_heatmap_data(
+          state$metadata, state$z, state$categorical, legend_title,
+          rejected = state$rejected,
+          rejection_reason = state$rejection_reason,
+          axis_unit = state$axis_unit
+        )
+      }
   }
 
   current_heatmap_data <- reactive({
@@ -4213,6 +4423,13 @@ output$progress_bars <- renderUI({
       visual <- registered_visual()
       if(!is.null(visual) && isTRUE(input$visual_overlay)) {
         data$visual_image <- visual$image
+        calibration <- pixel_calibration()
+        full_projection <- app_project_source_coordinates(
+          preprocessed$data, source_metadata(preprocessed$data),
+          pixel_size = calibration$size, pixel_unit = calibration$unit
+        )
+        data$visual_x <- full_projection$metadata$x
+        data$visual_y <- full_projection$metadata$y
         transparency <- suppressWarnings(as.numeric(input$overlay_transparency))
         if(length(transparency) != 1L || !is.finite(transparency)) {
           transparency <- 20
@@ -4277,6 +4494,14 @@ output$progress_bars <- renderUI({
       clickable <- app_has_clickable_heatmap(heatmap_data, spectrum_count)
       plot <- app_particle_plotly(current_heatmap_data(), source = "heat_plot",
         select = current_select_xy()
+      )
+      plot <- plotly::config(
+        plot,
+        modeBarButtonsToAdd = list("select2d"),
+        modeBarButtonsToRemove = list(
+          "lasso2d", "drawrect", "drawcircle", "drawclosedpath",
+          "drawopenpath", "eraseshape"
+        )
       )
       if(clickable) {
         # event_register() is attached above. Establish event_data() only in a
@@ -4343,6 +4568,17 @@ output$progress_bars <- renderUI({
           data_click$plot <- selected
         }
       }
+  })
+
+  observe({
+      req(isTRUE(heatmap_events_ready()))
+      selection <- plotly::event_data("plotly_brushed", source = "heat_plot")
+      bounds <- app_plotly_selection_bounds(selection)
+      req(!is.null(bounds))
+      updateNumericInput(session, "xy_crop_x_min", value = bounds[["xmin"]])
+      updateNumericInput(session, "xy_crop_x_max", value = bounds[["xmax"]])
+      updateNumericInput(session, "xy_crop_y_min", value = bounds[["ymin"]])
+      updateNumericInput(session, "xy_crop_y_max", value = bounds[["ymax"]])
   })
   
   #Summary Plots ----
@@ -4631,6 +4867,9 @@ output$progress_bars <- renderUI({
             coordinate_calibration = coordinate_calibration
           )
           processed_particles <- app_restore_spatial_coordinates(
+            processed_particles
+          )
+          processed_particles <- OpenSpecy:::.mark_particle_centroid_object(
             processed_particles
           )
           attr(processed_particles, "openspecy_spatial_unit") <-

@@ -38,6 +38,16 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
     info = file.info(c(fixture$header, fixture$binary))[, c("size", "mtime")]
   )
   specs <- open_specs(fixture$header, cache_dir = cache)
+  cropped_specs <- OpenSpecy:::.crop_spatial_spec(
+    specs, c(xmin = 0, xmax = 1, ymin = 0, ymax = 1)
+  )
+  expect_s3_class(cropped_specs, "FileSpecs")
+  expect_equal(specs_source_count(cropped_specs), 4L)
+  expect_equal(nrow(OpenSpecy:::.filespec_index(cropped_specs)), 4L)
+  expect_identical(
+    utils::tail(attr(cropped_specs, "transformations"), 1L)[[1L]]$method,
+    "spatial_crop"
+  )
   library <- as_OpenSpecy(
     fixture$axis,
     spectra = cbind(particle = fixture$particle,
@@ -91,6 +101,10 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
                "particle")
   expect_s3_class(result$samples$Region1$particles_raw_rds, "FileSpecs")
   expect_s3_class(result$samples$Region1$particles_rds, "OpenSpecy")
+  expect_identical(
+    attr(result$samples$Region1$particles_rds, "openspecy_object_type"),
+    "particle_centroids"
+  )
   expect_identical(result$samples$Region1$sn_histogram$type, "histogram")
   expect_identical(result$samples$Region1$cor_histogram$type, "histogram")
   progress <- paste(messages, collapse = "\n")

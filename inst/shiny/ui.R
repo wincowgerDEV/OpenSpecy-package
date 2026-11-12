@@ -480,6 +480,27 @@ advanced_controls <- tagList(
     "xy_grid", "XY Grid Conform", FALSE,
     note = "Replace discontinuous uploaded map coordinates with a continuous XY grid."
   ),
+  app_control_box(
+    "xy_crop_decision", "Crop XY Range", FALSE,
+    fluidRow(
+      column(6, numericInput("xy_crop_x_min", "X minimum", value = NA_real_)),
+      column(6, numericInput("xy_crop_x_max", "X maximum", value = NA_real_))
+    ),
+    fluidRow(
+      column(6, numericInput("xy_crop_y_min", "Y minimum", value = NA_real_)),
+      column(6, numericInput("xy_crop_y_max", "Y maximum", value = NA_real_))
+    ),
+    actionButton(
+      "xy_crop_clear", "Reset to Full Range", icon = icon("expand"),
+      class = "btn-outline-warning"
+    ),
+    note = c(
+      "Enter limits before upload if they are already known. Otherwise, after the data are read, these fields default to the full displayed X/Y range.",
+      "Box Select is the heatmap's persistent drag tool. Each box selection replaces these four values whether Crop XY Range is on or off; drag direction is normalized automatically.",
+      "The limits use the displayed heatmap axis unit. Spectrum centroids on either boundary are included; a zero-width, zero-height, incomplete, or empty region is rejected.",
+      "Crop XY Range only controls whether the next Run applies the displayed bounds. When on, only spectra inside this region continue through signal/noise, preprocessing, particle analysis, identification, quantification, summaries, plots, and downloads. Turn it off to analyze the full uploaded source; Reset to Full Range restores the uploaded extents."
+    )
+  ),
   bs4Dash::box(
     width = 12,
     title = "Load Settings",

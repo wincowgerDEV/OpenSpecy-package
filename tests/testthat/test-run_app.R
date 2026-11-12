@@ -815,14 +815,16 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_match(ui_source, 'tabPanel(\n              "Quantification"', fixed = TRUE)
   expect_true(all(vapply(
     c("threshold_decision", "cor_threshold_decision", "spatial_decision",
-      "xy_grid", "load_entire_map", "collapse_decision"),
+      "xy_grid", "xy_crop_decision", "xy_crop_x_min", "xy_crop_x_max",
+      "xy_crop_y_min", "xy_crop_y_max", "load_entire_map",
+      "collapse_decision"),
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
   )))
   advanced_ids <- c(
     "cor_threshold_decision", "threshold_decision", "collapse_decision",
     "spatial_decision", "simple_metadata", "show_peak_positions",
-    "load_entire_map", "xy_grid"
+    "load_entire_map", "xy_grid", "xy_crop_decision"
   )
   advanced_positions <- vapply(advanced_ids, function(id) {
     regexpr(paste0('"', id, '"'), ui_source, fixed = TRUE)[[1L]]
@@ -2173,6 +2175,14 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
     availability = c("Signal/Noise" = FALSE)
   )
   expect_length(no_available_map, 0L)
+  quantitative_map <- env$app_map_color_choices(
+    identification_active = FALSE, model_library = FALSE, collapse = FALSE,
+    availability = c("Signal/Noise" = TRUE, custom_ratio = TRUE),
+    quantification = c("My custom ratio" = "custom_ratio")
+  )
+  expect_identical(
+    quantitative_map[["My custom ratio"]], "custom_ratio"
+  )
 
   map <- as_OpenSpecy(
     c(1000, 1100),
@@ -2230,6 +2240,12 @@ test_that("bundled app renders scalable numeric and class heatmaps", {
   expect_match(
     server_source, "app_particle_plotly(current_heatmap_data()", fixed = TRUE
   )
+  expect_match(server_source, 'plotly::event_data("plotly_brushed"',
+               fixed = TRUE)
+  expect_match(server_source, 'modeBarButtonsToAdd = list("select2d")',
+               fixed = TRUE)
+  expect_false(grepl('modeBarButtonsToAdd = list("drawrect")', server_source,
+                     fixed = TRUE))
 })
 
 test_that("bundled app applies spike correction through the registered API", {
@@ -2571,6 +2587,15 @@ test_that("bundled app quantifies the displayed processed spectra", {
     quantified$metadata$point_intensity_typed_point,
     as.numeric(expected_point)
   )
+  expect_identical(
+    attr(quantified, "openspecy_quantification_labels"),
+    c(
+      area_ratio_custom_carbonyl = "Custom Carbonyl",
+      peak_ratio_point_check = "Point Check",
+      area_under_band_carbonyl_area = "Carbonyl Area",
+      point_intensity_typed_point = "Typed Point"
+    )
+  )
   expect_true(all(env$app_ratio_metadata_columns(
     definitions, measurements
   ) %in% names(quantified$metadata)))
@@ -2591,7 +2616,21 @@ test_that("bundled app quantifies the displayed processed spectra", {
       denominator = c(1420, 1500),
       axis = wavenumber
     ),
-    "same metadata name"
+    "same quantification name"
+  )
+  expect_error(
+    env$app_add_measurement_definition(
+      measurements, name = " custom carbonyl ", type = "point",
+      values = 1715, axis = wavenumber,
+      other_names = definitions$name
+    ),
+    "same quantification name"
+  )
+  conflicting_measurements <- measurements
+  conflicting_measurements$name[[1L]] <- "CUSTOM CARBONYL"
+  expect_error(
+    env$app_validate_quantification_names(definitions, conflicting_measurements),
+    "unique across all"
   )
   expect_error(
     env$app_add_ratio_definition(
@@ -3395,7 +3434,9 @@ test_that("bundled app exports one-row metadata snapshots without restoring them
     "top_n_input", "top_n_per_organization", "filter_lib", "lib_org",
     "threshold_decision", "signal_basis",
     "MinSNR", "MaxSNR", "signal_selection", "cor_threshold_decision", "MinCor",
-    "spatial_decision", "sigma", "xy_grid", "load_entire_map",
+    "spatial_decision", "sigma", "xy_grid", "xy_crop_decision",
+    "xy_crop_x_min", "xy_crop_x_max", "xy_crop_y_min", "xy_crop_y_max",
+    "load_entire_map",
     "identify_batch_size",
     "collapse_decision",
     "collapse_type", "particle_id_strategy", "particle_pca_components",

@@ -73,6 +73,8 @@
 #' A list with `samples`, `particle_details_all_csv`, and
 #' `particle_summary_all_csv`. Each per-sample entry has `particle_details_csv`,
 #' `particle_summary_csv`, `particles_raw_rds`, `particles_rds`, and `time_rds`,
+#' with processed particle objects marked by the serialized
+#' `openspecy_object_type = "particle_centroids"` attribute,
 #' and uses the same filename-based `sample_id` stem as its per-source output
 #' files (including an appended region for multi-region sources),
 #' with summary rows reporting full map area, particle count, observed
@@ -300,6 +302,7 @@ automate_particle_analysis.default <- function(
       remove_materials = remove_materials,
       remove_unknown = remove_unknown
     )
+    proc_map <- .mark_particle_centroid_object(proc_map)
     display_map <- .join_particle_display_matches(display_map, proc_map,
                                                   material_col)
     map <- display_map

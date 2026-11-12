@@ -541,6 +541,7 @@ test.beforeAll(async () => {
       "x <- as_OpenSpecy(axis, spectra=spectra, metadata=data.frame(col_id=colnames(spectra), x_um=c(0, 2, 0, 2), y_um=c(0, 0, 2, 2)))",
       "x$metadata$x <- NULL; x$metadata$y <- NULL",
       "attr(x, 'openspecy_spatial_unit') <- 'um'",
+      "attr(x, 'openspecy_object_type') <- 'particle_centroids'",
       `saveRDS(x, ${JSON.stringify(particleRdsFixture.replace(/\\/g, "/"))})`,
     ].join("; ")],
     { cwd: repo, windowsHide: true, encoding: "utf8" }
@@ -1344,7 +1345,7 @@ test("file-backed fully processed map streams without a first-paint blink", asyn
   });
 });
 
-test("processed particle RDS round-trips into a thresholded heatmap", async ({ page }) => {
+test("processed particle RDS crops into selectable centroid points", async ({ page }, testInfo) => {
   test.setTimeout(180000);
   const severeErrors = [];
   page.on("console", (message) => {
@@ -1357,6 +1358,19 @@ test("processed particle RDS round-trips into a thresholded heatmap", async ({ p
 
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
   await expectLocalPicker(page);
+  await page.getByRole("link", { name: "Advanced", exact: true }).click();
+  const cropSwitch = page.locator("#xy_crop_decision");
+  await cropSwitch.evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  const cropCard = cropSwitch.locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  if (await cropCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+    await toggleCard(cropCard);
+  }
+  await expect(cropSwitch).toBeChecked();
+  await expect(page.locator("#xy_crop_x_min")).toBeEnabled();
   await page.locator("#collapse_decision").evaluate((input) => {
     if (input.checked) input.click();
   });
@@ -1378,12 +1392,88 @@ test("processed particle RDS round-trips into a thresholded heatmap", async ({ p
   await expect(page.locator("#heatmapA.js-plotly-plot .main-svg").first())
     .toBeVisible({ timeout: 60000 });
   await expect(page.locator("#pixel_unit")).toHaveValue("um");
+  for (const [inputId, value] of Object.entries({
+    xy_crop_x_min: "0", xy_crop_x_max: "2",
+    xy_crop_y_min: "0", xy_crop_y_max: "2",
+  })) {
+    await expect(page.locator(`#${inputId}`)).toHaveValue(value);
+  }
+  await expect(page.locator("#run_analysis")).toBeHidden();
+  await cropSwitch.evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(cropSwitch).not.toBeChecked();
+  await expect(page.locator("#xy_crop_x_min")).toBeDisabled();
+  await expect(page.locator("#run_analysis")).toBeVisible();
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#run_analysis")).toBeHidden({ timeout: 120000 });
   await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => ({
     x: plot.layout?.xaxis?.title?.text,
     y: plot.layout?.yaxis?.title?.text,
-  })), { timeout: 30000 }).toEqual({ x: "X (pixel)", y: "Y (pixel)" });
+  })), { timeout: 30000 }).toEqual({ x: "X (um)", y: "Y (um)" });
+  const selectionContract = await page.locator("#heatmapA").evaluate((plot) => ({
+    dragmode: plot.layout?.dragmode,
+    add: plot._context?.modeBarButtonsToAdd || [],
+    remove: plot._context?.modeBarButtonsToRemove || [],
+  }));
+  expect(selectionContract.dragmode).toBe("select");
+  expect(selectionContract.add.flat()).toContain("select2d");
+  expect(selectionContract.remove.flat()).toContain("drawrect");
+
+  await page.locator("#heatmapA").evaluate((plot) => {
+    plot.emit("plotly_selected", {
+      range: { x: [-0.5, 0.5], y: [-0.5, 2.5] },
+      points: [],
+    });
+  });
+  for (const [inputId, value] of Object.entries({
+    xy_crop_x_min: "-0.5", xy_crop_x_max: "0.5",
+    xy_crop_y_min: "-0.5", xy_crop_y_max: "2.5",
+  })) {
+    await expect(page.locator(`#${inputId}`)).toHaveValue(value);
+  }
+  await expect(cropSwitch).not.toBeChecked();
+  await expect(page.locator("#run_analysis")).toBeHidden();
+
+  await cropSwitch.evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(cropSwitch).toBeChecked();
+  await expect(page.locator("#xy_crop_x_min")).toBeEnabled();
+  await expect(page.locator("#run_analysis")).toBeVisible();
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#xy_crop_x_min")).toHaveValue("-0.5");
+  await expect(page.locator("#xy_crop_x_max")).toHaveValue("0.5");
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) =>
+    (plot.data || []).find((trace) => trace.type === "scattergl")?.x?.length || 0
+  ), { timeout: 60000 }).toBe(2);
+  const pointContract = await page.locator("#heatmapA").evaluate((plot) => ({
+    traces: (plot.data || []).map((trace) => ({
+      type: trace.type, mode: trace.mode, points: trace.x?.length || 0,
+    })),
+    shapes: (plot.layout?.shapes || []).map((shape) => ({
+      type: shape.type, color: shape.line?.color,
+    })),
+  }));
+  expect(pointContract.traces.some((trace) =>
+    trace.type === "scattergl" && trace.mode === "markers" && trace.points === 2
+  )).toBe(true);
+  expect(pointContract.traces.some((trace) => trace.type === "heatmap"))
+    .toBe(false);
+  expect(pointContract.shapes.filter((shape) => shape.color === "#FF2D2D"))
+    .toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "circle" }),
+      expect.objectContaining({ type: "line" }),
+    ]));
+  expect(pointContract.shapes.some((shape) => shape.type === "rect"))
+    .toBe(false);
   await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
   expect(severeErrors).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath("processed-particle-centroid-crop.png"),
+    fullPage: true,
+  });
 });
 
 test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, testInfo) => {

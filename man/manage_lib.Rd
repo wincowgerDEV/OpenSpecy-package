@@ -20,6 +20,7 @@ get_lib(
   path = "system",
   mode = "wb",
   revision = NULL,
+  date = NULL,
   ...
 )
 
@@ -48,6 +49,13 @@ everything.}
 \item{revision}{optional AWS S3 \code{versionId}. A single value applies to
 every requested type; a named character vector can pin each type separately.
 If \code{NULL}, the current unversioned object is downloaded.}
+
+\item{date}{optional target library date as one \code{Date} or strict
+\code{"YYYY-MM-DD"} value. For each requested type, \code{get_lib()} uses
+the catalogued version with the smallest calendar-date difference, preferring
+the earlier version on an exact tie. The current AWS object is discovered
+live and included among the candidates. \code{date} and \code{revision}
+cannot be supplied together.}
 
 \item{\ldots}{further arguments passed to \code{\link[utils]{download.file}()}.}
 }
@@ -80,6 +88,9 @@ check_lib("derivative")
 
 #get the library stored in your system from online repo
 get_lib("derivative")
+
+#get the catalogued release closest to a target date
+get_lib("derivative", date = "2026-10-01")
 
 #load the library into the working environment
 spec_lib <- load_lib("derivative")

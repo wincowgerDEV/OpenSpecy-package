@@ -45,6 +45,7 @@ test_that("tab-wide actions have an all-off-only model", {
     "make_rel_decision", "smooth_decision", "baseline_decision"
   ) %in% ids$preprocessing))
   expect_true("load_entire_map" %in% ids$advanced)
+  expect_true("xy_crop_decision" %in% ids$advanced)
   for(tab in names(ids)) {
     values <- env$app_tab_all_off_values(tab)
     expect_named(values, ids[[tab]])
@@ -437,6 +438,36 @@ test_that("file-backed threshold inspection keeps the map bounded and selectable
     expect_false(inherits(preprocessed$data, "Specs"))
     expect_identical(ncol(preprocessed$data$spectra), 208L)
     expect_true(canonical_state()$settings$load_entire_map)
+
+    full_metadata <- data.table::as.data.table(preprocessed$data$metadata)
+    displayed_metadata <- env$app_project_source_coordinates(
+      preprocessed$data, full_metadata, pixel_size = 1, pixel_unit = "pixel"
+    )$metadata
+    x_values <- sort(unique(as.numeric(displayed_metadata$x)))
+    y_values <- sort(unique(as.numeric(displayed_metadata$y)))
+    crop_bounds <- c(x_values[[1L]], x_values[[2L]],
+                     y_values[[1L]], y_values[[length(y_values)]])
+    expected_crop <- with(
+      displayed_metadata,
+      x >= crop_bounds[[1L]] & x <= crop_bounds[[2L]] &
+        y >= crop_bounds[[3L]] & y <= crop_bounds[[4L]]
+    )
+    session$setInputs(
+      xy_crop_decision = TRUE,
+      xy_crop_x_min = crop_bounds[[1L]], xy_crop_x_max = crop_bounds[[2L]],
+      xy_crop_y_min = crop_bounds[[3L]], xy_crop_y_max = crop_bounds[[4L]],
+      threshold_decision = FALSE
+    )
+    session$setInputs(run_analysis = 5L)
+    expect_identical(
+      ncol(inspection_source_gate()$spectra), as.integer(sum(expected_crop))
+    )
+    expect_identical(
+      nrow(pixel_projection()$metadata), as.integer(sum(expected_crop))
+    )
+    expect_equal(
+      unname(canonical_state()$settings$spatial_crop), unname(crop_bounds)
+    )
   }))
 })
 
