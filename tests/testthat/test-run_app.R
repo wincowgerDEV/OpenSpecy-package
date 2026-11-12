@@ -816,7 +816,8 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
   expect_true(all(vapply(
     c("threshold_decision", "cor_threshold_decision", "spatial_decision",
       "xy_grid", "xy_crop_decision", "xy_crop_x_min", "xy_crop_x_max",
-      "xy_crop_y_min", "xy_crop_y_max", "load_entire_map",
+      "xy_crop_y_min", "xy_crop_y_max", "xy_crop_from_upload",
+      "load_entire_map",
       "collapse_decision"),
     function(id) grepl(paste0('"', id, '"'), ui_source, fixed = TRUE),
     logical(1)
@@ -834,6 +835,33 @@ test_that("bundled app presents one analysis workspace with advanced and quantif
                fixed = TRUE)
   expect_match(ui_source, '"load_entire_map", "Load Entire File into Memory"',
                fixed = TRUE)
+  expect_match(ui_source,
+               '"xy_crop_from_upload", "Use Uploaded Range"', fixed = TRUE)
+  expect_false(grepl('"xy_crop_clear"', ui_source, fixed = TRUE))
+  expect_false(grepl("input$xy_crop_clear", server_source, fixed = TRUE))
+  expect_match(
+    server_source,
+    '"xy_crop_from_upload", condition = files_ready && !running',
+    fixed = TRUE
+  )
+  expect_match(server_source,
+               "observeEvent(input$xy_crop_from_upload, {", fixed = TRUE)
+  crop_action <- strsplit(
+    server_source,
+    "observeEvent(input$xy_crop_from_upload, {",
+    fixed = TRUE
+  )[[1L]][[2L]]
+  crop_action <- strsplit(
+    crop_action, "\n  }, ignoreInit = TRUE)", fixed = TRUE
+  )[[1L]][[1L]]
+  expect_match(crop_action, "source <- preprocessed$data", fixed = TRUE)
+  expect_match(crop_action, "if(!is.null(source))", fixed = TRUE)
+  expect_lt(
+    regexpr("if(!is.null(source))", crop_action, fixed = TRUE)[[1L]],
+    regexpr("read_uploaded_files(", crop_action, fixed = TRUE)[[1L]]
+  )
+  expect_match(crop_action, "app_spatial_extent(\n        source", fixed = TRUE)
+  expect_match(crop_action, 'crop_bounds_policy("default")', fixed = TRUE)
   expect_false(grepl('"columns_selected"', server_source, fixed = TRUE))
   expect_false(grepl('"columns_selected_ui"', ui_source, fixed = TRUE))
   expect_match(server_source,

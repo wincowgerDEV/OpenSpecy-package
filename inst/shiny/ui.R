@@ -490,15 +490,16 @@ advanced_controls <- tagList(
       column(6, numericInput("xy_crop_y_min", "Y minimum", value = NA_real_)),
       column(6, numericInput("xy_crop_y_max", "Y maximum", value = NA_real_))
     ),
-    actionButton(
-      "xy_crop_clear", "Reset to Full Range", icon = icon("expand"),
-      class = "btn-outline-warning"
-    ),
+    shinyjs::disabled(actionButton(
+      "xy_crop_from_upload", "Use Uploaded Range",
+      icon = icon("arrows-alt"), class = "btn-block btn-outline-primary"
+    )),
     note = c(
       "Enter limits before upload if they are already known. Otherwise, after the data are read, these fields default to the full displayed X/Y range.",
+      "Use Uploaded Range works before Run and whether cropping is on or off. It reads the staged source only when needed and fills the four limits from the current displayed-axis extent; Run is still required to apply an enabled crop.",
       "Box Select is the heatmap's persistent drag tool. Each box selection replaces these four values whether Crop XY Range is on or off; drag direction is normalized automatically.",
       "The limits use the displayed heatmap axis unit. Spectrum centroids on either boundary are included; a zero-width, zero-height, incomplete, or empty region is rejected.",
-      "Crop XY Range only controls whether the next Run applies the displayed bounds. When on, only spectra inside this region continue through signal/noise, preprocessing, particle analysis, identification, quantification, summaries, plots, and downloads. Turn it off to analyze the full uploaded source; Reset to Full Range restores the uploaded extents."
+      "Crop XY Range only controls whether the next Run applies the displayed bounds. When on, only spectra inside this region continue through signal/noise, preprocessing, particle analysis, identification, quantification, summaries, plots, and downloads. Turn it off to analyze the full uploaded source."
     )
   ),
   bs4Dash::box(

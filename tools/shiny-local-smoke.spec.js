@@ -1345,6 +1345,66 @@ test("file-backed fully processed map streams without a first-paint blink", asyn
   });
 });
 
+test("uploaded crop range populates before Run", async ({ page }, testInfo) => {
+  test.setTimeout(180000);
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|unused argument|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  await page.getByRole("link", { name: "Advanced", exact: true }).click();
+  const cropSwitch = page.locator("#xy_crop_decision");
+  await cropSwitch.evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  const cropCard = cropSwitch.locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  if (await cropCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+    await toggleCard(cropCard);
+  }
+  await expect(cropSwitch).not.toBeChecked();
+  const uploadedRangeButton = page.locator("#xy_crop_from_upload");
+  await expect(uploadedRangeButton).toBeDisabled();
+  await page.locator("#collapse_decision").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+
+  await stageLocalFiles(page, particleRdsFixture);
+  await expect(uploadedRangeButton).toBeEnabled();
+  await uploadedRangeButton.click();
+  await expect(cropSwitch).not.toBeChecked();
+  for (const [inputId, value] of Object.entries({
+    xy_crop_x_min: "0", xy_crop_x_max: "2",
+    xy_crop_y_min: "0", xy_crop_y_max: "2",
+  })) {
+    await expect(page.locator(`#${inputId}`)).toHaveValue(value, {
+      timeout: 120000,
+    });
+  }
+  await expect(uploadedRangeButton).not.toHaveAttribute("aria-busy", "true", {
+    timeout: 120000,
+  });
+  await expect(page.locator("#openspecy_busy_overlay")).toBeHidden();
+  await expect(page.locator("#heatmap_frame")).toBeHidden();
+  await expect(page.locator("#MyPlotC")).toContainText(
+    "A new dataset was uploaded. Click Run to analyze it."
+  );
+  await expect(page.locator("#run_analysis")).toBeVisible();
+  await expect(page.locator("#run_analysis")).toHaveClass(/openspecy-run-dirty/);
+  expect(severeErrors).toEqual([]);
+  await cropCard.scrollIntoViewIfNeeded();
+  await cropCard.screenshot({
+    path: testInfo.outputPath("uploaded-crop-range-before-run.png"),
+  });
+});
+
 test("processed particle RDS crops into selectable centroid points", async ({ page }, testInfo) => {
   test.setTimeout(180000);
   const severeErrors = [];

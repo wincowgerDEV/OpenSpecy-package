@@ -413,12 +413,14 @@
   <path class="edge-alt" d="M1620,2825 C 1760,2870 1760,2930 1632,2948" marker-end="url(#arrowAlt)"></path>
   <text x="1690" y="2915" class="edge-label strong">no: n/a</text>
 
-  <!-- Click Run / Recalculate Preview: both can materialize a valid staged upload;
-       only Run publishes canonical analysis state. -->
+  <!-- Run, Recalculate Preview, and Use Uploaded Range can materialize a
+       valid staged upload; only Run publishes canonical analysis state. -->
   <path class="edge-trigger" d="M1561,505 C 1400,530 1250,545 1172,558" marker-end="url(#arrowTrigger)"></path>
   <text x="1420" y="524" class="edge-label" style="fill:var(--trigger)">gates everything below</text>
   <path class="edge-trigger" d="M1650,646 C 2050,780 2280,1000 2250,1205" marker-end="url(#arrowTrigger)"></path>
   <text x="1980" y="900" class="edge-label" style="fill:var(--trigger)" transform="rotate(58 1980 900)">materializes if needed; only refills S/N histogram</text>
+  <path class="edge-trigger" d="M1650,756 C 1450,720 1270,680 1172,650" marker-end="url(#arrowTrigger)"></path>
+  <text x="1360" y="713" class="edge-label" style="fill:var(--trigger)">materializes if needed; fills draft bounds only</text>
 
   <!-- output dependency taps (Download: Static Files intentionally has none -- see its "depends on" line) -->
   <path class="edge-tap" d="M1170,1250 L2135,1250" marker-end="url(#arrowTap)"></path>
@@ -476,7 +478,7 @@
 <div class="node function" style="left:1050px;top:230px" tabindex="0">
   Stage Source &amp; Header
   <div class="sub">validate path, members, header, dimensions &middot; no full map</div>
-  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, expected bytes, and source spatial calibration but defers spectral materialization until Click Run commits scientific settings. One consistent square source pixel step with a known unit also populates the Advanced pixel-length inputs; anisotropic, conflicting, or incomplete calibration leaves manual values unchanged. A basename-matched ENVI JPG/PNG is registered by its red boundary; H5 retains its embedded mosaic descriptor. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
+  <div class="tip"><strong>Plan 018 target:</strong> mounted and native paths converge into a session-owned source descriptor. H5/ENVI/ZIP input validates readable members, header, dimensions, axis, expected bytes, and source spatial calibration but defers spectral materialization until Click Run, Recalculate Preview, or Use Uploaded Range explicitly needs it. Only Click Run commits scientific settings. One consistent square source pixel step with a known unit also populates the Advanced pixel-length inputs; anisotropic, conflicting, or incomplete calibration leaves manual values unchanged. A basename-matched ENVI JPG/PNG is registered by its red boundary; H5 retains its embedded mosaic descriptor. Ordinary small formats retain their compatible dense <code>OpenSpecy</code> read. The original source stays untouched and available for reruns.
   <span class="loc">Plans 018/035 &middot; server.R: staged source validation &middot; global.R: app_read_uploaded_members() &middot; R/{read_multi,read_envi,read_ext,visual_image}.R</span></div>
 </div>
 
@@ -504,10 +506,16 @@
   <span class="loc">Plan 022 &middot; server.R: read_uploaded_files() + recalculate_snr_preview()</span></div>
 </div>
 
+<div class="node trigger" style="left:1650px;top:720px" tabindex="0">
+  &#8596; Use Uploaded Range
+  <div class="tip">Works before the first Run and whether Crop XY Range is on or off. If the source is only staged, it uses the same validated dense or file-backed reader as Run; if already materialized, it uses the current source state without reopening the file. It fills the four draft X/Y limits in displayed-axis units but never publishes canonical analysis, plots, summaries, or downloads. A newly staged upload remains Run-dirty; an effective enabled-crop change on current data requires Run before results change.
+  <span class="loc">Plan 054 &middot; ui.R/server.R: xy_crop_from_upload + read_uploaded_files()</span></div>
+</div>
+
 <div class="node function" style="left:1050px;top:570px" tabindex="0">
   Materialize + Spatial Crop
   <div class="sub">descriptor-backed or in-memory &middot; optional inclusive centroid ROI</div>
-  <div class="tip">With Load Entire File into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. Materialization projects the source coordinates and seeds the four Crop XY Range inputs with the full displayed extent unless the user supplied complete pre-upload bounds. If Advanced Crop XY Range is enabled, those current bounds create the source view here before every analysis stage; boundary centroids are included and an incomplete, degenerate, or empty region fails the Run. Turning it off restores the untouched staged source. Both representations retain validated origin/step/unit metadata and registered imagery without replacing their integer adjacency grid. A processed-particle RDS is already materialized, carries <code>openspecy_object_type = particle_centroids</code>, and restores canonical x/y aliases from its retained unit-bearing coordinates.
+  <div class="tip">With Load Entire File into Memory off, an explicit ENVI DAT/HDR pair remains a read-only <code>FileSpecs</code> descriptor through S/N, bounded winning-correlation matching, and connected Mean collapse. With it on, every spectrum is deliberately materialized as ordinary <code>OpenSpecy</code> and all later stages use the dense path; allocation failures are measured runtime failures rather than an arbitrary size rejection. H5 and other compatible sources follow the same explicit choice. Materialization projects the source coordinates and seeds the four Crop XY Range inputs with the full displayed extent unless the user supplied complete pre-upload bounds; Use Uploaded Range explicitly replaces that draft with the current source extent. If Advanced Crop XY Range is enabled, those current bounds create the source view here before every analysis stage; boundary centroids are included and an incomplete, degenerate, or empty region fails the Run. Turning it off restores the untouched staged source. Both representations retain validated origin/step/unit metadata and registered imagery without replacing their integer adjacency grid. A processed-particle RDS is already materialized, carries <code>openspecy_object_type = particle_centroids</code>, and restores canonical x/y aliases from its retained unit-bearing coordinates.
   <span class="loc">Plans 018/033/035/052 &middot; server.R: data() &middot; global.R: app_crop_spatial_source() &middot; R/{interactive_plots,Specs_file}.R</span></div>
 </div>
 

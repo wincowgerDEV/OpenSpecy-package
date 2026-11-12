@@ -207,6 +207,9 @@ function(input, output, session) {
     files_ready <- !is.null(active_file_info())
     dirty <- files_ready && isTRUE(analysis_dirty())
     running <- files_ready && isTRUE(analysis_running())
+    shinyjs::toggleState(
+      "xy_crop_from_upload", condition = files_ready && !running
+    )
     shinyjs::toggleClass(
       "run_analysis", "openspecy-run-dirty", condition = dirty
     )
@@ -970,7 +973,7 @@ observeEvent(input$run_analysis, {
   observe({
     active <- isTRUE(input$xy_crop_decision)
     for(id in c("xy_crop_x_min", "xy_crop_x_max",
-                "xy_crop_y_min", "xy_crop_y_max", "xy_crop_clear")) {
+                "xy_crop_y_min", "xy_crop_y_max")) {
       shinyjs::toggleState(id, condition = active)
     }
   })
@@ -997,10 +1000,13 @@ observeEvent(input$run_analysis, {
     }
   }, ignoreInit = TRUE, priority = RUN_GATE_PRIORITY_RESET + 2L)
 
-  observeEvent(input$xy_crop_clear, {
+  observeEvent(input$xy_crop_from_upload, {
+    files <- active_file_info()
+    req(!is.null(files), !isTRUE(analysis_running()))
     source <- preprocessed$data
-    bounds <- NULL
     if(!is.null(source)) {
+      # An already materialized upload is the authoritative source here. Use
+      # its current displayed-axis extent directly; do not reopen the file.
       calibration <- if(isTRUE(input$collapse_decision)) {
         app_pixel_calibration(input$pixel_size, input$pixel_unit)
       } else {
@@ -1009,17 +1015,31 @@ observeEvent(input$run_analysis, {
       bounds <- app_spatial_extent(
         source, calibration$size, calibration$unit
       )
+      if(is.null(bounds)) return(invisible(NULL))
+      uploaded_crop_extent(bounds)
+      ids <- c("xy_crop_x_min", "xy_crop_x_max",
+               "xy_crop_y_min", "xy_crop_y_max")
+      for(index in seq_along(ids)) {
+        updateNumericInput(
+          session, ids[[index]], value = unname(bounds)[[index]]
+        )
+      }
+      return(invisible(NULL))
     }
-    values <- if(is.null(bounds)) {
-      rep(NA_real_, 4L)
-    } else {
-      unname(bounds)
-    }
-    ids <- c("xy_crop_x_min", "xy_crop_x_max",
-             "xy_crop_y_min", "xy_crop_y_max")
-    for(index in seq_along(ids)) {
-      updateNumericInput(session, ids[[index]], value = values[[index]])
-    }
+
+    # A staged-only source has no in-memory coordinates yet. Reuse the one
+    # upload reader so compact/file-backed and particle-centroid objects keep
+    # the same validation and attributes as Run, without publishing canonical
+    # analysis state.
+    analysis_phase(
+      "Reading uploaded XY range",
+      "Finding the full displayed X/Y extent without running analysis.",
+      4
+    )
+    crop_bounds_policy("default")
+    read_uploaded_files(
+      files, mounted = isTRUE(attr(files, "mounted", exact = TRUE))
+    )
   }, ignoreInit = TRUE)
 
  data <- reactive({
