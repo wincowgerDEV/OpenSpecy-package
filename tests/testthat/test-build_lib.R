@@ -1475,8 +1475,12 @@ test_that("source prefilter staging preserves bounded dedupe results", {
   x$metadata$spectrum_type <- "ftir"
   x$metadata$spectrum_identity <- c("same", "same", "other", "third")
   x$metadata$repeated_source_label <- "fixture label"
+  fixture_axis <- seq(-3, 3, length.out = nrow(x$spectra))
+  x$spectra[, 1] <- dnorm(fixture_axis, mean = -0.9)
   x$spectra[, 2] <- x$spectra[, 1] +
     0.02 * sin(seq_len(nrow(x$spectra)))
+  x$spectra[, 3] <- dnorm(fixture_axis, mean = 0.2)
+  x$spectra[, 4] <- dnorm(fixture_axis, mean = 1.1)
   path <- tempfile(fileext = ".rds")
   saveRDS(x, path)
   arguments <- list(
@@ -2778,7 +2782,7 @@ test_that("typed closure filters parents before medoid construction", {
   closed <- OpenSpecy:::.lib_close_typed_reference_libraries(
     list(derivative = list(ftir = parent)),
     prune_spec = list(derivative = list(
-      cross_class = TRUE, cross_class_threshold = 0.9, min_n = 2
+      cross_class = TRUE, cross_class_threshold = 0.9, min_n = 3
     )),
     progress = FALSE
   )
@@ -2788,6 +2792,12 @@ test_that("typed closure filters parents before medoid construction", {
   expect_equal(unname(table(
     closed$libraries$derivative$ftir$metadata$material_class
   )["class_a"]), 2L)
+  expect_equal(unname(table(
+    closed$libraries$derivative$ftir$metadata$material_class
+  )["class_b"]), 2L)
+  expect_false(any(
+    closed$removals$reason == "class_below_global_min_n_after_closure"
+  ))
   expect_true(nrow(closed$removals) >= 1L)
   expect_true(any(closed$removals$correlation_view == "typed_full"))
   expect_length(closed$quarantine_parts, 1L)
@@ -2800,7 +2810,7 @@ test_that("typed closure filters parents before medoid construction", {
     filter_spec(closed_parent, medoid_rows), "ftir"
   )
   prune_spec <- list(derivative = list(
-    cross_class = TRUE, cross_class_threshold = 0.9, min_n = 2
+    cross_class = TRUE, cross_class_threshold = 0.9, min_n = 3
   ))
   bounded_validation <- OpenSpecy:::.lib_validate_medoid_parent_closure(
     closed$libraries, list(derivative = list(ftir = medoid)),
@@ -3195,7 +3205,7 @@ test_that("prune_lib() validates cross-class policy inputs", {
   )
 })
 
-test_that("prune_lib() reassigns undersupported classes by spectrum type", {
+test_that("prune_lib() preserves undersupported reviewed classes", {
   wn <- seq(500, 3500, length.out = 40)
   spectra <- vapply(seq_len(7), function(i) {
     dnorm(seq(-3, 3, length.out = length(wn)), mean = i / 20)
@@ -3224,42 +3234,30 @@ test_that("prune_lib() reassigns undersupported classes by spectrum type", {
   )
   expect_match(
     paste(messages, collapse = "\n"),
-    "minimum support gate reassigned 1 and removed 1 spectrum/spectra"
+    paste0(
+      "minimum support floor preserving 2 class/type group\\(s\\) below ",
+      "min_n=2"
+    )
   )
 
-  expect_equal(
-    report$excluded_classes[, c(
-      "spectrum_type", "material_class", "observed_n", "minimum_spectra",
-      "shortfall", "destination_class", "spectra_removed", "action", "reason"
-    ), with = FALSE],
-    data.table::data.table(
-      spectrum_type = c("ftir", "ftir"),
-      material_class = c("rare", "unclassified"),
-      observed_n = c(1L, 1L), minimum_spectra = c(2L, 2L),
-      shortfall = c(1L, 1L), destination_class = c("stable", NA_character_),
-      spectra_removed = c(0L, 1L), action = c("reassigned", "dropped"),
-      reason = c("class_below_min_n_reassigned",
-                 "class_below_min_n_no_eligible_destination")
-    )
+  expect_equal(nrow(report$excluded_classes), 0L)
+  expect_named(
+    report$excluded_classes,
+    names(OpenSpecy:::.lib_prune_excluded_class_schema())
   )
   expect_true(all(c("raman_rare1", "raman_rare2") %in% report$retained_ids))
   expect_true("ftir_missing" %in% report$retained_ids)
   expect_true("ftir_rare" %in% report$retained_ids)
-  expect_false("ftir_unclassified" %in% report$retained_ids)
+  expect_true("ftir_unclassified" %in% report$retained_ids)
   expect_equal(
     report$object$metadata[sample_name == "ftir_rare", material_class],
-    "stable"
+    "rare"
   )
-  expect_equal(
-    report$reassignments[spectrum_id == "ftir_rare", reason],
-    "class_below_min_n_reassigned"
-  )
-  threshold_removals <- report$removals[reason == "class_below_min_n"]
-  expect_equal(threshold_removals$spectrum_id, "ftir_unclassified")
-  expect_true(all(is.na(threshold_removals$matched_id)))
-  expect_type(threshold_removals$matched_id, "character")
-  expect_equal(report$summary$classes_excluded, 1L)
-  expect_equal(report$summary$threshold_removed, 1L)
+  expect_equal(nrow(report$reassignments), 0L)
+  expect_equal(nrow(report$removals), 0L)
+  expect_equal(report$summary$classes_excluded, 0L)
+  expect_equal(report$summary$threshold_removed, 0L)
+  expect_equal(report$summary$removed, 0L)
   expect_true(check_OpenSpecy(report$object))
   expect_identical(colnames(report$object$spectra),
                    report$object$metadata$sample_name)
@@ -3272,9 +3270,7 @@ test_that("prune_lib() reassigns undersupported classes by spectrum type", {
     recovered$pruning_excluded_classes,
     names(OpenSpecy:::.lib_prune_excluded_assessment_schema())
   )
-  expect_equal(unique(recovered$pruning_excluded_classes$artifact),
-               "derivative")
-  expect_equal(nrow(recovered$pruning_excluded_classes), 2L)
+  expect_equal(nrow(recovered$pruning_excluded_classes), 0L)
 })
 
 test_that("prune_lib() resolves generic labels before minimum support", {
@@ -3300,7 +3296,7 @@ test_that("prune_lib() resolves generic labels before minimum support", {
   expect_equal(report$schedule$initial_n, 2L)
 })
 
-test_that("prune_lib() sends an undersupported class to one correlated class", {
+test_that("prune_lib() does not correlation-rename a reviewed small class", {
   wn <- seq(500, 3500, length.out = 40)
   shape_a <- dnorm(seq(-3, 3, length.out = length(wn)), mean = -0.5)
   shape_b <- dnorm(seq(-3, 3, length.out = length(wn)), mean = 1)
@@ -3322,15 +3318,16 @@ test_that("prune_lib() sends an undersupported class to one correlated class", {
   report <- prune_lib(lib, min_n = 3, return = "report", progress = FALSE)
   reassigned <- report$reassignments[prior_class == "rare"]
 
-  expect_equal(nrow(reassigned), 2L)
-  expect_identical(unique(reassigned$material_class), "class_a")
+  expect_equal(nrow(reassigned), 0L)
   expect_true(all(report$object$metadata$sample_name %in%
                     colnames(lib$spectra)))
-  expect_false("rare" %in% report$object$metadata$material_class)
+  expect_true("rare" %in% report$object$metadata$material_class)
   expect_equal(
-    report$excluded_classes[material_class == "rare", action],
-    "reassigned"
+    report$object$metadata[sample_name %in% c("whole_7", "whole_8"),
+                           material_class],
+    rep("rare", 2L)
   )
+  expect_equal(nrow(report$excluded_classes), 0L)
 })
 
 test_that("prune_lib() retains unclassified spectra outside matching", {

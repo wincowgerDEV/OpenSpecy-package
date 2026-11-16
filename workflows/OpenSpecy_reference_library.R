@@ -33,6 +33,9 @@ output_dir <- Sys.getenv(
   "OPENSPECY_REFERENCE_OUTPUT_DIR",
   unset = file.path(dirname(package_dir), "reference-library-build-2.0.0")
 )
+previous_library_dir <- Sys.getenv(
+  "OPENSPECY_REFERENCE_PREVIOUS_LIBRARY_DIR", unset = "system"
+)
 
 if (!requireNamespace("devtools", quietly = TRUE)) {
   stop("Install 'devtools' before running the reference-library rebuild.",
@@ -173,6 +176,7 @@ message("  Processed sources: ", length(metadatafiles))
 message("  Manifest-admitted sources: ", length(intake$files))
 message("  Raw source: ", if (include_raw_source) source_file else "disabled")
 message("  Output root: ", output_dir)
+message("  Previous-library comparator: ", previous_library_dir)
 message("  Checkpoint reuse: disabled (clean full rebuild)")
 message("  Source-local correlation deduplication: strict > 0.99")
 message("  Correlation cache: bounded blocks (no full square allocation)")
@@ -201,7 +205,7 @@ message("  High-throughput workers: ", build_workers)
 reference_library_build <- build_lib(
   x = files,
   output_dir = output_dir,
-  previous_library_dir = "system",
+  previous_library_dir = previous_library_dir,
   reuse = FALSE,
   remove_other = TRUE,
   dedupe_correlation_threshold = 0.99,

@@ -82,6 +82,15 @@
   counts with at most 1,000 representative values plus an explicit collapsed
   count, and colliding columns are coalesced in the join pass. Metadata-join
   chunk/copy/report telemetry is retained as assessment evidence.
+- `prune_lib()` now preserves reviewed non-generic material classes regardless
+  of support. `min_n` remains an ordinary correlation-pruning retention floor,
+  but support count alone no longer renames a small class by correlation or
+  deletes it after cross-class closure; explicit class-reference and hierarchy
+  mappings remain authoritative.
+- Reference-library metadata encoding cleanup now drops malformed bytes
+  consistently on Windows locales instead of aborting on a translated embedded
+  NUL. CI fixtures and the frozen SpecyPro schema hash are also stable across
+  supported R versions and line-ending settings.
 - The production contract now explicitly disables global class-wide
   `prune_lib()` correlation passes at large scale. Exact content hashes and
   strict correlation `> 0.99` within one independent source, spectral type, and

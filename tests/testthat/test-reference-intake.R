@@ -186,6 +186,9 @@ test_that("reference workflow uses manifest-selected cleaned outputs", {
   expect_match(code, "unset = \"false\"", fixed = TRUE)
   expect_match(code, "OpenSpecy.correlation_cache = \"bounded\"", fixed = TRUE)
   expect_match(code, "OpenSpecy.source_hash_chunk_size = 20000L", fixed = TRUE)
+  expect_match(
+    code, "OPENSPECY_REFERENCE_PREVIOUS_LIBRARY_DIR", fixed = TRUE
+  )
   expect_match(code, "OpenSpecy.source_record_staging = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.source_prefilter_staging = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.compact_staged_metadata = TRUE", fixed = TRUE)

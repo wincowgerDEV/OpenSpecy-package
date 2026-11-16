@@ -165,13 +165,12 @@
 #' \code{"mineral"}. The matched identifier, class, type, score, and candidate
 #' pool are audited while the original identity and form are retained. A
 #' generic row with no finite eligible candidate is retained with a no-match
-#' audit rather than deleted. Once those labels are resolved, each
-#' class/spectrum-type group with
-#' fewer than \code{min_n} spectra is reassigned as a whole to its
-#' most-correlated established class in the same technique pool and material
-#' type. A group is removed only when no eligible correlated destination
-#' exists. The report identifies its support, destination, class-level
-#' correlation, action, reason, and affected spectrum identifiers.
+#' audit rather than deleted. Reviewed non-generic classes retain their curated
+#' labels regardless of support. For ordinary correlation pruning,
+#' \code{min_n} is only a retention floor: groups at or below the floor are kept
+#' whole and larger groups are never reduced below it. Class renaming remains
+#' an explicit lookup or hierarchy operation rather than a correlation-based
+#' support fallback.
 #'
 #' \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 #' values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
@@ -386,13 +385,13 @@
 #' @param group_cols metadata columns defining groups for reduction.
 #' @param k maximum representatives to keep for groups larger than
 #' \code{min_n}.
-#' @param min_n For \code{prune_lib()}, the minimum spectra required for a
-#' resolved class within one spectrum type across the complete input database,
-#' not within each source library. Smaller groups are reassigned as a whole to
-#' their most-correlated eligible class, or removed when no valid destination
-#' exists; groups exactly at the threshold are retained. For \code{reduce_lib()},
-#' groups with \code{min_n} or fewer spectra are kept whole. Model trainers
-#' fit only classes meeting the threshold.
+#' @param min_n For \code{prune_lib()}, the minimum retention floor for a
+#' resolved class during ordinary correlation pruning. Groups with
+#' \code{min_n} or fewer spectra are kept whole and larger groups are never
+#' reduced below the floor; support count alone never renames or removes a
+#' reviewed class. For \code{reduce_lib()}, groups with \code{min_n} or fewer
+#' spectra are kept whole. Model trainers fit only classes meeting the
+#' threshold.
 #' @param cross_class logical; whether \code{prune_lib()} should resolve
 #' within-library and then independent-library high-correlation matches between
 #' different non-generic material classes before generic-class reassignment.
@@ -3283,7 +3282,17 @@ predict_class_reference <- function(metadata, regex_reference,
   for (column in names(metadata)) {
     value <- metadata[[column]]
     if (!is.character(value) && !is.factor(value)) next
-    value <- iconv(as.character(value), from = "", to = "UTF-8", sub = "")
+    value <- as.character(value)
+    value <- tryCatch(
+      iconv(value, from = "", to = "UTF-8", sub = ""),
+      error = function(error) {
+        # Some Windows R locales translate an invalid native byte to NUL before
+        # iconv() can apply `sub`, which aborts the entire metadata column.
+        # Treat that failed native conversion as malformed UTF-8 so the same
+        # invalid bytes are dropped deterministically on every platform.
+        iconv(value, from = "UTF-8", to = "UTF-8", sub = "")
+      }
+    )
     data.table::set(metadata, j = column, value = value)
   }
   metadata
@@ -4560,15 +4569,7 @@ prune_lib <- function(x, class_col = "material_class",
   )
   classes <- generic_reassigned$classes
   material_types <- generic_reassigned$material_types
-  small_reassigned <- .lib_reassign_small_classes(
-    classes, material_types, spectrum_types, pools, prune_view, ids,
-    min_n = min_n, progress = progress
-  )
-  classes <- small_reassigned$classes
-  material_types <- small_reassigned$material_types
-  reassignment_report <- data.table::rbindlist(list(
-    generic_reassigned$report, small_reassigned$report
-  ), fill = TRUE)
+  reassignment_report <- generic_reassigned$report
   metadata[[class_col]] <- classes
   metadata[[material_type_col]] <- material_types
   protected <- tolower(classes) %in% c(
@@ -4588,41 +4589,16 @@ prune_lib <- function(x, class_col = "material_class",
       support, spectrum_type, -observed_n, material_class
     )
   }
-  excluded_classes <- small_reassigned$classes_report
-  if (!nrow(excluded_classes)) {
-    excluded_classes <- .lib_prune_excluded_class_schema()
-  }
-  threshold_rows <- small_reassigned$dropped_rows
+  excluded_classes <- .lib_prune_excluded_class_schema()
   active <- rep(TRUE, length(ids))
-  active[threshold_rows] <- FALSE
   if (isTRUE(progress)) {
-    if (nrow(excluded_classes)) {
-      preview_n <- min(8L, nrow(excluded_classes))
-      preview <- excluded_classes[seq_len(preview_n), sprintf(
-        "%s / %s (n=%d; shortfall=%d)",
-        spectrum_type, material_class, observed_n, shortfall
-      )]
-      if (nrow(excluded_classes) > preview_n) {
-        preview <- c(
-          preview,
-          sprintf("and %d more", nrow(excluded_classes) - preview_n)
-        )
-      }
-      message(sprintf(
-        paste0("prune_lib: minimum support gate reassigned %d and removed %d ",
-               "spectrum/spectra across %d class/type group(s) below ",
-               "min_n=%d: %s"),
-        nrow(small_reassigned$report), length(threshold_rows),
-        nrow(excluded_classes), min_n,
-        paste(preview, collapse = "; ")
-      ))
-    } else {
-      message(sprintf(
-        paste0("prune_lib: minimum support gate complete ",
-               "(%d class/type group(s); none below min_n=%d)"),
-        nrow(support), min_n
-      ))
-    }
+    small_support <- support[observed_n < min_n]
+    message(sprintf(
+      paste0("prune_lib: minimum support floor preserving %d class/type ",
+             "group(s) below min_n=%d; support count does not rename or ",
+             "remove reviewed classes"),
+      nrow(small_support), min_n
+    ))
   }
 
   schedule <- data.table::data.table(
@@ -4643,15 +4619,6 @@ prune_lib <- function(x, class_col = "material_class",
     list(cross_class_removals)
   } else {
     list()
-  }
-  if (length(threshold_rows)) {
-    removal_rows[[length(removal_rows) + 1L]] <- data.table::data.table(
-      spectrum_id = ids[threshold_rows],
-      prior_class = classes[threshold_rows],
-      matched_id = NA_character_, matched_class = NA_character_,
-      correlation = NA_real_, pool = pools[threshold_rows],
-      schedule_order = NA_integer_, reason = "class_below_min_n"
-    )
   }
   removal_i <- length(removal_rows)
   if (isTRUE(progress)) {
@@ -4799,43 +4766,6 @@ prune_lib <- function(x, class_col = "material_class",
     }
     rm(closure)
 
-    resolved_active <- active & !protected & !is.na(spectrum_types) &
-      nzchar(spectrum_types) & !is.na(classes) & nzchar(classes)
-    final_support <- data.table::data.table(
-      row = which(resolved_active),
-      spectrum_type = spectrum_types[resolved_active],
-      material_class = classes[resolved_active]
-    )[, .(rows = list(row), observed_n = .N),
-      by = .(spectrum_type, material_class)]
-    small_final <- final_support[observed_n < min_n]
-    if (nrow(small_final)) {
-      drop <- unlist(small_final$rows, use.names = FALSE)
-      count_lookup <- small_final$observed_n[match(
-        paste(spectrum_types[drop], classes[drop]),
-        paste(small_final$spectrum_type, small_final$material_class)
-      )]
-      floor_removals <- data.table::data.table(
-        phase = "final_closure", correlation_view = "global_support",
-        component_id = NA_character_, spectrum_id = ids[drop],
-        prior_class = classes[drop], library_name = library_names[drop],
-        matched_id = NA_character_, matched_class = NA_character_,
-        matched_library = NA_character_, correlation = NA_real_,
-        pool = spectrum_types[drop], active_degree = 0L,
-        matched_active_degree = 0L, evidence_libraries = 0L,
-        conflicting_spectra = 0L, matched_evidence_libraries = 0L,
-        decision_round = NA_integer_, threshold = cross_class_threshold,
-        class_n_before = as.integer(count_lookup), class_n_after = 0L,
-        schedule_order = NA_integer_, quarantine_status = "excluded",
-        review_status = "global_support_at_risk",
-        reason = "class_below_global_min_n_after_closure"
-      )
-      active[drop] <- FALSE
-      cross_class_removals <- data.table::rbindlist(
-        list(cross_class_removals, floor_removals), fill = TRUE
-      )
-      removal_i <- removal_i + 1L
-      removal_rows[[removal_i]] <- floor_removals
-    }
   }
   if (isTRUE(cross_class)) {
     rm(cross_view)
@@ -4871,7 +4801,7 @@ prune_lib <- function(x, class_col = "material_class",
       reassigned = nrow(reassignment_report),
       classes_excluded = sum(excluded_classes$action == "dropped"),
       cross_class_removed = nrow(cross_class_removals),
-      threshold_removed = length(threshold_rows),
+      threshold_removed = 0L,
       removed = before_n - sum(active)
     )
   )
@@ -4883,7 +4813,7 @@ prune_lib <- function(x, class_col = "material_class",
              "threshold_removed=%d; removed=%d)"),
       before_n, sum(active), nrow(reassignment_report),
       sum(excluded_classes$action == "dropped"),
-      nrow(cross_class_removals), length(threshold_rows),
+      nrow(cross_class_removals), 0L,
       before_n - sum(active)
     ))
   }
@@ -6442,168 +6372,6 @@ prune_lib <- function(x, class_col = "material_class",
   list(
     classes = classes, material_types = material_types,
     report = report, audit = audit
-  )
-}
-
-.lib_reassign_small_classes <- function(classes, material_types,
-                                        spectrum_types, pools, normalized,
-                                        ids, min_n, progress = FALSE) {
-  retained_generic <- c("other", "other plastic", "other material")
-  generic <- c(retained_generic, "unclassified")
-  support <- data.table::data.table(
-    row = seq_along(ids), spectrum_type = spectrum_types, pool = pools,
-    material_class = classes, material_type = material_types
-  )[
-    !is.na(spectrum_type) & nzchar(spectrum_type) &
-      !is.na(material_class) & nzchar(material_class),
-    .(
-      observed_n = .N,
-      material_type = {
-        values <- unique(material_type[!is.na(material_type) &
-                                         nzchar(material_type)])
-        if (length(values) == 1L) values else NA_character_
-      }
-    ),
-    by = .(spectrum_type, pool, material_class)
-  ]
-  small <- support[
-    observed_n < min_n & !tolower(material_class) %in% retained_generic
-  ]
-  if (nrow(small)) {
-    data.table::setorder(small, spectrum_type, material_class)
-  }
-  established <- support[
-    observed_n >= min_n & !tolower(material_class) %in% generic
-  ]
-  report_rows <- list()
-  class_rows <- list()
-  dropped_rows <- integer()
-
-  for (i in seq_len(nrow(small))) {
-    item <- small[i]
-    query <- which(
-      spectrum_types == item$spectrum_type & pools == item$pool &
-        !is.na(classes) & classes == item$material_class
-    )
-    eligible_classes <- established[
-      spectrum_type == item$spectrum_type & pool == item$pool,
-      material_class
-    ]
-    candidates <- which(
-      spectrum_types == item$spectrum_type & pools == item$pool &
-        classes %in% eligible_classes
-    )
-    if (!is.na(item$material_type)) {
-      candidates <- candidates[
-        material_types[candidates] == item$material_type
-      ]
-    }
-    candidates <- candidates[!is.na(candidates)]
-    match <- .lib_prune_best_class(
-      query, candidates, classes, normalized, ids
-    )
-    if (is.null(match) || tolower(item$material_class) == "unclassified") {
-      dropped_rows <- c(dropped_rows, query)
-      class_rows[[length(class_rows) + 1L]] <- data.table::data.table(
-        spectrum_type = item$spectrum_type, pool = item$pool,
-        material_class = item$material_class,
-        observed_n = as.integer(item$observed_n),
-        minimum_spectra = as.integer(min_n),
-        shortfall = as.integer(min_n - item$observed_n),
-        destination_class = NA_character_, mean_correlation = NA_real_,
-        spectra_removed = as.integer(item$observed_n), action = "dropped",
-        reason = "class_below_min_n_no_eligible_destination"
-      )
-      next
-    }
-    prior_class <- classes[query]
-    prior_type <- material_types[query]
-    classes[query] <- match$material_class
-    material_types[query] <- material_types[match$index]
-    report_rows[[length(report_rows) + 1L]] <- data.table::data.table(
-      spectrum_id = ids[query], prior_class,
-      material_class = classes[query], prior_material_type = prior_type,
-      material_type = material_types[query],
-      matched_id = ids[match$index], correlation = match$correlation,
-      pool = pools[query], reason = "class_below_min_n_reassigned"
-    )
-    class_rows[[length(class_rows) + 1L]] <- data.table::data.table(
-      spectrum_type = item$spectrum_type, pool = item$pool,
-      material_class = item$material_class,
-      observed_n = as.integer(item$observed_n),
-      minimum_spectra = as.integer(min_n),
-      shortfall = as.integer(min_n - item$observed_n),
-      destination_class = match$material_class,
-      mean_correlation = match$mean_correlation,
-      spectra_removed = 0L, action = "reassigned",
-      reason = "class_below_min_n_reassigned"
-    )
-  }
-  report <- if (length(report_rows)) {
-    data.table::rbindlist(report_rows, fill = TRUE)
-  } else {
-    .lib_prune_reassignment_schema()
-  }
-  classes_report <- if (length(class_rows)) {
-    data.table::rbindlist(class_rows, fill = TRUE)
-  } else {
-    .lib_prune_excluded_class_schema()
-  }
-  if (isTRUE(progress) && nrow(small)) {
-    message(sprintf(
-      paste0("prune_lib: small-class reassignment complete ",
-             "(classes=%d; reassigned=%d; dropped=%d)"),
-      nrow(small), sum(classes_report$action == "reassigned"),
-      sum(classes_report$action == "dropped")
-    ))
-  }
-  list(
-    classes = classes, material_types = material_types, report = report,
-    classes_report = classes_report,
-    dropped_rows = sort(unique(as.integer(dropped_rows)))
-  )
-}
-
-.lib_prune_best_class <- function(query, candidates, classes, normalized, ids) {
-  if (!length(query) || !length(candidates)) return(NULL)
-  if (.lib_is_correlation_view(normalized) &&
-      !is.null(normalized$minimum_retained_correlation)) {
-    stop("Best-class queries require an uncompacted correlation view",
-         call. = FALSE)
-  }
-  candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
-  destination <- sort(unique(classes[candidates]))
-  destination <- destination[!is.na(destination) & nzchar(destination)]
-  if (!length(destination)) return(NULL)
-  correlations <- if (.lib_is_correlation_view(normalized)) {
-    .lib_correlation_values(normalized, ids, query, candidates)
-  } else {
-    tcrossprod(
-      normalized[query, , drop = FALSE], normalized
-    )[, candidates, drop = FALSE]
-  }
-  correlations[!is.finite(correlations)] <- -Inf
-  scores <- vapply(destination, function(class) {
-    columns <- which(classes[candidates] == class)
-    best <- matrixStats::rowMaxs(correlations[, columns, drop = FALSE])
-    if (any(!is.finite(best))) -Inf else mean(best)
-  }, numeric(1L))
-  if (!any(is.finite(scores))) return(NULL)
-  best_score <- max(scores)
-  tolerance <- sqrt(.Machine$double.eps) * max(1, abs(best_score))
-  selected <- destination[which(abs(scores - best_score) <= tolerance)[[1L]]]
-  selected_candidates <- candidates[classes[candidates] == selected]
-  selected_columns <- match(selected_candidates, candidates)
-  selected_correlations <- correlations[, selected_columns, drop = FALSE]
-  top <- matrixStats::rowMaxs(selected_correlations)
-  near_top <- abs(selected_correlations - top) <=
-    sqrt(.Machine$double.eps) * pmax(1, abs(top))
-  local <- max.col(near_top, ties.method = "first")
-  list(
-    material_class = selected,
-    mean_correlation = unname(best_score),
-    index = selected_candidates[local],
-    correlation = selected_correlations[cbind(seq_along(query), local)]
   )
 }
 
@@ -12244,7 +12012,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   conflict_i <- 0L
   part_i <- 0L
   support_i <- 0L
-  generic <- c("other", "other plastic", "other material", "unclassified")
   for (artifact in intersect(c("derivative", "nobaseline"), names(libraries))) {
     args <- if (is.null(prune_spec)) list(cross_class = TRUE) else prune_spec[[artifact]]
     if (is.null(args)) args <- list()
@@ -12358,41 +12125,6 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
         conflict_rows[[conflict_i]] <- model_result$conflicts[, artifact := artifact][]
       }
 
-      classes <- as.character(parent$metadata$material_class)
-      class_keys <- tolower(trimws(classes))
-      support <- data.table::data.table(
-        material_class = classes,
-        resolved = !is.na(classes) & nzchar(classes) &
-          !class_keys %in% generic
-      )[resolved == TRUE, .N, by = material_class]
-      small <- support[N < min_n, material_class]
-      if (length(small)) {
-        drop <- which(classes %in% small)
-        ids <- as.character(.lib_ids(parent, "sample_name"))
-        counts <- support$N[match(classes[drop], support$material_class)]
-        floor_removals <- data.table::data.table(
-          phase = "final_closure", correlation_view = "global_support",
-          component_id = NA_character_, spectrum_id = ids[drop],
-          prior_class = classes[drop],
-          library_name = as.character(parent$metadata$library_name)[drop],
-          matched_id = NA_character_, matched_class = NA_character_,
-          matched_library = NA_character_, correlation = NA_real_, pool = type,
-          active_degree = 0L, matched_active_degree = 0L,
-          evidence_libraries = 0L, conflicting_spectra = 0L,
-          matched_evidence_libraries = 0L, decision_round = NA_integer_,
-          threshold = threshold, class_n_before = counts, class_n_after = 0L,
-          schedule_order = NA_integer_, quarantine_status = "excluded",
-          review_status = "global_support_at_risk",
-          reason = "class_below_global_min_n_after_closure"
-        )
-        row_i <- row_i + 1L
-        removal_rows[[row_i]] <- floor_removals[, artifact := artifact][]
-        part_i <- part_i + 1L
-        quarantine_parts[[part_i]] <- .lib_quarantine_part(
-          parent, floor_removals, artifact, type, min_n
-        )
-        parent <- filter_spec(parent, -drop)
-      }
       final_model_view <- .lib_restrict_model_range(parent, type)
       validation_key <- paste(artifact, type, sep = "\r")
       validation_cache[[validation_key]] <-

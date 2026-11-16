@@ -230,25 +230,20 @@ standardized enrichment), while matched ID, class, type, score, and candidate
 pool are audited. A generic
 spectrum with no finite eligible candidate remains in its generic class with a
 no-match audit. FTIR and NIR share a candidate pool; Raman is separate;
-2200--2420 cm^-1^ is excluded by default. After generic reassignment,
-each `spectrum_type` and material-class group must contain at least `min_n`
-spectra across the complete input database; `min_n` is not applied separately
-to each source library. Smaller resolved groups are reassigned as a whole when an eligible
-destination exists and removed only when no destination exists; groups exactly
-at the threshold are retained whole and larger groups are never reduced below
-it. Constant or unmatched spectra in eligible classes are retained, and
-deterministic IDs resolve correlation ties. Use `return = "report"` for the
-retained IDs, frozen class schedule, reassignment correlations, spectrum-level
-removals, and `excluded_classes`, which reports observed support and the number
-of additional or reassigned spectra needed. End-to-end builds combine these
-class rows in `assessments$cleanup$summary` with the recipe name.
+2200--2420 cm^-1^ is excluded by default. Reviewed non-generic classes retain
+their curated labels regardless of support. For ordinary correlation pruning,
+`min_n` is a retention floor: groups at or below it are retained whole and
+larger groups are never reduced below it. Support count alone does not rename
+or remove a reviewed class; those changes must come from the exact class
+reference or material hierarchy. Constant or unmatched spectra in eligible
+classes are retained, and deterministic IDs resolve correlation ties. Use
+`return = "report"` for the retained IDs, frozen class schedule, generic
+reassignment correlations, spectrum-level removals, and compatible empty
+`excluded_classes` output.
 `build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
-each selected spectral representation is pruned independently. Resolved
-class/type groups below `min_n` are reassigned as a whole to the
-most-correlated established class in the same technique pool and material type;
-they are dropped only when no eligible correlated destination exists. The
-pruning assessment records the destination, mean class correlation, action,
-and reason. In the official
+each selected spectral representation is pruned independently. Its generic
+reassignment and explicit cross-class conflict policies remain separate from
+the non-generic class-preservation rule. In the official
 workflow, an otherwise unresolved identity is temporarily labeled `other`.
 The default `remove_other = TRUE` removes rows without a stable identity or any
 generic review label, but named generic paint, varnish, rubber, latex, resin,

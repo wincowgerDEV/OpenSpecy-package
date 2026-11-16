@@ -334,13 +334,13 @@ reassignment. \code{"other material"} candidates are restricted by
 \code{class_col} to \code{"organic matter"} or \code{"mineral"};
 \code{"other"} may match any established class in the spectral pool.}
 
-\item{min_n}{For \code{prune_lib()}, the minimum spectra required for a
-resolved class within one spectrum type across the complete input database,
-not within each source library. Smaller groups are reassigned as a whole to
-their most-correlated eligible class, or removed when no valid destination
-exists; groups exactly at the threshold are retained. For \code{reduce_lib()},
-groups with \code{min_n} or fewer spectra are kept whole. Model trainers
-fit only classes meeting the threshold.}
+\item{min_n}{For \code{prune_lib()}, the minimum retention floor for a
+resolved class during ordinary correlation pruning. Groups with
+\code{min_n} or fewer spectra are kept whole and larger groups are never
+reduced below the floor; support count alone never renames or removes a
+reviewed class. For \code{reduce_lib()}, groups with \code{min_n} or fewer
+spectra are kept whole. Model trainers fit only classes meeting the
+threshold.}
 
 \item{cross_class}{logical; whether \code{prune_lib()} should resolve
 within-library and then independent-library high-correlation matches between
@@ -636,13 +636,12 @@ reassigns generic classes by nearest same-technique correlation:
 \code{"mineral"}. The matched identifier, class, type, score, and candidate
 pool are audited while the original identity and form are retained. A
 generic row with no finite eligible candidate is retained with a no-match
-audit rather than deleted. Once those labels are resolved, each
-class/spectrum-type group with
-fewer than \code{min_n} spectra is reassigned as a whole to its
-most-correlated established class in the same technique pool and material
-type. A group is removed only when no eligible correlated destination
-exists. The report identifies its support, destination, class-level
-correlation, action, reason, and affected spectrum identifiers.
+audit rather than deleted. Reviewed non-generic classes retain their curated
+labels regardless of support. For ordinary correlation pruning,
+\code{min_n} is only a retention floor: groups at or below the floor are kept
+whole and larger groups are never reduced below it. Class renaming remains
+an explicit lookup or hierarchy operation rather than a correlation-based
+support fallback.
 
 \code{make_lib_lookup_template()} creates a deduplicated table of metadata
 values from an \code{OpenSpecy} or \code{Specs} object. Users can fill the
