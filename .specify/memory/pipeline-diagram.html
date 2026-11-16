@@ -453,6 +453,8 @@
   <path class="edge-tap" d="M1170,2790 L2135,2805" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1620,2900 C 2250,2850 2250,2820 2135,2808" marker-end="url(#arrowTap)"></path>
   <path class="edge-tap" d="M1170,2830 L2135,2900" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1170,2490 C 1450,2550 1580,2820 1735,2885" marker-end="url(#arrowTap)"></path>
+  <path class="edge-tap" d="M1970,2595 C 2110,2660 2120,2820 2080,2885" marker-end="url(#arrowTap)"></path>
 
   <!-- click interaction: Heatmap selection drives the active-spectrum inspection lane and metadata -->
   <path class="edge-click" d="M2250,2762 C 2160,2700 2050,2600 1970,2575" marker-end="url(#arrowClick)"></path>
@@ -625,8 +627,8 @@
 <div class="node function" style="left:1050px;top:2440px" tabindex="0">
   Build canonical_state
   <div class="sub">Specs/OpenSpecy result or bounded FileSpecs selection &middot; Run-gated</div>
-  <div class="tip">The single expensive-analysis owner bundles a canonical result, full pixel/unit mapping, partition, diagnostics, and the committed run-settings snapshot. File-backed Collapse-off state holds the full lightweight mapping, S/N vector, optional rank-1 match summaries, one processed retained spectrum, and a <code>file_backed_selection</code> marker; the immutable descriptor remains the inspection owner. Its companion <code>analysis_library</code> commits the exact artifact used by that Run.
-  <span class="loc">Plans 018/033 &middot; server.R: canonical_state_gate()</span></div>
+  <div class="tip">The single expensive-analysis owner bundles a canonical result, full pixel/unit mapping, partition, diagnostics, and the committed run-settings snapshot. File-backed Collapse-off state holds the full lightweight mapping, S/N vector, optional rank-1 match summaries, one processed retained spectrum, and a <code>file_backed_selection</code> marker; the immutable descriptor remains the inspection owner. Its companion <code>analysis_library</code> commits the exact artifact used by that Run. Plan 055 also records identification/library provenance, saved definitions, correction diagnostics, and a deterministic Run hash for downstream SpecyPro export.
+  <span class="loc">Plans 018/033/055 &middot; server.R: canonical_state_gate()</span></div>
 </div>
 
 <div class="node function" style="left:1050px;top:2610px" tabindex="0">
@@ -682,6 +684,13 @@
   <div class="depends">depends on: Active Spectrum Inspection only</div>
   <div class="tip">For measured/retained spectra, <code>assess_spec()</code> and <code>sig_noise()</code> run directly on the displayed one-column Active Spectrum. A Plan 018 suppressed source instead reports its committed suppression evidence and bypasses misleading flat-spectrum or unavailable-S/N warnings on the intentional zero sentinel. No quality path reads heatmap or full-dataset values.
   <span class="loc">Plan 018 &middot; server.R: quality_report() &middot; R/{assess_spec,sig_noise}.R</span></div>
+</div>
+
+<div class="node output tip-above" style="left:1850px;top:2860px" tabindex="0">
+  Download: SpecyPro Export
+  <div class="depends">depends on: current committed Run + retained Active Spectrum</div>
+  <div class="tip">An explicit click snapshots one retained Raman/FTIR <code>OpenSpecy</code> spectrum with its stable selection identity, primitive metadata, committed processing/settings, quantification, signal metrics, and up to ten ordered identification candidates. The versioned JSON includes the committed Run hash and a canonical SHA-256 checksum, stays below 10 MB by dropping optional lowest-ranked reference arrays first, and disappears while analysis is dirty, running, failed, reset, or rejected. OpenSpecy performs no network handoff and receives no SpecyPro or AI credentials.
+  <span class="loc">Plan 055 &middot; global.R: app_build_specypro_export_v1() &middot; server.R: specypro_export_ready()/download_data</span></div>
 </div>
 
 <!-- ================= dependency rail: every terminal output tapped at its true upstream point(s) ================= -->
@@ -813,6 +822,7 @@
   Plan <code>018-lossless-map-specs</code> adds the explicitly labeled, not-yet-implemented local-direct/hosted-mounted
   source route, base compact-coordinate/metadata plus optional <code>background</code> materialization, and later weighted
   PCA/K-means/Hilbert full-object transforms over compact <code>Specs</code>; replace planned locations with verified source locations as it lands.
+  Plan <code>055-specypro-export</code> adds the current-Run-only SpecyPro JSON branch shown beside Active Spectrum Inspection.
   When a plan changes any stage, branch, function, or
   output dependency named here, update this diagram in the same plan &mdash; see Constitution Principle X.
 </footer>

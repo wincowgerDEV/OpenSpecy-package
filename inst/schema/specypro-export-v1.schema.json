@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://specypro.com/schemas/specypro-export-v1.schema.json",
+  "title": "SpecyProExportV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "source", "selection", "modality", "processedSpectrum", "metadata", "processing", "identification"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["application", "version", "runHash", "exportedAt", "payloadChecksum"],
+      "properties": {
+        "application": { "const": "OpenSpecy" }, "version": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "runHash": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{8,200}$" }, "exportedAt": { "type": "string", "format": "date-time" },
+        "payloadChecksum": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "selection": {
+      "type": "object", "additionalProperties": false, "required": ["type", "id"],
+      "properties": { "type": { "enum": ["spectrum", "pixel", "particle", "cluster"] }, "id": { "type": "string", "minLength": 1, "maxLength": 300 }, "label": { "type": "string", "maxLength": 300 } }
+    },
+    "modality": { "enum": ["Raman", "FTIR"] },
+    "processedSpectrum": { "$ref": "#/$defs/spectrum" },
+    "rawSpectrum": { "$ref": "#/$defs/spectrum" },
+    "metadata": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] }, "maxProperties": 200 },
+    "processing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["committedSettings", "savedRanges", "corrections", "thresholds", "signalMetrics"],
+      "properties": {
+        "committedSettings": { "type": "object" }, "savedRanges": { "type": "array", "maxItems": 100, "items": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "items": false } },
+        "corrections": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 500 } }, "thresholds": { "type": "object", "additionalProperties": { "type": "number" } },
+        "signalMetrics": { "type": "object", "additionalProperties": { "type": "number" } }, "quantification": { "type": "object" }
+      }
+    },
+    "identification": {
+      "type": "object", "additionalProperties": false, "required": ["strategy", "scoreType", "libraryProvenance", "candidates"],
+      "properties": {
+        "strategy": { "type": "string", "minLength": 1, "maxLength": 300 }, "scoreType": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "libraryProvenance": { "type": "array", "maxItems": 50, "items": { "type": "string", "maxLength": 1000 } },
+        "candidates": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/candidate" } }
+      }
+    }
+  },
+  "$defs": {
+    "numberArray": { "type": "array", "minItems": 16, "maxItems": 200000, "items": { "type": "number" } },
+    "spectrum": {
+      "type": "object", "additionalProperties": false, "required": ["axis", "intensity", "axisUnit", "intensityUnit"],
+      "properties": { "axis": { "$ref": "#/$defs/numberArray" }, "intensity": { "$ref": "#/$defs/numberArray" }, "axisUnit": { "enum": ["cm-1", "nm", "um", "raman_shift_cm-1"] }, "intensityUnit": { "type": "string", "minLength": 1, "maxLength": 80 } }
+    },
+    "candidate": {
+      "type": "object", "additionalProperties": false, "required": ["rank", "name", "matchValue", "scoreType"],
+      "properties": {
+        "rank": { "type": "integer", "minimum": 1 }, "name": { "type": "string", "minLength": 1, "maxLength": 300 }, "materialClass": { "type": "string", "maxLength": 200 },
+        "matchValue": { "type": "number" }, "scoreType": { "type": "string", "minLength": 1, "maxLength": 120 }, "organization": { "type": "string", "maxLength": 300 },
+        "citation": { "type": "string", "maxLength": 2000 }, "license": { "type": "string", "maxLength": 300 },
+        "reference": {
+          "type": "object", "additionalProperties": false, "required": ["name", "axis", "intensity", "axisUnit", "intensityUnit"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 300 }, "libraryId": { "type": "string", "maxLength": 300 },
+            "axis": { "$ref": "#/$defs/numberArray" }, "intensity": { "$ref": "#/$defs/numberArray" },
+            "axisUnit": { "enum": ["cm-1", "nm", "um", "raman_shift_cm-1"] }, "intensityUnit": { "type": "string", "minLength": 1, "maxLength": 80 }
+          }
+        }
+      }
+    }
+  }
+}

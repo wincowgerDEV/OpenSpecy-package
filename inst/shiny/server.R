@@ -2292,10 +2292,22 @@ observeEvent(input$run_analysis, {
     # list, summary panels) can tell what actually produced the current
     # result instead of re-reading these settings live and drifting out of
     # sync with canonical_state() until the next Run.
+    committed_settings <- settings_signature()
+    committed_ratios <- ratio_definitions()
+    committed_measurements <- measurement_definitions()
+    source_info <- active_file_info()
+    source_columns <- intersect(
+      c("name", "size", "type", "lastModified", "mtime"),
+      names(source_info)
+    )
+    source_signature <- source_info[, source_columns, drop = FALSE]
     run_settings <- list(
       collapse = particle_pipeline_enabled(),
       strategy = input$particle_id_strategy,
       identification_active = isTRUE(input$identification_active),
+      identification_spectrum_type = input$id_spec_type,
+      identification_transformation = input$id_strategy,
+      library_type = input$lib_type,
       model_library = isTRUE(input$identification_active) &&
         identical(input$lib_type, "model"),
       top_n = top_n_value(),
@@ -2310,9 +2322,22 @@ observeEvent(input$run_analysis, {
       signal_metric = effective_signal_selection(),
       load_entire_map = isTRUE(input$load_entire_map),
       file_backed_selection = FALSE,
+      source_count = source_count(preprocessed$data),
       spatial_smooth = isTRUE(input$spatial_decision),
       spatial_sigma = rep(as.numeric(input$sigma), 3L),
-      processing = current_processing_settings()
+      processing = current_processing_settings(),
+      committed_settings = committed_settings,
+      ratio_definitions = committed_ratios,
+      measurement_definitions = committed_measurements,
+      run_hash = paste0("run-", digest::digest(
+        list(
+          source = source_signature,
+          settings = committed_settings,
+          ratios = committed_ratios,
+          measurements = committed_measurements
+        ),
+        algo = "sha256"
+      ))
     )
     run_settings$spatial_crop <- effective_crop_bounds()
     result <- tryCatch({
@@ -2927,6 +2952,7 @@ observeEvent(input$run_analysis, {
         settings = run_settings
       ))
     }
+    run_settings$correction_diagnostics <- isolate(correction_diagnostics())
     result$settings <- run_settings
     result
   }, priority = RUN_GATE_PRIORITY_CANONICAL)
@@ -4639,6 +4665,120 @@ output$progress_bars <- renderUI({
       app_material_summary_plotly(match_names, match_name_palette())
   })
 
+  # SpecyPro export ----
+  specypro_candidate_rows <- reactive({
+    state <- canonical_state()
+    if(is.null(state$object) || !isTRUE(state$settings$identification_active)) {
+      return(data.table::data.table())
+    }
+    rows <- tryCatch(
+      data.table::as.data.table(matches_to_single()),
+      shiny.silent.error = function(...) data.table::data.table(),
+      error = function(...) data.table::data.table()
+    )
+    if(!nrow(rows)) return(rows)
+    active <- active_spectrum_view()
+    active_id <- colnames(active$spectra)[[1L]]
+    if("object_id" %in% names(rows)) {
+      rows <- rows[as.character(object_id) == active_id]
+    } else if(isTRUE(state$settings$model_library) &&
+              "spectrum_index" %in% names(rows)) {
+      rows <- rows[spectrum_index == selected_unit_index()]
+    }
+    rows
+  })
+
+  specypro_processed_selection <- reactive({
+    state <- canonical_state()
+    active <- active_spectrum_view()
+    req(identical(attr(active, "openspecy_selection_status", exact = TRUE),
+                  "retained"))
+    if(isTRUE(state$settings$file_backed_selection)) {
+      return(app_attach_quantification(
+        active,
+        state$settings$ratio_definitions,
+        state$settings$measurement_definitions
+      ))
+    }
+    quantified <- quantified_data()
+    selected_id <- colnames(active$spectra)[[1L]]
+    selected <- match(selected_id, colnames(quantified$spectra))
+    req(!is.na(selected))
+    result <- filter_spec(
+      quantified,
+      logic = seq_len(ncol(quantified$spectra)) == selected
+    )
+    attr(result, "openspecy_quantification_labels") <- attr(
+      quantified, "openspecy_quantification_labels", exact = TRUE
+    )
+    attr(result, "openspecy_selection_status") <- "retained"
+    result
+  })
+
+  specypro_export_ready <- reactive({
+    if(isTRUE(analysis_dirty()) || isTRUE(analysis_running()) ||
+       isTRUE(analysis_needs_reset())) return(FALSE)
+    state <- canonical_state()
+    if(!is.list(state) || !is.null(state$error) || is.null(state$object) ||
+       is.null(state$settings$run_hash)) return(FALSE)
+    processed <- tryCatch(
+      specypro_processed_selection(),
+      shiny.silent.error = function(...) NULL,
+      error = function(...) NULL
+    )
+    if(is.null(processed) || !identical(
+      attr(processed, "openspecy_selection_status", exact = TRUE), "retained"
+    )) return(FALSE)
+    rows <- tryCatch(
+      specypro_candidate_rows(),
+      shiny.silent.error = function(...) NULL,
+      error = function(...) NULL
+    )
+    isTRUE(tryCatch({
+      modality <- app_specypro_modality(processed, state$settings, rows)
+      app_specypro_spectrum(processed, modality)
+      TRUE
+    }, error = function(...) FALSE))
+  })
+
+  build_current_specypro_payload <- function() {
+    req(specypro_export_ready())
+    state <- canonical_state()
+    processed <- specypro_processed_selection()
+    candidate_rows <- specypro_candidate_rows()
+    selected_snr <- if(isTRUE(state$settings$file_backed_selection)) {
+      pixel <- suppressWarnings(as.integer(data_click$pixel))
+      values <- snr_preview()
+      if(length(pixel) == 1L && !is.na(pixel) && pixel >= 1L &&
+         pixel <= length(values)) {
+        as.numeric(values[[pixel]])
+      } else NA_real_
+    } else {
+      selected <- selected_unit_index()
+      values <- canonical_signal_noise()
+      if(!is.na(selected) && selected >= 1L && selected <= length(values)) {
+        as.numeric(values[[selected]])
+      } else NA_real_
+    }
+    signal_metrics <- list(signalToNoise = selected_snr)
+    if(nrow(candidate_rows) && "match_val" %in% names(candidate_rows)) {
+      best <- suppressWarnings(max(as.numeric(candidate_rows$match_val),
+                                   na.rm = TRUE))
+      if(is.finite(best)) signal_metrics$topMatchValue <- best
+    }
+    app_build_specypro_export_v1(
+      processed = processed,
+      settings = state$settings,
+      candidate_rows = candidate_rows,
+      library = analysis_library(),
+      signal_metrics = signal_metrics,
+      openspecy_version = tryCatch(
+        as.character(utils::packageVersion("OpenSpecy")),
+        error = function(...) "development"
+      )
+    )
+  }
+
   # Data Download options ----
   # Progress Bars
   output$download_ui <- renderUI({
@@ -4649,7 +4789,8 @@ output$progress_bars <- renderUI({
         !is.null(state$object) &&
         isTRUE(state$settings$identification_active),
       collapse = isTRUE(state$settings$collapse) && !is.null(state$object),
-      compact = is_Specs(preprocessed$data)
+      compact = is_Specs(preprocessed$data),
+      specypro = specypro_export_ready()
     )
     values <- unname(choice_names)
     current <- isolate(input$download_selection)
@@ -4663,6 +4804,19 @@ output$progress_bars <- renderUI({
     )
   })
   outputOptions(output, "download_ui", suspendWhenHidden = FALSE)
+
+  output$specypro_download_guidance <- renderUI({
+    req(identical(input$download_selection, "SpecyPro Export"))
+    tags$p(
+      class = "text-muted small openspecy-specypro-guidance",
+      "Exports the retained spectrum and current Run evidence as a versioned ",
+      "JSON file for explicit import into SpecyPro. OpenSpecy sends no data ",
+      "and receives no SpecyPro or AI credentials."
+    )
+  })
+  outputOptions(
+    output, "specypro_download_guidance", suspendWhenHidden = FALSE
+  )
 
   # Once a particle-analysis result exists, jump the download type to
   # Thresholded Particles: it is the primary artifact for a large/collapsed
@@ -4732,6 +4886,13 @@ output$progress_bars <- renderUI({
       if(identical(selection, "User Metadata")) {
         return(paste0("os_metadata_", human_ts(), ".csv"))
       }
+      if(identical(selection, "SpecyPro Export")) {
+        state <- canonical_state()
+        req(specypro_export_ready(), !is.null(state$settings$run_hash))
+        return(paste0(
+          "openspecy-", state$settings$run_hash, ".specypro.json"
+        ))
+      }
       extension <- if(selection %in% c("Test Map", "Thresholded Particles")) {
         ".zip"
       } else if(identical(selection, "Compact Map (RDS)")) ".rds" else ".csv"
@@ -4742,7 +4903,9 @@ output$progress_bars <- renderUI({
       req(length(selection) == 1L)
       message("OpenSpecy app: creating '", selection, "' download")
 
-      if(identical(selection, "Test Data")) {
+      if(identical(selection, "SpecyPro Export")) {
+        app_write_specypro_export(build_current_specypro_payload(), file)
+      } else if(identical(selection, "Test Data")) {
         fwrite(testdata, file)
       } else if(identical(selection, "Test Map")) {
         copied <- file.copy(read_extdata("CA_tiny_map.zip"), file,

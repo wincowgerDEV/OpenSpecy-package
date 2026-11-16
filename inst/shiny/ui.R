@@ -1783,6 +1783,7 @@ dashboardPage(
             div(
               class = "openspecy-download-body",
               uiOutput("download_ui"),
+              uiOutput("specypro_download_guidance"),
               uiOutput("particle_download_contents")
             )
           )

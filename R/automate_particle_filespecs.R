@@ -587,13 +587,9 @@ automate_particle_analysis.FileSpecs <- function(
         prepared <- .filespec_prepare_correlation_reference(reference)
       }
       matches <- .filespec_match_prepared_best(query, prepared)
-      lib_md <- data.table::as.data.table(library$metadata)
-      material_index <- match(matches$library_id, lib_md[[library_id_col]])
-      material <- if (all(c(library_id_col, material_col) %in% names(lib_md))) {
-        as.character(lib_md[[material_col]][material_index])
-      } else {
-        as.character(matches$library_id)
-      }
+      material <- .particle_reference_material(
+        library, matches$library_id, material_col, library_id_col
+      )
     } else {
       prediction <- data.table::as.data.table(match_spec(query, library))
       if (!all(c("x", "name", "value") %in% names(prediction))) {

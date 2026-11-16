@@ -1,5 +1,15 @@
 # OpenSpecy 2.0.3
 
+- `automate_particle_analysis(..., particle_id_strategy = "all_cell_id")`
+  now resolves material labels from canonical reference spectrum names when a
+  custom library has `material_class` but lacks `sample_name`. Cell matches are
+  projected without many-to-many metadata joins, preserving one metadata row
+  per spectrum when identifiers or coordinates repeat across map regions.
+- The bundled app can now download the retained spectrum from a successful
+  current Run as a checksummed `SpecyProExportV1` JSON file for explicit import
+  into SpecyPro. The bounded Raman/FTIR export includes committed processing,
+  metadata, quantification, and identification evidence without sending data
+  or credentials from OpenSpecy.
 - `get_lib()` now reports the UTC date and exact AWS version ID of every
   downloaded reference library. Its new `date` argument selects the closest
   catalogued release for each requested library type while `revision` remains

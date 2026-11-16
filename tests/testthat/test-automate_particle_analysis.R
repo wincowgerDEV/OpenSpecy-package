@@ -520,6 +520,93 @@ test_that("particle preprocessing preserves an explicit target axis", {
   expect_identical(processed$wavenumber, target)
 })
 
+test_that("cell matches preserve rows when metadata identifiers repeat", {
+  axis <- seq(750, 780, by = 10)
+  map <- as_OpenSpecy(
+    axis,
+    spectra = matrix(
+      seq_len(length(axis) * 4L), nrow = length(axis),
+      dimnames = list(NULL, paste0("pixel_", seq_len(4L)))
+    ),
+    metadata = data.frame(
+      col_id = rep(c("cell_1", "cell_2"), 2L),
+      x = rep(0:1, 2L), y = 0,
+      region = rep(c("region-a", "region-b"), each = 2L)
+    )
+  )
+  map$metadata$col_id <- rep(c("cell_1", "cell_2"), 2L)
+  matched <- filter_spec(map, c(TRUE, FALSE, TRUE, TRUE))
+  matched$metadata$material_class <- c("a", "b", "a")
+  matched$metadata$max_cor_val <- c(0.91, 0.82, 0.73)
+
+  joined <- OpenSpecy:::.join_particle_cell_matches(
+    map, matched, "material_class"
+  )
+
+  expect_equal(nrow(joined$metadata), ncol(joined$spectra))
+  expect_identical(
+    joined$metadata$material_class,
+    c("a", NA_character_, "b", "a")
+  )
+  expect_equal(joined$metadata$max_cor_val, c(0.91, NA, 0.82, 0.73))
+  expect_identical(colnames(joined$spectra), colnames(map$spectra))
+
+  malformed <- matched
+  malformed$metadata <- malformed$metadata[-1L]
+  expect_error(
+    OpenSpecy:::.join_particle_cell_matches(
+      map, malformed, "material_class"
+    ),
+    "processed particle metadata must have one row per spectrum",
+    fixed = TRUE
+  )
+})
+
+test_that("all-cell analysis supports unnamed libraries and repeated regions", {
+  wn <- seq(750, 2200, length.out = 30)
+  pe <- sin(wn / 100) + 1
+  pp <- cos(wn / 90) + 1
+  lib <- as_OpenSpecy(
+    wn,
+    spectra = cbind(pe = pe, pp = pp),
+    metadata = data.frame(
+      col_id = c("pe", "pp"),
+      material_class = c("poly(ethylene)", "poly(propylene)")
+    )
+  )
+  map <- as_OpenSpecy(
+    wn,
+    spectra = cbind(
+      region_a_pe = pe, region_a_pp = pp,
+      region_b_pp = pp, region_b_pe = pe
+    ),
+    metadata = data.frame(
+      x = rep(0:1, 2L), y = 0,
+      region = rep(c("region-a", "region-b"), each = 2L)
+    )
+  )
+  map$metadata$col_id <- NULL
+
+  result <- automate_particle_analysis(
+    map, lib, particle_id_strategy = "all_cell_id",
+    sn_threshold_min = -Inf, sn_threshold_max = Inf,
+    area_threshold = 0,
+    outputs = c("raw", "processed"),
+    process_args = list(smooth_intens = FALSE, make_rel = TRUE)
+  )
+
+  raw <- result$samples[[1L]]$particles_raw_rds
+  processed <- result$samples[[1L]]$particles_rds
+  expect_equal(nrow(raw$metadata), ncol(raw$spectra))
+  expect_identical(
+    raw$metadata$material_class,
+    c("poly(ethylene)", "poly(propylene)",
+      "poly(propylene)", "poly(ethylene)")
+  )
+  expect_equal(nrow(processed$metadata), ncol(processed$spectra))
+  expect_equal(data.table::uniqueN(raw$metadata$partition_source), 2L)
+})
+
 test_that("automate_particle_analysis() keeps all-cell coordinates and visual colors", {
   wn <- seq(750, 2200, length.out = 30)
   map_wn <- wn + 0.37

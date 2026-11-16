@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 const { spawn, spawnSync } = require("child_process");
+const { createHash } = require("crypto");
 const fs = require("fs");
 const http = require("http");
 const net = require("net");
@@ -68,6 +69,24 @@ function nonemptyTraces(page) {
       opacity: trace.opacity,
     }))
   );
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    return `{${Object.keys(value).sort((a, b) => a.localeCompare(b)).map((key) =>
+      `${JSON.stringify(key)}:${canonicalJson(value[key])}`
+    ).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function specyproChecksum(payload) {
+  const check = structuredClone(payload);
+  delete check.source.payloadChecksum;
+  return `sha256:${createHash("sha256").update(canonicalJson(check)).digest("hex")}`;
 }
 
 async function expectEnabledSwitchColors(page, inputId) {
@@ -3171,6 +3190,148 @@ test("library identification reports completed block percentages", async ({ page
   expect(states.every((state, index) =>
     index === 0 || state.progress >= states[index - 1].progress
   )).toBe(true);
+  expect(severeErrors).toEqual([]);
+  expect(stderr.slice(stderrStart)).not.toMatch(
+    /Warning: Error in|Execution halted|plotly_click.*not registered/i
+  );
+});
+
+test("SpecyPro export downloads the current committed Raman result", async ({ page }, testInfo) => {
+  test.setTimeout(360000);
+  const stderrStart = stderr.length;
+  const severeErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" &&
+        /Error in|cannot allocate vector|package .* not found|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  const downloadSelect = page.locator("#download_selection");
+  await expect(downloadSelect).toHaveCount(1, { timeout: 60000 });
+  await expect.poll(async () => downloadSelect.evaluate((select) =>
+    Object.keys(select.selectize ? select.selectize.options : {}).includes(
+      "SpecyPro Export"
+    )
+  ), { timeout: 60000 }).toBe(false);
+
+  for (const id of [
+    "collapse_decision", "threshold_decision", "cor_threshold_decision",
+    "filter_lib",
+  ]) {
+    await page.locator(`#${id}`).evaluate((input) => {
+      if (input.checked) input.click();
+    });
+    await expect(page.locator(`#${id}`)).not.toBeChecked();
+  }
+  await page.locator("#identification_active").evaluate((input) => {
+    if (!input.checked) input.click();
+  });
+  await expect(page.locator("#identification_active")).toBeChecked();
+  await page.locator("#top_n_per_organization").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect(page.locator("#top_n_per_organization")).not.toBeChecked();
+  await page.locator("#top_n_input").evaluate((input) => {
+    input.value = "2";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await pickerOption(page, "id_spec_type", "raman");
+  await pickerOption(page, "id_strategy", "deriv");
+  await pickerOption(page, "lib_type", "medoid");
+
+  await stageLocalFiles(
+    page, path.join(repo, "inst", "extdata", "raman_hdpe.csv")
+  );
+  await page.locator("#run_analysis").click();
+  await expect(page.locator("#event table tbody tr").first()).toBeVisible({
+    timeout: 240000,
+  });
+  await expect(page.locator("html")).not.toHaveClass(/\bshiny-busy\b/, {
+    timeout: 120000,
+  });
+  await waitForStableSelectizeGeneration(
+    downloadSelect, "SpecyPro Export", { timeout: 180000 }
+  );
+  await downloadSelect.evaluate((select) => {
+    select.selectize.setValue("SpecyPro Export");
+  });
+  await expect(downloadSelect).toHaveValue("SpecyPro Export");
+  await expect(page.locator("#download_data"))
+    .toHaveText("Download SpecyPro Export");
+  await expect(page.locator(".openspecy-specypro-guidance"))
+    .toContainText("sends no data");
+
+  const downloadCard = page.locator("#download_panel_box");
+  if (await downloadCard.evaluate((card) =>
+    card.classList.contains("collapsed-card")
+  )) {
+    await toggleCard(downloadCard);
+  }
+  await downloadCard.screenshot({
+    path: testInfo.outputPath("specypro-export-current.png"),
+  });
+
+  const exported = await consumeDownload(page, {
+    readyTimeout: 180000, eventTimeout: 180000,
+  });
+  expect(exported.filename).toMatch(
+    /^openspecy-run-[a-f0-9]{64}\.specypro\.json$/
+  );
+  expect(exported.content.length).toBeLessThanOrEqual(10 * 1024 * 1024);
+  await testInfo.attach("specypro-export", {
+    body: exported.content,
+    contentType: "application/json",
+  });
+  const payload = JSON.parse(exported.content.toString("utf8"));
+  expect(Object.keys(payload)).toEqual([
+    "schemaVersion", "source", "selection", "modality",
+    "processedSpectrum", "metadata", "processing", "identification",
+  ]);
+  expect(payload.schemaVersion).toBe("1.0.0");
+  expect(payload.modality).toBe("Raman");
+  expect(payload.selection.type).toBe("spectrum");
+  expect(payload.source.runHash).toMatch(/^run-[a-f0-9]{64}$/);
+  expect(payload.processedSpectrum.axis.length).toBeGreaterThanOrEqual(16);
+  expect(payload.processedSpectrum.intensity).toHaveLength(
+    payload.processedSpectrum.axis.length
+  );
+  expect(payload.identification.candidates.length).toBeLessThanOrEqual(10);
+  expect(payload.source.payloadChecksum).toBe(specyproChecksum(payload));
+  expect(Array.isArray(payload.metadata)).toBe(false);
+  expect(Array.isArray(payload.processing.committedSettings)).toBe(false);
+  expect(Array.isArray(payload.processing.savedRanges)).toBe(true);
+  expect(Array.isArray(payload.processing.corrections)).toBe(true);
+  expect(Array.isArray(payload.processing.thresholds)).toBe(false);
+  expect(Array.isArray(payload.processing.signalMetrics)).toBe(false);
+  expect(Array.isArray(payload.identification.libraryProvenance)).toBe(true);
+  expect(Array.isArray(payload.identification.candidates)).toBe(true);
+  expect(Object.values(payload.metadata).every((value) =>
+    value === null || ["string", "number", "boolean"].includes(typeof value)
+  )).toBe(true);
+  for (const candidate of payload.identification.candidates) {
+    if (!candidate.reference) continue;
+    expect(candidate.reference.intensity).toHaveLength(
+      candidate.reference.axis.length
+    );
+  }
+
+  await page.locator("#top_n_input").evaluate((input) => {
+    input.value = "3";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(page.locator("#run_analysis")).toBeVisible({ timeout: 60000 });
+  await expect(page.locator("#run_analysis")).toHaveClass(/openspecy-run-dirty/);
+  await expect.poll(async () => downloadSelect.evaluate((select) =>
+    Object.keys(select.selectize ? select.selectize.options : {}).includes(
+      "SpecyPro Export"
+    )
+  ), { timeout: 60000 }).toBe(false);
+  await expect(page.locator(".openspecy-specypro-guidance")).toHaveCount(0);
+
   expect(severeErrors).toEqual([]);
   expect(stderr.slice(stderrStart)).not.toMatch(
     /Warning: Error in|Execution halted|plotly_click.*not registered/i

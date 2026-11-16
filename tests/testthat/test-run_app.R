@@ -3377,6 +3377,11 @@ test_that("bundled app orders downloads from the current analysis state", {
     c("Top Matches", "Processed Spectra", "Compact Map (RDS)",
       "Thresholded Particles", "Test Data", "Test Map", "User Metadata")
   )
+  expect_identical(
+    env$app_download_choices(TRUE, TRUE, specypro = TRUE),
+    c("Top Matches", "SpecyPro Export", "Processed Spectra", "Test Data",
+      "Test Map", "User Metadata")
+  )
 
   expected_labels <- c(
     "Test Data" = "Download Test Data",
@@ -3384,6 +3389,7 @@ test_that("bundled app orders downloads from the current analysis state", {
     "Processed Spectra" = "Download Processed Spectra",
     "Compact Map (RDS)" = "Download Compact Map (RDS)",
     "Top Matches" = "Download Top Matches",
+    "SpecyPro Export" = "Download SpecyPro Export",
     "Thresholded Particles" = "Download Thresholded Particles",
     "User Metadata" = "Download User Metadata"
   )
@@ -3393,6 +3399,190 @@ test_that("bundled app orders downloads from the current analysis state", {
   )
   expect_identical(env$app_download_label(NULL), "Download selected")
   expect_identical(env$app_download_label("unsupported"), "Download selected")
+})
+
+test_that("bundled app builds bounded SpecyPro v1 exports", {
+  missing <- .openspecy_app_packages()[
+    !vapply(.openspecy_app_packages(), requireNamespace, logical(1),
+            quietly = TRUE)
+  ]
+  skip_if(length(missing), paste(
+    "Missing Shiny app packages:", paste(missing, collapse = ", ")
+  ))
+
+  app_path <- run_app(test_mode = TRUE)
+  env <- new.env(parent = globalenv())
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(app_path)
+  sys.source(file.path(app_path, "global.R"), envir = env)
+
+  expect_identical(
+    env$app_specypro_js_number(2.50860457745273e-5),
+    "0.0000250860457745273"
+  )
+  expect_identical(env$app_specypro_js_number(2.5e-7), "2.5e-7")
+  expect_identical(env$app_specypro_js_number(1e20),
+                   "100000000000000000000")
+  expect_identical(env$app_specypro_js_number(1e21), "1e+21")
+  expect_identical(
+    env$app_specypro_canonical_json(list(`_x` = 0, a = 1, A = 2)),
+    "{\"_x\":0,\"a\":1,\"A\":2}"
+  )
+
+  schema <- file.path(
+    dirname(app_path), "schema", "specypro-export-v1.schema.json"
+  )
+  expect_true(file.exists(schema))
+  expect_identical(
+    digest::digest(schema, algo = "sha256", file = TRUE),
+    env$app_specypro_schema_sha256
+  )
+
+  axis <- seq(400, 1800, length.out = 64L)
+  query <- as_OpenSpecy(
+    axis,
+    spectra = matrix(
+      sin(seq(0, 4 * pi, length.out = length(axis))), ncol = 1L,
+      dimnames = list(NULL, "query-1")
+    ),
+    metadata = data.frame(
+      file_name = "raman.csv", col_id = "query-1",
+      spectrum_type = "raman", flag = TRUE, missing = NA_character_,
+      quant_peak = 0.75, stringsAsFactors = FALSE
+    )
+  )
+  attr(query, "intensity_unit") <- "relative intensity"
+  attr(query, "openspecy_selection_status") <- "retained"
+  attr(query, "openspecy_quantification_labels") <- c(
+    quant_peak = "Peak ratio"
+  )
+  reference <- as_OpenSpecy(
+    axis,
+    spectra = matrix(
+      cos(seq(0, 4 * pi, length.out = length(axis))), ncol = 1L,
+      dimnames = list(NULL, "reference-1")
+    ),
+    metadata = data.frame(
+      sample_name = "reference-1", spectrum_identity = "HDPE",
+      material_class = "polyethylene", spectrum_type = "raman",
+      stringsAsFactors = FALSE
+    )
+  )
+  attr(reference, "intensity_unit") <- "relative intensity"
+  candidate_rows <- data.table::data.table(
+    object_id = "query-1", sample_name = "reference-1",
+    spectrum_identity = "HDPE", material_class = "polyethylene",
+    organization = "Test library", citation = "Test citation",
+    license = "CC BY 4.0", spectrum_type = "raman",
+    match_val = seq(0.99, 0.88, length.out = 12L)
+  )
+  settings <- list(
+    collapse = FALSE, strategy = "collapse", file_backed_selection = FALSE,
+    source_count = 1L, identification_spectrum_type = "raman",
+    identification_transformation = "nobaseline", library_type = "medoid",
+    model_library = FALSE, top_n = 12L, threshold_active = TRUE,
+    min_snr = 10, max_snr = 1000, correlation_active = TRUE, min_cor = 0.7,
+    processing = list(
+      spike_decision = FALSE, saturation_decision = FALSE,
+      intensity_decision = FALSE, conform_decision = FALSE,
+      baseline_decision = FALSE, smooth_decision = FALSE,
+      make_rel_decision = TRUE, co2_decision = FALSE,
+      range_decision = TRUE, range_automate = FALSE,
+      MinRange = 400, MaxRange = 1800,
+      range_definitions = env$app_empty_range_definitions()
+    ),
+    committed_settings = list(
+      id_spec_type = "raman", id_strategy = "nobaseline",
+      make_rel_decision = TRUE
+    ),
+    run_hash = paste0("run-", strrep("a", 64L))
+  )
+
+  payload <- env$app_build_specypro_export_v1(
+    query, settings, candidate_rows = candidate_rows, library = reference,
+    signal_metrics = list(signalToNoise = 25, ignored = Inf),
+    openspecy_version = "test"
+  )
+  expect_error(env$app_validate_specypro_export_v1(payload), NA)
+  expect_identical(payload$schemaVersion, "1.0.0")
+  expect_identical(payload$modality, "Raman")
+  expect_identical(payload$selection$type, "spectrum")
+  expect_identical(payload$processedSpectrum$axisUnit, "raman_shift_cm-1")
+  expect_type(payload$processing$corrections, "list")
+  expect_type(payload$identification$libraryProvenance, "list")
+  expect_false(is.null(names(payload$metadata)))
+  expect_length(payload$identification$candidates, 10L)
+  expect_named(payload$identification$candidates[[1L]]$reference,
+               c("name", "libraryId", "axis", "intensity", "axisUnit",
+                 "intensityUnit"))
+  expect_identical(payload$source$payloadChecksum,
+                   env$app_specypro_checksum(payload))
+  expect_false("missing" %in% names(payload$metadata))
+  expect_identical(payload$metadata$flag, TRUE)
+  expect_identical(payload$processing$quantification$quant_peak$value, 0.75)
+  expect_false("ignored" %in% names(payload$processing$signalMetrics))
+
+  path <- tempfile(fileext = ".specypro.json")
+  on.exit(unlink(path), add = TRUE)
+  expect_error(env$app_write_specypro_export(payload, path), NA)
+  expect_gt(file.info(path)$size, 0)
+  expect_lte(file.info(path)$size, env$app_specypro_max_bytes())
+  restored <- jsonlite::read_json(path, simplifyVector = FALSE)
+  expect_identical(restored$source$payloadChecksum,
+                   payload$source$payloadChecksum)
+
+  invalid <- query
+  invalid$spectra[[1L]] <- NA_real_
+  expect_error(
+    env$app_build_specypro_export_v1(invalid, settings),
+    "aligned finite"
+  )
+  nir <- query
+  nir$metadata$spectrum_type <- "nir"
+  expect_error(
+    env$app_build_specypro_export_v1(nir, settings),
+    "NIR and mixed modalities"
+  )
+})
+
+test_that("SpecyPro download is owned by committed current Run state", {
+  app_path <- run_app(test_mode = TRUE)
+  server_source <- paste(readLines(file.path(app_path, "server.R"),
+                                   warn = FALSE), collapse = "\n")
+  expect_match(server_source, "specypro_export_ready <- reactive({",
+               fixed = TRUE)
+  expect_match(
+    server_source,
+    "isTRUE(analysis_dirty()) || isTRUE(analysis_running()) ||\n       isTRUE(analysis_needs_reset())",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    'attr(processed, "openspecy_selection_status", exact = TRUE), "retained"',
+    fixed = TRUE
+  )
+  expect_match(server_source, "committed_settings = committed_settings",
+               fixed = TRUE)
+  expect_match(server_source, "run_hash = paste0(\"run-\"",
+               fixed = TRUE)
+  expect_match(server_source, "specypro = specypro_export_ready()",
+               fixed = TRUE)
+  expect_match(server_source,
+               "app_write_specypro_export(build_current_specypro_payload(), file)",
+               fixed = TRUE)
+  builder <- regmatches(
+    server_source,
+    regexpr(
+      "(?s)build_current_specypro_payload <- function\\(\\) \\{.*?\\n  \\}",
+      server_source, perl = TRUE
+    )
+  )
+  expect_length(builder, 1L)
+  expect_false(grepl("input$", builder, fixed = TRUE))
+  expect_match(builder, "state <- canonical_state()", fixed = TRUE)
+  expect_match(builder, "processed <- specypro_processed_selection()",
+               fixed = TRUE)
 })
 
 test_that("top matches table guards against a rejected pixel selection", {

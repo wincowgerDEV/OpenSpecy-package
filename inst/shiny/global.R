@@ -347,7 +347,8 @@ app_has_clickable_heatmap <- function(data, spectrum_count) {
 }
 
 app_download_choices <- function(has_upload, identification,
-                                 collapse = FALSE, compact = FALSE) {
+                                 collapse = FALSE, compact = FALSE,
+                                 specypro = FALSE) {
   tests <- c("Test Data", "Test Map")
   metadata <- "User Metadata"
   if (!isTRUE(has_upload)) return(c(tests, metadata))
@@ -356,6 +357,10 @@ app_download_choices <- function(has_upload, identification,
     c("Top Matches", "Processed Spectra")
   } else {
     "Processed Spectra"
+  }
+  if(isTRUE(specypro)) {
+    insert_at <- match("Processed Spectra", choices)
+    choices <- append(choices, "SpecyPro Export", after = insert_at - 1L)
   }
   if (isTRUE(compact)) choices <- c(choices, "Compact Map (RDS)")
   if (isTRUE(collapse)) choices <- c(choices, "Thresholded Particles")
@@ -369,6 +374,7 @@ app_download_label <- function(selection) {
     "Processed Spectra" = "Download Processed Spectra",
     "Compact Map (RDS)" = "Download Compact Map (RDS)",
     "Top Matches" = "Download Top Matches",
+    "SpecyPro Export" = "Download SpecyPro Export",
     "Thresholded Particles" = "Download Thresholded Particles",
     "User Metadata" = "Download User Metadata"
   )
@@ -377,6 +383,577 @@ app_download_label <- function(selection) {
     return("Download selected")
   }
   unname(labels[[selection]])
+}
+
+# SpecyProExportV1 is an app-to-app compatibility contract, not a public R API.
+# The bundled copy is frozen from SpecyPro at the reviewed SHA-256 below.
+app_specypro_schema_version <- "1.0.0"
+app_specypro_schema_sha256 <-
+  "7a9a05b84f8df48b9d71637608292f39882ab87f5afe5052c13c902bfe80be50"
+
+app_specypro_max_bytes <- function() 10 * 1024^2
+
+app_specypro_text <- function(value, maximum) {
+  if(is.null(value) || !length(value)) return(NULL)
+  value <- trimws(as.character(value)[[1L]])
+  if(is.na(value) || !nzchar(value)) return(NULL)
+  substr(value, 1L, maximum)
+}
+
+app_specypro_scalar <- function(value, maximum = 2000L) {
+  if(is.null(value) || length(value) != 1L) return(NULL)
+  if(inherits(value, c("POSIXct", "POSIXlt", "Date"))) {
+    return(app_specypro_text(format(value, tz = "UTC", usetz = TRUE), maximum))
+  }
+  if(is.factor(value)) value <- as.character(value)
+  if(is.logical(value)) {
+    if(is.na(value)) return(NULL)
+    return(as.logical(value))
+  }
+  if(is.numeric(value)) {
+    if(!is.finite(value)) return(NULL)
+    return(if(is.integer(value)) as.integer(value) else as.numeric(value))
+  }
+  app_specypro_text(value, maximum)
+}
+
+app_specypro_clean_nested <- function(value) {
+  if(is.data.frame(value)) {
+    return(stats::setNames(lapply(value, app_specypro_clean_nested), names(value)))
+  }
+  if(is.list(value)) {
+    cleaned <- lapply(value, app_specypro_clean_nested)
+    if(!is.null(names(value))) names(cleaned) <- names(value)
+    return(cleaned)
+  }
+  if(length(value) <= 1L) return(app_specypro_scalar(value))
+  cleaned <- lapply(as.list(value), app_specypro_clean_nested)
+  if(!is.null(names(value))) names(cleaned) <- names(value)
+  cleaned
+}
+
+app_specypro_metadata <- function(metadata, maximum = 200L) {
+  metadata <- data.table::as.data.table(metadata)
+  if(nrow(metadata) != 1L) {
+    stop("SpecyPro export requires exactly one selected metadata row.",
+         call. = FALSE)
+  }
+  result <- stats::setNames(list(), character())
+  for(name in names(metadata)) {
+    key <- app_specypro_text(name, 120L)
+    if(is.null(key) || !identical(key, name) || key %in% names(result)) next
+    value <- app_specypro_scalar(metadata[[name]][[1L]])
+    if(!is.null(value)) result[[key]] <- value
+    if(length(result) >= maximum) break
+  }
+  result
+}
+
+app_specypro_intensity_unit <- function(x) {
+  candidates <- c(
+    attr(x, "intensity_unit", exact = TRUE),
+    if("intensity_units" %in% names(x$metadata)) x$metadata$intensity_units else NULL,
+    if("y_unit" %in% names(x$metadata)) x$metadata$y_unit else NULL
+  )
+  candidates <- unlist(lapply(
+    candidates, app_specypro_text, maximum = 80L
+  ), use.names = FALSE)
+  if(length(candidates)) candidates[[1L]] else "processed intensity"
+}
+
+app_specypro_normalize_modality <- function(value) {
+  value <- tolower(trimws(as.character(value)))
+  result <- rep(NA_character_, length(value))
+  result[grepl("raman", value)] <- "Raman"
+  result[grepl("ftir|mid[- ]?ir|infrared", value)] <- "FTIR"
+  result[grepl("nir|near[- ]?ir", value)] <- "NIR"
+  result
+}
+
+app_specypro_modality <- function(x, settings = list(), candidates = NULL) {
+  metadata <- data.table::as.data.table(x$metadata)
+  declared <- c(
+    attr(x, "spectra_type", exact = TRUE),
+    attr(x, "spectrum_type", exact = TRUE),
+    if("spectrum_type" %in% names(metadata)) metadata$spectrum_type else NULL,
+    if("spectra_type" %in% names(metadata)) metadata$spectra_type else NULL
+  )
+  declared <- unique(stats::na.omit(app_specypro_normalize_modality(declared)))
+  supported <- intersect(declared, c("Raman", "FTIR"))
+  if(length(supported) == 1L && !"NIR" %in% declared) return(supported)
+  if(length(declared)) {
+    stop("SpecyPro export supports one unambiguous Raman or FTIR selection; NIR and mixed modalities are not supported.",
+         call. = FALSE)
+  }
+
+  configured <- app_specypro_normalize_modality(
+    settings$identification_spectrum_type
+  )
+  configured <- configured[!is.na(configured)]
+  if(length(configured) == 1L && configured %in% c("Raman", "FTIR")) {
+    return(configured)
+  }
+
+  candidates <- data.table::as.data.table(candidates)
+  if(nrow(candidates) && "spectrum_type" %in% names(candidates)) {
+    ranked <- app_specypro_normalize_modality(candidates$spectrum_type[[1L]])
+    if(length(ranked) == 1L && !is.na(ranked) && ranked %in% c("Raman", "FTIR")) {
+      return(ranked)
+    }
+  }
+  stop("Choose Raman or FTIR under Identification > Spectrum Type, then Run again before exporting to SpecyPro.",
+       call. = FALSE)
+}
+
+app_specypro_spectrum <- function(x, modality) {
+  if(!inherits(x, "OpenSpecy") || ncol(x$spectra) != 1L) {
+    stop("SpecyPro export requires one selected OpenSpecy spectrum.",
+         call. = FALSE)
+  }
+  axis <- unname(as.numeric(x$wavenumber))
+  intensity <- unname(as.numeric(x$spectra[, 1L]))
+  if(length(axis) != length(intensity) || length(axis) < 16L ||
+     length(axis) > 200000L || any(!is.finite(axis)) ||
+     any(!is.finite(intensity))) {
+    stop("SpecyPro requires 16 to 200,000 aligned finite axis and intensity values.",
+         call. = FALSE)
+  }
+  list(
+    axis = axis,
+    intensity = intensity,
+    axisUnit = if(identical(modality, "Raman")) {
+      "raman_shift_cm-1"
+    } else "cm-1",
+    intensityUnit = app_specypro_intensity_unit(x)
+  )
+}
+
+app_specypro_selection <- function(x, settings = list()) {
+  id <- app_specypro_text(colnames(x$spectra)[[1L]], 300L)
+  if(is.null(id)) stop("The selected spectrum has no stable identifier.", call. = FALSE)
+  metadata <- data.table::as.data.table(x$metadata)
+  value <- function(names) {
+    for(name in names) {
+      if(name %in% names(metadata)) {
+        result <- app_specypro_text(metadata[[name]][[1L]], 300L)
+        if(!is.null(result)) return(result)
+      }
+    }
+    NULL
+  }
+  spatial <- all(c("x", "y") %in% names(metadata)) &&
+    all(is.finite(suppressWarnings(as.numeric(c(metadata$x[[1L]], metadata$y[[1L]])))))
+  type <- if(isTRUE(settings$collapse)) {
+    if(settings$strategy %in% c("partial_collapse", "nonspatial_collapse")) {
+      "cluster"
+    } else "particle"
+  } else if(isTRUE(settings$file_backed_selection) ||
+            (isTRUE(settings$source_count > 1L) && spatial)) {
+    "pixel"
+  } else "spectrum"
+  selection <- list(type = type, id = id)
+  label <- value(c("spectrum_identity", "sample_name", "file_name", "col_id"))
+  if(!is.null(label)) selection$label <- label
+  selection
+}
+
+app_specypro_candidate_value <- function(row, fields, maximum) {
+  for(field in fields) {
+    if(field %in% names(row)) {
+      value <- app_specypro_text(row[[field]][[1L]], maximum)
+      if(!is.null(value)) return(value)
+    }
+  }
+  NULL
+}
+
+app_specypro_candidates <- function(rows, library = NULL, modality,
+                                    model_library = FALSE,
+                                    maximum = 10L) {
+  rows <- data.table::copy(data.table::as.data.table(rows))
+  if(!nrow(rows) || !"match_val" %in% names(rows)) return(list())
+  rows <- rows[is.finite(suppressWarnings(as.numeric(match_val)))]
+  if(!nrow(rows)) return(list())
+  if("prediction_rank" %in% names(rows)) {
+    data.table::setorder(rows, prediction_rank, -match_val, na.last = TRUE)
+  } else {
+    data.table::setorder(rows, -match_val, na.last = TRUE)
+  }
+  rows <- utils::head(rows, maximum)
+  score_type <- if(isTRUE(model_library)) "model probability" else "Pearson r"
+
+  lapply(seq_len(nrow(rows)), function(index) {
+    row <- rows[index]
+    library_id <- app_specypro_candidate_value(
+      row, c("sample_name", "library_id", ".model_class_key"), 300L
+    )
+    name <- app_specypro_candidate_value(
+      row, c("spectrum_identity", "material_class", "name",
+             "sample_name", "library_id", ".model_class_key"), 300L
+    )
+    if(is.null(name)) name <- paste("OpenSpecy candidate", index)
+    candidate <- list(
+      rank = as.integer(index),
+      name = name,
+      matchValue = as.numeric(row$match_val[[1L]]),
+      scoreType = score_type
+    )
+    optional <- list(
+      materialClass = app_specypro_candidate_value(
+        row, c("material_class"), 200L
+      ),
+      organization = app_specypro_candidate_value(
+        row, c("organization", "library_name"), 300L
+      ),
+      citation = app_specypro_candidate_value(row, c("citation"), 2000L),
+      license = app_specypro_candidate_value(row, c("license"), 300L)
+    )
+    for(field in names(optional)) {
+      if(!is.null(optional[[field]])) candidate[[field]] <- optional[[field]]
+    }
+
+    if(!isTRUE(model_library) && inherits(library, "OpenSpecy") &&
+       !is.null(library_id) && library_id %in% colnames(library$spectra)) {
+      reference <- tryCatch(
+        filter_spec(library, logic = colnames(library$spectra) == library_id),
+        error = function(...) NULL
+      )
+      reference_values <- tryCatch(
+        app_specypro_spectrum(reference, modality),
+        error = function(...) NULL
+      )
+      if(!is.null(reference_values)) {
+        candidate$reference <- c(
+          list(name = name, libraryId = library_id), reference_values
+        )
+      }
+    }
+    candidate
+  })
+}
+
+app_specypro_saved_ranges <- function(settings) {
+  processing <- settings$processing
+  definitions <- processing$range_definitions
+  ranges <- list()
+  if(is.data.frame(definitions) && nrow(definitions) &&
+     all(c("minimum", "maximum") %in% names(definitions))) {
+    for(index in seq_len(min(nrow(definitions), 100L))) {
+      bounds <- as.numeric(definitions[index, c("minimum", "maximum")])
+      if(length(bounds) == 2L && all(is.finite(bounds))) {
+        ranges[[length(ranges) + 1L]] <- unname(bounds)
+      }
+    }
+  } else if(isTRUE(processing$range_decision)) {
+    bounds <- suppressWarnings(as.numeric(c(processing$MinRange,
+                                             processing$MaxRange)))
+    if(length(bounds) == 2L && all(is.finite(bounds))) ranges[[1L]] <- bounds
+  }
+  ranges
+}
+
+app_specypro_corrections <- function(settings) {
+  processing <- settings$processing
+  labels <- character()
+  add <- function(enabled, text) if(isTRUE(enabled)) labels <<- c(labels, text)
+  add(processing$spike_decision, "automatic isolated-spike correction")
+  add(processing$saturation_decision, "saturated-range correction")
+  add(processing$intensity_decision, paste0(
+    "intensity adjustment: ", processing$intensity_corr
+  ))
+  add(processing$conform_decision, paste0(
+    "axis conformation: ", processing$conform_selection,
+    " at ", processing$conform_res, " cm-1"
+  ))
+  add(processing$baseline_decision, paste0(
+    "baseline correction: ", processing$baseline_method
+  ))
+  add(processing$smooth_decision, paste0(
+    "smoothing/derivative: ", processing$smoother,
+    ", order ", processing$derivative_order
+  ))
+  add(processing$make_rel_decision, "min-max normalization")
+  add(processing$co2_decision, if(isTRUE(processing$co2_automate)) {
+    "automatic CO2-region correction"
+  } else "manual CO2-region correction")
+  add(processing$range_decision, if(isTRUE(processing$range_automate)) {
+    "automatic spectral-tail restriction"
+  } else "committed spectral-range restriction")
+  as.list(unique(utils::head(vapply(
+    labels, app_specypro_text, character(1L), maximum = 500L
+  ), 100L)))
+}
+
+app_specypro_thresholds <- function(settings) {
+  values <- list(reportedCandidateLimit = as.numeric(settings$top_n))
+  if(isTRUE(settings$threshold_active)) {
+    values$signalMinimum <- as.numeric(settings$min_snr)
+    values$signalMaximum <- as.numeric(settings$max_snr)
+  }
+  if(isTRUE(settings$correlation_active)) {
+    values$correlationMinimum <- as.numeric(settings$min_cor)
+  }
+  values[vapply(values, function(value) {
+    length(value) == 1L && is.finite(value)
+  }, logical(1L))]
+}
+
+app_specypro_quantification <- function(x) {
+  labels <- attr(x, "openspecy_quantification_labels", exact = TRUE)
+  if(is.null(labels) || !length(labels)) return(NULL)
+  metadata <- data.table::as.data.table(x$metadata)
+  columns <- intersect(names(labels), names(metadata))
+  result <- list()
+  for(column in columns) {
+    value <- app_specypro_scalar(metadata[[column]][[1L]])
+    label <- app_specypro_text(labels[[column]], 300L)
+    if(!is.null(value) && !is.null(label)) {
+      result[[column]] <- list(label = label, value = value)
+    }
+  }
+  if(length(result)) result else NULL
+}
+
+app_specypro_library_provenance <- function(settings, candidate_rows = NULL) {
+  result <- paste0(
+    "OpenSpecy committed ", settings$library_type, " ",
+    settings$identification_transformation, " library; spectrum selection ",
+    settings$identification_spectrum_type, "."
+  )
+  rows <- data.table::as.data.table(candidate_rows)
+  for(column in intersect(c("organization", "citation", "license"), names(rows))) {
+    values <- unique(trimws(as.character(rows[[column]])))
+    values <- values[!is.na(values) & nzchar(values)]
+    result <- c(result, values)
+  }
+  result <- unique(vapply(result, app_specypro_text, character(1L),
+                          maximum = 1000L))
+  as.list(utils::head(result[!is.na(result) & nzchar(result)], 50L))
+}
+
+app_specypro_json <- function(payload) {
+  jsonlite::toJSON(
+    payload, auto_unbox = TRUE, digits = NA, null = "null", na = "null"
+  )
+}
+
+app_specypro_key_order <- function(keys) {
+  if(length(keys) < 2L) return(seq_along(keys))
+  previous <- Sys.getlocale("LC_COLLATE")
+  on.exit(try(base::icuSetCollate(locale = previous), silent = TRUE), add = TRUE)
+  tryCatch({
+    # SpecyPro uses JavaScript localeCompare() for recursively sorted keys.
+    base::icuSetCollate(locale = "en")
+    order(keys)
+  }, error = function(...) {
+    order(tolower(keys), keys, method = "radix")
+  })
+}
+
+app_specypro_canonicalize <- function(value) {
+  if(is.list(value) && !is.null(names(value))) {
+    value <- value[app_specypro_key_order(names(value))]
+    return(lapply(value, app_specypro_canonicalize))
+  }
+  if(is.list(value)) return(lapply(value, app_specypro_canonicalize))
+  value
+}
+
+app_specypro_js_number <- function(value) {
+  value <- as.numeric(value)
+  if(length(value) != 1L || !is.finite(value)) {
+    stop("SpecyPro canonical JSON requires one finite number.", call. = FALSE)
+  }
+  if(value == 0) return("0")
+  token <- as.character(jsonlite::toJSON(
+    value, auto_unbox = TRUE, digits = NA, na = "null"
+  ))
+  if(!grepl("[eE]", token)) return(token)
+
+  match <- regmatches(token, regexec(
+    "^(-?)([0-9]+)(?:\\.([0-9]+))?[eE]([+-]?)([0-9]+)$",
+    token, perl = TRUE
+  ))[[1L]]
+  if(length(match) != 6L) {
+    stop("Unable to canonicalize a SpecyPro numeric value.", call. = FALSE)
+  }
+  exponent <- as.integer(match[[6L]])
+  if(identical(match[[5L]], "-")) exponent <- -exponent
+  absolute <- abs(value)
+  if(absolute >= 1e-6 && absolute < 1e21) {
+    digits <- paste0(match[[3L]], match[[4L]])
+    decimal <- nchar(match[[3L]]) + exponent
+    expanded <- if(decimal <= 0L) {
+      paste0("0.", strrep("0", -decimal), digits)
+    } else if(decimal >= nchar(digits)) {
+      paste0(digits, strrep("0", decimal - nchar(digits)))
+    } else {
+      paste0(substr(digits, 1L, decimal), ".",
+             substr(digits, decimal + 1L, nchar(digits)))
+    }
+    return(paste0(match[[2L]], expanded))
+  }
+  exponent_text <- if(exponent >= 0L) paste0("+", exponent) else
+    as.character(exponent)
+  decimal <- if(nzchar(match[[4L]])) paste0(".", match[[4L]]) else ""
+  paste0(match[[2L]], match[[3L]], decimal, "e", exponent_text)
+}
+
+app_specypro_canonical_json <- function(value) {
+  if(is.null(value)) return("null")
+  if(is.list(value)) {
+    if(!is.null(names(value))) {
+      order <- app_specypro_key_order(names(value))
+      fields <- vapply(order, function(index) paste0(
+        as.character(jsonlite::toJSON(names(value)[[index]], auto_unbox = TRUE)),
+        ":", app_specypro_canonical_json(value[[index]])
+      ), character(1L), USE.NAMES = FALSE)
+      return(paste0("{", paste(fields, collapse = ","), "}"))
+    }
+    items <- vapply(value, app_specypro_canonical_json, character(1L),
+                    USE.NAMES = FALSE)
+    return(paste0("[", paste(items, collapse = ","), "]"))
+  }
+  if(length(value) != 1L) {
+    items <- vapply(as.list(value), app_specypro_canonical_json, character(1L),
+                    USE.NAMES = FALSE)
+    return(paste0("[", paste(items, collapse = ","), "]"))
+  }
+  if(is.na(value)) return("null")
+  if(is.numeric(value)) return(app_specypro_js_number(value))
+  if(is.factor(value)) value <- as.character(value)
+  as.character(jsonlite::toJSON(value, auto_unbox = TRUE, na = "null"))
+}
+
+app_specypro_checksum <- function(payload) {
+  check <- payload
+  check$source$payloadChecksum <- NULL
+  canonical <- app_specypro_canonical_json(check)
+  paste0("sha256:", digest::digest(
+    canonical, algo = "sha256", serialize = FALSE
+  ))
+}
+
+app_validate_specypro_export_v1 <- function(payload) {
+  required <- c("schemaVersion", "source", "selection", "modality",
+                "processedSpectrum", "metadata", "processing",
+                "identification")
+  if(!is.list(payload) || !identical(names(payload), required)) {
+    stop("The SpecyPro payload does not match the v1 top-level contract.",
+         call. = FALSE)
+  }
+  if(!identical(payload$schemaVersion, app_specypro_schema_version) ||
+     !payload$modality %in% c("Raman", "FTIR") ||
+     !payload$selection$type %in% c("spectrum", "pixel", "particle", "cluster") ||
+     !grepl("^[A-Za-z0-9._:-]{8,200}$", payload$source$runHash) ||
+     length(payload$metadata) > 200L ||
+     length(payload$identification$candidates) > 10L) {
+    stop("The SpecyPro payload contains an unsupported version, modality, selection, Run hash, or bounded collection.",
+         call. = FALSE)
+  }
+  spectrum <- payload$processedSpectrum
+  if(length(spectrum$axis) != length(spectrum$intensity) ||
+     length(spectrum$axis) < 16L || length(spectrum$axis) > 200000L ||
+     any(!is.finite(spectrum$axis)) || any(!is.finite(spectrum$intensity)) ||
+     !spectrum$axisUnit %in% c("cm-1", "raman_shift_cm-1")) {
+    stop("The SpecyPro processed spectrum is invalid.", call. = FALSE)
+  }
+  if(!identical(payload$source$payloadChecksum,
+                app_specypro_checksum(payload))) {
+    stop("The SpecyPro payload checksum does not match its content.",
+         call. = FALSE)
+  }
+  bytes <- nchar(enc2utf8(app_specypro_json(payload)), type = "bytes")
+  if(bytes > app_specypro_max_bytes()) {
+    stop("The SpecyPro export exceeds the 10 MB service limit.", call. = FALSE)
+  }
+  invisible(payload)
+}
+
+app_build_specypro_export_v1 <- function(
+    processed, settings, candidate_rows = NULL, library = NULL,
+    signal_metrics = list(), openspecy_version = "development") {
+  modality <- app_specypro_modality(processed, settings, candidate_rows)
+  candidates <- app_specypro_candidates(
+    candidate_rows, library = library, modality = modality,
+    model_library = isTRUE(settings$model_library)
+  )
+  committed_settings <- app_specypro_clean_nested(settings$committed_settings)
+  if(!is.list(committed_settings) || is.null(names(committed_settings))) {
+    committed_settings <- stats::setNames(list(), character())
+  }
+  processing <- list(
+    committedSettings = committed_settings,
+    savedRanges = app_specypro_saved_ranges(settings),
+    corrections = app_specypro_corrections(settings),
+    thresholds = app_specypro_thresholds(settings),
+    signalMetrics = signal_metrics[vapply(signal_metrics, function(value) {
+      is.numeric(value) && length(value) == 1L && is.finite(value)
+    }, logical(1L))]
+  )
+  quantification <- app_specypro_quantification(processed)
+  if(!is.null(quantification)) processing$quantification <- quantification
+  strategy <- if(isTRUE(settings$model_library)) {
+    paste("OpenSpecy", settings$library_type, "classification")
+  } else {
+    paste("Pearson correlation against the committed OpenSpecy",
+          settings$library_type, settings$identification_transformation,
+          "library")
+  }
+  payload <- list(
+    schemaVersion = app_specypro_schema_version,
+    source = list(
+      application = "OpenSpecy",
+      version = as.character(openspecy_version),
+      runHash = as.character(settings$run_hash),
+      exportedAt = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC"),
+      payloadChecksum = paste0("sha256:", strrep("0", 64L))
+    ),
+    selection = app_specypro_selection(processed, settings),
+    modality = modality,
+    processedSpectrum = app_specypro_spectrum(processed, modality),
+    metadata = app_specypro_metadata(processed$metadata),
+    processing = processing,
+    identification = list(
+      strategy = app_specypro_text(strategy, 300L),
+      scoreType = if(isTRUE(settings$model_library)) {
+        "model probability"
+      } else "Pearson r",
+      libraryProvenance = app_specypro_library_provenance(
+        settings, candidate_rows
+      ),
+      candidates = candidates
+    )
+  )
+  while(nchar(enc2utf8(app_specypro_json(payload)), type = "bytes") >
+        app_specypro_max_bytes()) {
+    with_reference <- which(vapply(
+      payload$identification$candidates,
+      function(candidate) !is.null(candidate$reference), logical(1L)
+    ))
+    if(!length(with_reference)) {
+      stop("The selected spectrum and metadata exceed the 10 MB SpecyPro limit even without reference arrays.",
+           call. = FALSE)
+    }
+    index <- utils::tail(with_reference, 1L)
+    payload$identification$candidates[[index]]$reference <- NULL
+  }
+  payload$source$payloadChecksum <- app_specypro_checksum(payload)
+  app_validate_specypro_export_v1(payload)
+  payload
+}
+
+app_write_specypro_export <- function(payload, path) {
+  app_validate_specypro_export_v1(payload)
+  jsonlite::write_json(
+    payload, path, auto_unbox = TRUE, digits = NA, null = "null", na = "null"
+  )
+  size <- file.info(path)$size
+  if(is.na(size) || size <= 0L || size > app_specypro_max_bytes()) {
+    stop("SpecyPro export did not create a nonempty file within the 10 MB limit.",
+         call. = FALSE)
+  }
+  invisible(path)
 }
 
 app_upload_limit_bytes <- function() {

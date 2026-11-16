@@ -52,7 +52,7 @@ test_that("FileSpecs particle automation is bounded, exact, and reusable", {
     fixture$axis,
     spectra = cbind(particle = fixture$particle,
                     other = c(4, 2, 3, 1)),
-    metadata = data.frame(sample_name = c("particle", "other"),
+    metadata = data.frame(col_id = c("particle", "other"),
                           material_class = c("polymer", "other"))
   )
   args <- list(
@@ -188,7 +188,7 @@ test_that("simultaneous maps with repeated regions use output stems as IDs", {
     first$axis,
     spectra = cbind(particle = first$particle,
                     other = c(4, 2, 3, 1)),
-    metadata = data.frame(sample_name = c("particle", "other"),
+    metadata = data.frame(col_id = c("particle", "other"),
                           material_class = c("polymer", "other"))
   )
   output_dir <- file.path(directory, "outputs")

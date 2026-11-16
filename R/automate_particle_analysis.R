@@ -1485,6 +1485,33 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   intersect(expected, available)
 }
 
+.particle_reference_material <- function(library, library_ids, material_col,
+                                         library_id_col) {
+  library_ids <- as.character(library_ids)
+  metadata <- data.table::as.data.table(library$metadata)
+  if (!material_col %in% names(metadata)) return(library_ids)
+
+  reference_ids <- colnames(library$spectra)
+  valid_ids <- length(reference_ids) == nrow(metadata) &&
+    !anyNA(reference_ids) && all(nzchar(reference_ids)) &&
+    !anyDuplicated(reference_ids)
+  index <- if (valid_ids) match(library_ids, reference_ids) else
+    rep(NA_integer_, length(library_ids))
+
+  if (anyNA(index) && library_id_col %in% names(metadata)) {
+    fallback_ids <- as.character(metadata[[library_id_col]])
+    valid_fallback <- length(fallback_ids) == nrow(metadata) &&
+      !anyNA(fallback_ids) && all(nzchar(fallback_ids)) &&
+      !anyDuplicated(fallback_ids)
+    if (valid_fallback) index <- match(library_ids, fallback_ids)
+  }
+  if (anyNA(index)) {
+    stop("matched reference IDs do not align with the library spectra",
+         call. = FALSE)
+  }
+  as.character(metadata[[material_col]][index])
+}
+
 .append_particle_matches <- function(proc_map, library, material_col,
                                      library_id_col) {
   if (is_OpenSpecy(library)) {
@@ -1495,11 +1522,9 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
     row_order <- match(colnames(proc_map$spectra), matches$object_id)
     proc_map$metadata$max_cor_val <- matches$match_val[row_order]
     proc_map$metadata$max_cor_name <- matches$library_id[row_order]
-    lib_md <- data.table::as.data.table(library$metadata)
-    if (all(c(library_id_col, material_col) %in% names(lib_md))) {
-      idx <- match(proc_map$metadata$max_cor_name, lib_md[[library_id_col]])
-      proc_map$metadata[[material_col]] <- lib_md[[material_col]][idx]
-    }
+    proc_map$metadata[[material_col]] <- .particle_reference_material(
+      library, proc_map$metadata$max_cor_name, material_col, library_id_col
+    )
     proc_map$metadata <- data.table::as.data.table(proc_map$metadata)
   } else {
     matches <- data.table::as.data.table(
@@ -1613,36 +1638,72 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
 }
 
 .join_particle_cell_matches <- function(map, proc_map, material_col) {
-  md <- data.table::as.data.table(map$metadata)
-  md$.row_id <- seq_len(nrow(md))
-  if (all(c("col_id") %in% names(md)) &&
-      "col_id" %in% names(proc_map$metadata)) {
-    route_cols <- .particle_route_audit_columns(proc_map$metadata)
-    add_cols <- intersect(c("col_id", "max_cor_val", material_col,
-                            route_cols),
-                          names(proc_map$metadata))
-    add <- data.table::as.data.table(proc_map$metadata)[, add_cols,
-                                                         with = FALSE]
-    replace_cols <- setdiff(intersect(add_cols, names(md)), "col_id")
-    if (length(replace_cols)) md[, (replace_cols) := NULL]
-    md <- merge(md, unique(add), by = "col_id", all.x = TRUE, sort = FALSE)
-  } else if (all(c("x", "y") %in% names(md)) &&
-             all(c("x", "y") %in% names(proc_map$metadata))) {
-    route_cols <- .particle_route_audit_columns(proc_map$metadata)
-    add_cols <- intersect(c("x", "y", "max_cor_val", material_col,
-                            route_cols),
-                          names(proc_map$metadata))
-    add <- data.table::as.data.table(proc_map$metadata)[, add_cols,
-                                                         with = FALSE]
-    replace_cols <- setdiff(intersect(add_cols, names(md)), c("x", "y"))
-    if (length(replace_cols)) md[, (replace_cols) := NULL]
-    md <- merge(md, unique(add), by = c("x", "y"), all.x = TRUE,
-                sort = FALSE)
+  md <- data.table::copy(data.table::as.data.table(map$metadata))
+  proc_md <- data.table::as.data.table(proc_map$metadata)
+  map_count <- ncol(map$spectra)
+  proc_count <- ncol(proc_map$spectra)
+  if (nrow(md) != map_count) {
+    stop("particle map metadata must have one row per spectrum",
+         call. = FALSE)
   }
-  data.table::setorder(md, .row_id)
-  md$.row_id <- NULL
-  map$metadata <- md
-  map
+  if (nrow(proc_md) != proc_count) {
+    stop("processed particle metadata must have one row per spectrum",
+         call. = FALSE)
+  }
+
+  route_cols <- .particle_route_audit_columns(proc_md)
+  value_cols <- intersect(c("max_cor_val", material_col, route_cols),
+                          names(proc_md))
+  if (!length(value_cols)) return(map)
+
+  map_ids <- colnames(map$spectra)
+  proc_ids <- colnames(proc_map$spectra)
+  valid_ids <- function(ids, n) {
+    length(ids) == n && !anyNA(ids) && all(nzchar(ids)) && !anyDuplicated(ids)
+  }
+  if (valid_ids(map_ids, map_count) && valid_ids(proc_ids, proc_count)) {
+    if (!all(proc_ids %in% map_ids)) {
+      stop("processed particle spectra do not align with source spectrum names",
+           call. = FALSE)
+    }
+    index <- match(map_ids, proc_ids)
+    for (name in value_cols) md[[name]] <- proc_md[[name]][index]
+    map$metadata <- md
+    return(map)
+  }
+
+  common <- intersect(names(md), names(proc_md))
+  source_keys <- intersect(c("file_id", "file_name", "region"), common)
+  candidates <- list(
+    c(source_keys, "col_id"), "col_id",
+    c(source_keys, "x", "y"), c("x", "y")
+  )
+  candidates <- lapply(candidates, unique)
+  candidates <- candidates[vapply(candidates, function(keys) {
+    length(keys) && all(keys %in% common)
+  }, logical(1))]
+
+  for (keys in candidates) {
+    if (anyDuplicated(md[, keys, with = FALSE]) ||
+        anyDuplicated(proc_md[, keys, with = FALSE])) next
+    add <- data.table::copy(proc_md[, c(keys, value_cols), with = FALSE])
+    add$.particle_match_row <- seq_len(nrow(add))
+    replace_cols <- intersect(value_cols, names(md))
+    if (length(replace_cols)) md[, (replace_cols) := NULL]
+    md$.particle_source_row <- seq_len(nrow(md))
+    joined <- merge(md, add, by = keys, all.x = TRUE, sort = FALSE)
+    matched <- sum(!is.na(joined$.particle_match_row))
+    if (nrow(joined) == map_count && matched == proc_count) {
+      data.table::setorder(joined, .particle_source_row)
+      joined[, c(".particle_source_row", ".particle_match_row") := NULL]
+      map$metadata <- joined
+      return(map)
+    }
+    md$.particle_source_row <- NULL
+  }
+
+  stop("processed particle spectra require unique names or unique metadata keys ",
+       "that align with the source map", call. = FALSE)
 }
 
 .particle_details_table <- function(proc_map, sample_name, material_col,
