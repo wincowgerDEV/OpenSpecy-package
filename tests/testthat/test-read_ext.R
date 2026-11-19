@@ -127,6 +127,11 @@ test_that("read_jdx() gives expected output", {
                                    encoding = "latin1")) |>
     capture_messages() |>
     expect_match("JDX file inconsistency.*")
+  fallback <- suppressWarnings(read_jdx(
+    file = read_extdata("fitr_nitrocellulose.jdx"), encoding = "UTF-16LE"
+  ))
+  expect_identical(fallback$wavenumber, jdx$wavenumber)
+  expect_identical(fallback$spectra, jdx$spectra)
   read_extdata("raman_hdpe.csv") |> read_jdx() |>
     expect_error()
 

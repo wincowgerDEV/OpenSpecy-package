@@ -1511,6 +1511,9 @@ test_that("spatial calibration preserves geometry and creates unit-bearing metad
   calibration <- env$app_pixel_calibration(2, "\u00b5m")
   expect_identical(calibration$unit, "\u00b5m")
   expect_identical(calibration$length_suffix, "um")
+  expect_identical(
+    env$app_pixel_calibration(2, "\u03bcm")$length_suffix, "um"
+  )
   converted <- env$app_particle_metadata_units(metadata, 2, "\u00b5m")
   expect_true(all(c(
     "first_x_um", "first_y_um", "perimeter_um", "rectangular_min_um",

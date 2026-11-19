@@ -69,11 +69,22 @@
   during staging and restored before public `OpenSpecy` objects are returned.
   The production merge and recipe blocks are capped at 5,000 spectra while the
   independent source-hash cap remains 20,000.
+- Staged quarantine keys and payload IDs now include a deterministic source-
+  record token. Distinct ingested occurrences therefore remain independently
+  auditable when they share the same content hash, source label, and local row.
 - Path-backed staging now releases the original source-list reference before
   allocating an exact-filter replacement matrix. The merge explicitly collects
   released temporary vectors every 10 chunks and at source boundaries, with
   the cadence preserved in telemetry, preventing long multi-block sources from
   retaining enough dead heap pages to create a transient system-memory spike.
+- Source-record staging, staged exclusion scans, and metadata assembly now use
+  that same bounded garbage-collection cadence instead of collecting once per
+  tiny source record. This preserves output while avoiding repeated full-heap
+  scans for libraries containing tens of thousands of source objects.
+- File-backed source merging now fills one bounded cross-source buffer before
+  each compressed HDF5 write, instead of compressing once per tiny source.
+  Merge telemetry records the target write chunk, write count, and largest
+  write while preserving source order, missing-value placement, and values.
 - Metadata lookups in large builds now match in configurable 100,000-row
   blocks and update only their output columns by reference. Hierarchy joins and
   retention counts likewise avoid copying the complete metadata table, and
@@ -91,6 +102,10 @@
   consistently on Windows locales instead of aborting on a translated embedded
   NUL. CI fixtures and the frozen SpecyPro schema hash are also stable across
   supported R versions and line-ending settings.
+- Spatial-unit suffixes and JCAMP-DX imports now remain deterministic when R
+  cannot activate its requested UTF-8 locale. Unit normalization uses ASCII
+  Unicode escapes, and JCAMP parsing retries native byte handling only when an
+  explicit encoding fails despite a valid data marker.
 - The production contract now explicitly disables global class-wide
   `prune_lib()` correlation passes at large scale. Exact content hashes and
   strict correlation `> 0.99` within one independent source, spectral type, and

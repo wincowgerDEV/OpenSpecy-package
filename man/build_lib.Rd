@@ -525,9 +525,11 @@ options \code{OpenSpecy.source_record_staging},
 \code{OpenSpecy.compact_staged_metadata}, and
 \code{OpenSpecy.source_merge_file_backed} control this same-value strategy;
 \code{OpenSpecy.source_merge_chunk_size} bounds each read, interpolation,
-and HDF5 write;
-\code{OpenSpecy.source_merge_gc_interval} bounds released temporary merge
-blocks between explicit garbage collections. Metadata lookups update only
+and buffered HDF5 write; the merge-chunk telemetry records the target write
+count and largest target write;
+\code{OpenSpecy.source_merge_gc_interval} bounds explicit garbage collection
+across source-record staging, staged exclusion scans, metadata assembly, and
+released temporary merge blocks. Metadata lookups update only
 their output columns by reference and use
 \code{OpenSpecy.metadata_join_chunk_size} (100,000 rows by default), avoiding
 full copies of the combined metadata while retained spectra remain available
@@ -623,7 +625,9 @@ closure on the rounded typed and model-range views before deriving medoids.
 Every successfully ingested
 spectrum later excluded is retained in \code{quarantined_spectra.rds}, with a
 disposition ledger naming its source, artifact, stage, rule, reason, and
-available comparison evidence. Ordinary builds embed valid \code{OpenSpecy}
+available comparison evidence. Staged source removals include a deterministic
+source-record token so repeated ingested occurrences with the same content
+hash and local row remain distinct. Ordinary builds embed valid \code{OpenSpecy}
 payloads. Large builds write hashed valid-\code{OpenSpecy} shards as each
 bounded block is removed, then publish a v3 descriptor ledger whose payload
 count and hashes must balance. Source records that cannot be ingested are

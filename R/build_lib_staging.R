@@ -547,10 +547,11 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
 
   capture <- function(x, rows, artifact, stage, rule, reason,
                       spectrum_type = NULL, evidence = list(),
-                      source_rows = NULL) {
+                      source_rows = NULL, source_record = NULL) {
     parts <- .lib_quarantine_typed_capture(
       x, rows, artifact = artifact, stage = stage, rule = rule,
-      reason = reason, evidence = evidence, source_rows = source_rows
+      reason = reason, evidence = evidence, source_rows = source_rows,
+      source_record = source_record
     )
     for (name in names(parts)) store(parts[[name]], name)
     invisible(length(parts))

@@ -1438,6 +1438,10 @@ test_that("file-backed source merging is value-equivalent and temporary", {
   expect_true(all(telemetry$target_storage == "hdf5_chunked"))
   expect_true(all(telemetry$target_bytes ==
                     length(expected$wavenumber) * ncol(expected$spectra) * 8))
+  expect_true(all(telemetry$target_write_chunk_size == 2L))
+  expect_true(all(telemetry$target_write_calls ==
+                    ceiling(ncol(expected$spectra) / 2L)))
+  expect_true(all(telemetry$max_target_write_columns == 2L))
   expect_false(file.exists(file.path(staging_dir, "merged-core.h5")))
 
   error_dir <- tempfile("OpenSpecy-file-backed-error-")
@@ -1740,6 +1744,91 @@ test_that("source-record staging options reject invalid values", {
     build_lib(path, recipes = list(raw = list()), progress = FALSE),
     "requires source-record, source-prefilter, and recipe-record staging"
   )
+})
+
+test_that("staged source, metadata, and merge loops use the frozen cadence", {
+  old_options <- options(OpenSpecy.source_merge_gc_interval = 2L)
+  on.exit(options(old_options), add = TRUE)
+  collections <- 0L
+  local_mocked_bindings(
+    .lib_source_gc = function() {
+      collections <<- collections + 1L
+      invisible(NULL)
+    },
+    .package = "OpenSpecy"
+  )
+
+  source_path <- tempfile(fileext = ".rds")
+  stage_dir <- tempfile("OpenSpecy-source-stage-")
+  dir.create(stage_dir)
+  on.exit(unlink(c(source_path, stage_dir), recursive = TRUE, force = TRUE),
+          add = TRUE)
+  sources <- lapply(seq_len(5L), function(i) {
+    source <- tiny_build_lib()
+    source$spectra <- source$spectra[, 1L, drop = FALSE]
+    source$metadata <- source$metadata[1L]
+    source$metadata$sample_name <- paste0("sample_", i)
+    colnames(source$spectra) <- source$metadata$sample_name
+    source
+  })
+  saveRDS(sources, source_path)
+  records <- OpenSpecy:::.lib_stage_path_records(
+    source_path,
+    staging_dir = stage_dir,
+    validate_sources = function(source, label) source,
+    metadata_name_lookup = NULL,
+    clean_metadata_values = TRUE,
+    id_col = NULL,
+    hash_scale = 100,
+    hash_algo = "md5",
+    dedupe_duplicate = "none",
+    dedupe_correlation_threshold = NULL,
+    quarantine_dir = NULL,
+    metadata_drop = character(),
+    source_prefilter = FALSE,
+    progress = FALSE,
+    report = function(...) invisible(NULL)
+  )
+  expect_length(records, 5L)
+  expect_identical(collections, 3L)
+
+  collections <- 0L
+  plan <- OpenSpecy:::.lib_staged_global_filter_plan(
+    records,
+    id_col = "sample_name",
+    exclude_ids = "not_present",
+    dedupe_duplicate = "none",
+    report = function(...) invisible(NULL)
+  )
+  expect_identical(plan$merge_keep, rep(list(1L), 5L))
+  expect_identical(collections, 3L)
+
+  collections <- 0L
+  metadata <- OpenSpecy:::.lib_combine_staged_metadata(
+    records,
+    report = function(...) invisible(NULL),
+    record_rows = plan$merge_keep
+  )
+  expect_identical(metadata$sample_name, paste0("sample_", seq_len(5L)))
+  expect_identical(collections, 3L)
+
+  collections <- 0L
+  merged <- OpenSpecy:::.lib_prepare_staged_paths(
+    records,
+    range = NULL,
+    res = NULL,
+    convert_intensity = FALSE,
+    id_col = "sample_name",
+    exclude_ids = NULL,
+    dedupe_duplicate = "none",
+    source_prefilter = FALSE,
+    quarantine_dir = NULL,
+    validate_sources = function(source, label) source,
+    report = function(...) invisible(NULL)
+  )
+  expect_identical(merged$metadata$sample_name,
+                   paste0("sample_", seq_len(5L)))
+  expect_identical(collections, 6L)
 })
 
 test_that("source-record staging cleanup removes populated directories", {
@@ -2740,6 +2829,35 @@ test_that("quarantine captures duplicate removals with unique payload IDs", {
   expect_identical(
     anyDuplicated(colnames(bundle$spectra[["source/ftir"]]$spectra)), 0L
   )
+})
+
+test_that("quarantine keys distinguish repeated cross-record occurrences", {
+  lib <- tiny_build_lib()
+  rows <- seq_len(ncol(lib$spectra))
+  first <- OpenSpecy:::.lib_quarantine_typed_capture(
+    lib, 1L, artifact = "source",
+    stage = "source_correlation_deduplication",
+    rule = "pearson_correlation", reason = "near_duplicate_within_library",
+    source_rows = rows, source_record = "source_000009"
+  )
+  second <- OpenSpecy:::.lib_quarantine_typed_capture(
+    lib, 1L, artifact = "source",
+    stage = "source_correlation_deduplication",
+    rule = "pearson_correlation", reason = "near_duplicate_within_library",
+    source_rows = rows, source_record = "source_000013"
+  )
+  bundle <- OpenSpecy:::.lib_quarantine_bundle(c(first, second))
+
+  expect_no_error(OpenSpecy:::.lib_validate_quarantine(bundle))
+  expect_identical(bundle$manifest$removed_spectra, 2L)
+  expect_identical(anyDuplicated(bundle$removals$quarantine_key), 0L)
+  expect_setequal(
+    bundle$removals$quarantine_source_record,
+    c("source_000009", "source_000013")
+  )
+  expect_true(all(grepl(
+    "source_000009|source_000013", bundle$removals$quarantine_key
+  )))
 })
 
 test_that("build_lib records source deduplication in quarantine", {

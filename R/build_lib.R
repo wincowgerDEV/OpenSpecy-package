@@ -54,9 +54,11 @@
 #' \code{OpenSpecy.compact_staged_metadata}, and
 #' \code{OpenSpecy.source_merge_file_backed} control this same-value strategy;
 #' \code{OpenSpecy.source_merge_chunk_size} bounds each read, interpolation,
-#' and HDF5 write;
-#' \code{OpenSpecy.source_merge_gc_interval} bounds released temporary merge
-#' blocks between explicit garbage collections. Metadata lookups update only
+#' and buffered HDF5 write; the merge-chunk telemetry records the target write
+#' count and largest target write;
+#' \code{OpenSpecy.source_merge_gc_interval} bounds explicit garbage collection
+#' across source-record staging, staged exclusion scans, metadata assembly, and
+#' released temporary merge blocks. Metadata lookups update only
 #' their output columns by reference and use
 #' \code{OpenSpecy.metadata_join_chunk_size} (100,000 rows by default), avoiding
 #' full copies of the combined metadata while retained spectra remain available
@@ -152,7 +154,9 @@
 #' Every successfully ingested
 #' spectrum later excluded is retained in \code{quarantined_spectra.rds}, with a
 #' disposition ledger naming its source, artifact, stage, rule, reason, and
-#' available comparison evidence. Ordinary builds embed valid \code{OpenSpecy}
+#' available comparison evidence. Staged source removals include a deterministic
+#' source-record token so repeated ingested occurrences with the same content
+#' hash and local row remain distinct. Ordinary builds embed valid \code{OpenSpecy}
 #' payloads. Large builds write hashed valid-\code{OpenSpecy} shards as each
 #' bounded block is removed, then publish a v3 descriptor ledger whose payload
 #' count and hashes must balance. Source records that cannot be ingested are
@@ -2234,6 +2238,11 @@ predict_class_reference <- function(metadata, regex_reference,
   value
 }
 
+.lib_source_gc <- function() {
+  gc(verbose = FALSE)
+  invisible(NULL)
+}
+
 .lib_metadata_join_chunk_size <- function() {
   value <- suppressWarnings(as.integer(getOption(
     "OpenSpecy.metadata_join_chunk_size", 100000L
@@ -2281,6 +2290,7 @@ predict_class_reference <- function(metadata, regex_reference,
   prefilter_rows <- list()
   source_index <- 0L
   chunk_size <- .lib_source_merge_chunk_size()
+  gc_interval <- .lib_source_merge_gc_interval()
   for (i in seq_along(paths)) {
     path <- normalizePath(paths[[i]], winslash = "/", mustWork = TRUE)
     path_info <- file.info(path)
@@ -2341,7 +2351,8 @@ predict_class_reference <- function(metadata, regex_reference,
             reason = if (identical(dedupe_duplicate, "remove_all")) {
               "duplicate_content_remove_all"
             } else "duplicate_content",
-            evidence = list(duplicate_hash = ids)
+            evidence = list(duplicate_hash = ids),
+            source_record = sprintf("source_%06d", source_index)
           )
           quarantine_parts <- c(
             quarantine_parts,
@@ -2384,7 +2395,8 @@ predict_class_reference <- function(metadata, regex_reference,
               object, rows, artifact = "source",
               stage = "source_correlation_deduplication",
               rule = "pearson_correlation",
-              reason = "near_duplicate_within_library", evidence = evidence
+              reason = "near_duplicate_within_library", evidence = evidence,
+              source_record = sprintf("source_%06d", source_index)
             )
             quarantine_parts <- c(
               quarantine_parts,
@@ -2465,10 +2477,10 @@ predict_class_reference <- function(metadata, regex_reference,
       )
       path_sources[j] <- list(NULL)
       rm(record)
-      gc(verbose = FALSE)
+      if (source_index %% gc_interval == 0L) .lib_source_gc()
     }
     rm(path_sources)
-    gc(verbose = FALSE)
+    .lib_source_gc()
   }
   attr(records, "quarantine_parts") <- quarantine_parts
   attr(records, "source_prefilter_report") <- data.table::rbindlist(
@@ -2506,6 +2518,7 @@ predict_class_reference <- function(metadata, regex_reference,
 
 .lib_staged_global_filter_plan <- function(records, id_col, exclude_ids,
                                            dedupe_duplicate, report) {
+  gc_interval <- .lib_source_merge_gc_interval()
   original_counts <- vapply(records, `[[`, integer(1L), "n")
   original_starts <- cumsum(c(1L, head(original_counts, -1L)))
   source_names <- unlist(lapply(records, `[[`, "spectrum_names"),
@@ -2529,8 +2542,9 @@ predict_class_reference <- function(metadata, regex_reference,
           as.character(local[[column]]) %in% exclude_ids
       }
       rm(local)
-      gc(verbose = FALSE)
+      if (i %% gc_interval == 0L) .lib_source_gc()
     }
+    if (length(records) %% gc_interval != 0L) .lib_source_gc()
   }
 
   duplicate_remove <- rep(FALSE, length(source_names))
@@ -2560,6 +2574,7 @@ predict_class_reference <- function(metadata, regex_reference,
 }
 
 .lib_combine_staged_metadata <- function(records, report, record_rows = NULL) {
+  gc_interval <- .lib_source_merge_gc_interval()
   if (is.null(record_rows)) {
     record_rows <- lapply(records, function(record) seq_len(record$n))
   }
@@ -2606,8 +2621,9 @@ predict_class_reference <- function(metadata, regex_reference,
       data.table::set(metadata, i = rows, j = column, value = value)
     }
     rm(local, value)
-    gc(verbose = FALSE)
+    if (i %% gc_interval == 0L) .lib_source_gc()
   }
+  if (length(records) %% gc_interval != 0L) .lib_source_gc()
   metadata
 }
 
@@ -2735,7 +2751,8 @@ predict_class_reference <- function(metadata, regex_reference,
       parts <- .lib_quarantine_typed_capture(
         object, seq_len(ncol(object$spectra)), artifact = "source",
         stage = stage, rule = rule, reason = reason,
-        evidence = local_evidence, source_rows = global_positions
+        evidence = local_evidence, source_rows = global_positions,
+        source_record = sprintf("source_%06d", record$source_index)
       )
       out <- c(out, .lib_save_quarantine_part_paths(
         parts, quarantine_dir,
@@ -2864,6 +2881,8 @@ predict_class_reference <- function(metadata, regex_reference,
   merged_dataset <- NULL
   merged_path <- NULL
   merge_complete <- FALSE
+  target_write_calls <- 0L
+  max_target_write_columns <- 0L
   if (file_backed_target) {
     dir.create(merged_staging_dir, recursive = TRUE, showWarnings = FALSE)
     if (!dir.exists(merged_staging_dir)) {
@@ -2887,6 +2906,13 @@ predict_class_reference <- function(metadata, regex_reference,
       chunk_dims = c(length(target$wavenumber), min(chunk_size, total)),
       gzip_level = 1L
     )
+    merge_buffer_capacity <- min(chunk_size, total)
+    merge_buffer <- matrix(
+      NA_real_, nrow = length(target$wavenumber),
+      ncol = merge_buffer_capacity
+    )
+    merge_buffer_global_columns <- integer(merge_buffer_capacity)
+    merge_buffer_count <- 0L
   } else {
     spectra <- matrix(
       NA_real_, nrow = length(target$wavenumber), ncol = total,
@@ -2899,6 +2925,7 @@ predict_class_reference <- function(metadata, regex_reference,
     records, `[[`, integer(1L), "path_index"
   ))
   for (path_group in seq_along(by_path)) {
+    merge_blocks_since_gc <- 0L
     descriptor_rows <- by_path[[path_group]]
     first <- records[[descriptor_rows[[1L]]]]
     observed <- file.info(first$path)
@@ -2955,19 +2982,38 @@ predict_class_reference <- function(metadata, regex_reference,
           )
         }
         if (file_backed_target) {
-          target_block <- matrix(
-            NA_real_, nrow = length(target$wavenumber), ncol = ncol(block)
-          )
-          target_block[rows, ] <- block
-          merged_dataset[, global_columns] <- target_block
-          rm(target_block)
+          block_offset <- 0L
+          while (block_offset < ncol(block)) {
+            write_columns <- min(
+              merge_buffer_capacity - merge_buffer_count,
+              ncol(block) - block_offset
+            )
+            buffer_columns <- merge_buffer_count + seq_len(write_columns)
+            block_columns <- block_offset + seq_len(write_columns)
+            merge_buffer[rows, buffer_columns] <-
+              block[, block_columns, drop = FALSE]
+            merge_buffer_global_columns[buffer_columns] <-
+              global_columns[block_columns]
+            merge_buffer_count <- merge_buffer_count + write_columns
+            block_offset <- block_offset + write_columns
+            if (merge_buffer_count == merge_buffer_capacity) {
+              merged_dataset[, merge_buffer_global_columns] <- merge_buffer
+              target_write_calls <- target_write_calls + 1L
+              max_target_write_columns <- max(
+                max_target_write_columns, merge_buffer_count
+              )
+              merge_buffer[,] <- NA_real_
+              merge_buffer_count <- 0L
+            }
+          }
         } else {
           spectra[rows, global_columns] <- block
         }
         rm(block)
-        if (block_index %% gc_interval == 0L ||
-            block_index == length(chunk_paths)) {
-          gc(verbose = FALSE)
+        merge_blocks_since_gc <- merge_blocks_since_gc + 1L
+        if (merge_blocks_since_gc >= gc_interval) {
+          .lib_source_gc()
+          merge_blocks_since_gc <- 0L
         }
         if (length(chunk_paths) > 1L &&
             (block_index == 1L || block_index == length(chunk_paths) ||
@@ -2990,15 +3036,28 @@ predict_class_reference <- function(metadata, regex_reference,
         target_wavenumbers = length(target$wavenumber),
         file_backed_target = file_backed_target,
         target_bytes = as.numeric(length(target$wavenumber)) * total * 8,
-        target_storage = if (file_backed_target) "hdf5_chunked" else "memory"
+        target_storage = if (file_backed_target) "hdf5_chunked" else "memory",
+        target_write_chunk_size = if (file_backed_target) {
+          merge_buffer_capacity
+        } else NA_integer_
       )
       rm(chunk_paths, chunk_columns, first_columns)
-      gc(verbose = FALSE)
     }
-    gc(verbose = FALSE)
+    if (merge_blocks_since_gc > 0L) .lib_source_gc()
   }
 
   if (file_backed_target) {
+    if (merge_buffer_count > 0L) {
+      buffer_columns <- seq_len(merge_buffer_count)
+      merged_dataset[, merge_buffer_global_columns[buffer_columns]] <-
+        merge_buffer[, buffer_columns, drop = FALSE]
+      target_write_calls <- target_write_calls + 1L
+      max_target_write_columns <- max(
+        max_target_write_columns, merge_buffer_count
+      )
+    }
+    rm(merge_buffer, merge_buffer_global_columns)
+    .lib_source_gc()
     merged_handle$flush()
     merged_handle$close_all()
     merged_handle <- NULL
@@ -3021,7 +3080,11 @@ predict_class_reference <- function(metadata, regex_reference,
   } else {
     0
   }
-  merge_report[, target_staging_bytes := target_staging_bytes]
+  merge_report[, `:=`(
+    target_staging_bytes = target_staging_bytes,
+    target_write_calls = target_write_calls,
+    max_target_write_columns = max_target_write_columns
+  )]
   attr(out, "source_merge_chunk_report") <- merge_report
   attr(out, "source_prefilter_applied") <- isTRUE(source_prefilter)
   attr(out, "source_prefilter_report") <- source_prefilter_report
@@ -11585,6 +11648,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     quarantine_stage = character(), quarantine_phase = character(),
     quarantine_rule = character(), quarantine_reason = character(),
     quarantine_spectrum_type = character(),
+    quarantine_source_record = character(),
     quarantine_original_id = character(), quarantine_source_row = integer(),
     sample_name = character()
   )
@@ -11599,7 +11663,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_quarantine_capture <- function(x, rows, artifact, stage, rule, reason,
                                     spectrum_type = NULL, evidence = list(),
-                                    source_rows = NULL) {
+                                    source_rows = NULL,
+                                    source_record = NULL) {
   if (!is_OpenSpecy(x) || !length(rows)) return(NULL)
   positions <- if (is.logical(rows)) which(rows) else as.integer(rows)
   positions <- unique(positions[!is.na(positions) & positions >= 1L &
@@ -11634,6 +11699,9 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("'source_rows' must contain one positive row number per spectrum",
          call. = FALSE)
   }
+  source_record <- as.character(select_value(source_record, NA_character_))
+  source_record[!is.na(source_record) & !nzchar(trimws(source_record))] <-
+    NA_character_
   source <- rep(NA_character_, nrow(x$metadata))
   for (column in c("library_name", "organization", "user_name", "citation")) {
     if (!column %in% names(x$metadata)) next
@@ -11656,8 +11724,22 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   type <- tolower(as.character(type))
   type[is.na(type) | !nzchar(trimws(type))] <- "unknown"
   reason <- as.character(select_value(reason, "unspecified_removal"))
+  has_source_record <- !is.na(source_record) & nzchar(source_record)
   payload_ids <- paste0(
     ids[positions], "__q", source_rows[positions], "_", occurrence[positions]
+  )
+  payload_ids[has_source_record] <- paste0(
+    ids[positions][has_source_record], "__", source_record[has_source_record],
+    "_q", source_rows[positions][has_source_record], "_",
+    occurrence[positions][has_source_record]
+  )
+  quarantine_key <- paste(
+    artifact, stage, type, ids[positions], source_rows[positions], sep = "/"
+  )
+  quarantine_key[has_source_record] <- paste(
+    artifact, stage, type[has_source_record],
+    source_record[has_source_record], ids[positions][has_source_record],
+    source_rows[positions][has_source_record], sep = "/"
   )
   colnames(out$spectra) <- payload_ids
   out$metadata$col_id <- payload_ids
@@ -11671,11 +11753,10 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     quarantine_rule = as.character(rule),
     quarantine_reason = reason,
     quarantine_spectrum_type = type,
+    quarantine_source_record = source_record,
     quarantine_original_id = ids[positions],
     quarantine_source_row = source_rows[positions],
-    quarantine_key = paste(
-      artifact, stage, type, ids[positions], source_rows[positions], sep = "/"
-    )
+    quarantine_key = quarantine_key
   )]
   if (length(evidence)) {
     if (is.null(names(evidence)) || any(!nzchar(names(evidence)))) {
@@ -11690,7 +11771,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_quarantine_typed_capture <- function(x, rows, artifact, stage, rule,
                                           reason, evidence = list(),
-                                          source_rows = NULL) {
+                                          source_rows = NULL,
+                                          source_record = NULL) {
   if (!is_OpenSpecy(x) || !length(rows)) return(list())
   positions <- if (is.logical(rows)) which(rows) else as.integer(rows)
   positions <- unique(positions[!is.na(positions) & positions >= 1L &
@@ -11707,7 +11789,7 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     .lib_quarantine_capture(
       x, groups[[type]], artifact = artifact, stage = stage, rule = rule,
       reason = reason, spectrum_type = type, evidence = evidence,
-      source_rows = source_rows
+      source_rows = source_rows, source_record = source_record
     )
   })
   names(out) <- paste(artifact, stage, names(groups), sep = "/")

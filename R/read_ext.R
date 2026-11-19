@@ -348,7 +348,41 @@ read_jdx <- function(file,
                        other_info = NULL,
                        license = "CC BY-NC"),
                      ...) {
-  jdx <- read.jdx(file, encoding = 'latin1')
+  read_arguments <- list(...)
+  attempt <- function(arguments) {
+    tryCatch(
+      list(value = do.call(read.jdx, c(list(filename = file), arguments))),
+      error = function(error) list(error = error)
+    )
+  }
+  result <- attempt(read_arguments)
+  requested_encoding <- read_arguments$encoding
+  file_size <- file.info(file)$size
+  if (!is.null(result$error) && !is.null(requested_encoding) &&
+      length(requested_encoding) && nzchar(requested_encoding[[1L]]) &&
+      length(file_size) && is.finite(file_size)) {
+    header_bytes <- readBin(
+      file, what = "raw", n = min(file_size, 1024^2)
+    )
+    header <- rawToChar(header_bytes)
+    native_has_data <- any(vapply(
+      c("##XYDATA=", "##DATA TABLE=", "##PEAK TABLE="),
+      grepl, logical(1L), x = header, fixed = TRUE, useBytes = TRUE
+    ))
+    if (native_has_data) {
+      fallback_encodings <- setdiff(
+        c("", "UTF-8", "latin1"), as.character(requested_encoding[[1L]])
+      )
+      for (fallback_encoding in fallback_encodings) {
+        fallback_arguments <- read_arguments
+        fallback_arguments$encoding <- fallback_encoding
+        result <- attempt(fallback_arguments)
+        if (is.null(result$error)) break
+      }
+    }
+  }
+  if (!is.null(result$error)) stop(result$error)
+  jdx <- result$value
 
   x <- jdx@wavelength
   y <- as.numeric(unname(jdx@data$spc[1,]))

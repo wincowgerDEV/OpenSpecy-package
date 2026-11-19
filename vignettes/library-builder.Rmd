@@ -379,6 +379,16 @@ objects by recipe/type, row-level removal metadata, the long conflict audit, and
 build provenance. Its review copy and CSV mirrors are checkpointed under
 `output_dir/review` before downstream model and comparison stages.
 
+For path-backed production builds, `OpenSpecy.source_merge_gc_interval`
+controls the explicit garbage-collection cadence across source-record staging,
+staged exclusion scans, metadata assembly, and merge blocks. The maintained
+workflow freezes this value at 10 so released objects are collected regularly
+without rescanning a large live heap once for every tiny source record.
+`OpenSpecy.source_merge_chunk_size` also bounds a cross-source target buffer,
+so small source blocks are written and compressed together rather than through
+one HDF5 write per source. Merge telemetry records the buffer capacity, actual
+write count, and largest write for the build audit.
+
 The returned object has four top-level elements: `libraries`, `medoids`,
 `models`, and `assessments`. Libraries are recipe-first and then keyed by
 `ftir`, `raman`, or `nir`: full Raman uses 200--4000, FTIR uses 400--4000,

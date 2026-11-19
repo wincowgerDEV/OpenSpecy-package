@@ -2399,7 +2399,7 @@ app_pixel_calibration <- function(pixel_size = 1, pixel_unit = "pixel") {
   }
   unit <- trimws(as.character(pixel_unit)[1L])
   if(is.na(unit) || !nzchar(unit)) unit <- "pixel"
-  suffix_unit <- gsub("[µμ]", "u", unit)
+  suffix_unit <- gsub("\u00b5|\u03bc", "u", unit)
   suffix <- tolower(gsub("[^A-Za-z0-9]+", "_", suffix_unit))
   suffix <- gsub("^_+|_+$", "", suffix)
   if(!nzchar(suffix)) suffix <- "pixel"
