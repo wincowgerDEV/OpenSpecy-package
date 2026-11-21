@@ -38,6 +38,9 @@ parse_cli <- function(args = commandArgs(trailingOnly = TRUE)) {
     maps = "all",
     data_root = "C:/Users/winco/OneDrive/Documents/Positive_Controls",
     historical_root = "C:/Users/winco/OneDrive/Documents/OS1_Results",
+    current_path = "",
+    current_sha256 = "",
+    current_label = "",
     output_root = paste0(
       "C:/Users/winco/OneDrive/Documents/Positive_Controls/",
       "library_validation_3_libraries"
@@ -118,14 +121,18 @@ library_definitions <- function(cli) {
         "d57dcd47a344a633c12384aab4f8ce2f3d8f5b59cd98308ca2b643ae947c71ed"
     ),
     current = list(
-      label = "Current cross-class 0.90 closed library",
+      label = if (nzchar(cli$current_label)) cli$current_label else
+        "Current cross-class 0.90 closed library",
       folder = "03_current_closed",
-      path = paste0(
+      path = if (nzchar(cli$current_path)) cli$current_path else paste0(
         "C:/Users/winco/OneDrive/Documents/OpenSpecy_offline/",
         "reference-library-build-2.0.0/releases/bb8cd82c7ecb/derivative.rds"
       ),
-      expected_sha256 =
+      expected_sha256 = if (nzchar(cli$current_sha256)) {
+        cli$current_sha256
+      } else {
         "deed05daa994ee4095366c9ecca020574e1c609bf32156d23545f4bbf02dd292"
+      }
     )
   )
 }

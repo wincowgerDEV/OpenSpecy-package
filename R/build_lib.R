@@ -102,14 +102,16 @@
 #' spectra with running signal-to-noise below two are removed before pruning.
 #' Full artifacts are then partitioned into Raman (200--4000), FTIR
 #' (400--4000), and NIR (4000--12000) \code{OpenSpecy} objects.
-#' The maintained large-library workflow does not run global class-based
-#' \code{prune_lib()} correlations: exact hashes and strict greater-than-0.99
-#' correlation deduplication within one independent source, spectral type, and
-#' cleaned source identity are its authoritative redundancy policy. This avoids
-#' allocating a global square correlation matrix and avoids comparing distinct
-#' molecules that merely share a broad material class. Global pruning remains
-#' available for smaller explicitly selected recipe artifacts through
-#' \code{prune}, and is a separate policy decision from source-local deduplication.
+#' The maintained large-library workflow applies selected \code{prune} recipes
+#' through bounded file-backed correlation blocks. It preserves the same
+#' deterministic generic reassignment, active-set ordinary pruning, exclusion
+#' range, and \code{min_n} retention floor as \code{prune_lib()} without
+#' allocating a global square correlation matrix. Exact hashes and strict
+#' greater-than-0.99 correlation deduplication within one independent source,
+#' spectral type, and cleaned source identity remain a separate earlier
+#' redundancy policy. Cross-class closure remains independently controlled by
+#' \code{cross_class}; the maintained production driver selects derivative and
+#' no-baseline ordinary pruning with \code{cross_class = FALSE}.
 #' After any requested pruning and class reassignment, the official workflow joins the
 #' complete \code{material_group_reference.csv} crosswalk so every final
 #' \code{material_class} has exactly one \code{material_type} and

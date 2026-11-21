@@ -3549,6 +3549,117 @@ test_that("generic reassignment audits no-eligible and no-finite candidates", {
   )
 })
 
+test_that("file-backed best matches reproduce in-memory deterministic ties", {
+  skip_if_not_installed("hdf5r")
+  set.seed(462)
+  normalized <- matrix(rnorm(12L * 9L), nrow = 12L)
+  normalized <- normalized / sqrt(rowSums(normalized^2))
+  normalized[8L, ] <- normalized[7L, ]
+  ids <- sprintf("id_%02d", c(12:1))
+  query <- c(1L, 4L, 7L, 10L)
+  candidates <- c(2L, 3L, 5L, 6L, 7L, 8L, 9L, 11L, 12L)
+  expected <- OpenSpecy:::.lib_prune_best_match(
+    query, candidates, normalized, ids, exclude_self = TRUE,
+    block_size = 2L
+  )
+
+  path <- tempfile(fileext = ".h5")
+  on.exit(unlink(path, force = TRUE), add = TRUE)
+  handle <- hdf5r::H5File$new(path, mode = "w")
+  dataset <- handle$create_dataset(
+    "normalized", dtype = hdf5r::h5types$H5T_IEEE_F64LE,
+    dims = dim(normalized), chunk_dims = c(3L, ncol(normalized))
+  )
+  dataset[,] <- normalized
+  observed <- OpenSpecy:::.lib_staged_prune_best_match(
+    query, candidates, dataset, ids, ncol(normalized),
+    exclude_self = TRUE, query_block_size = 2L,
+    candidate_block_size = 3L
+  )
+  handle$close_all()
+
+  expect_identical(observed$index, expected$index)
+  expect_equal(observed$correlation, expected$correlation, tolerance = 0)
+  expect_lte(observed$largest_query_block, 2L)
+  expect_lte(observed$largest_candidate_block, 3L)
+})
+
+test_that("file-backed pruning matches prune_lib and quarantines removals", {
+  skip_if_not_installed("hdf5r")
+  wavenumber <- seq(500, 3500, length.out = 80L)
+  a <- dnorm(seq(-3, 3, length.out = length(wavenumber)))
+  b <- dnorm(seq(-3, 3, length.out = length(wavenumber)), mean = 1)
+  spectra <- cbind(
+    a, a + sin(wavenumber) / 1000, b, b + cos(wavenumber) / 1000,
+    b, b + sin(wavenumber) / 1000, b + cos(wavenumber) / 1000,
+    b + sin(wavenumber / 2) / 1000, b, rev(a)
+  )
+  colnames(spectra) <- paste0("staged_prune_", seq_len(ncol(spectra)))
+  x <- as_OpenSpecy(
+    wavenumber, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c(
+        rep("polymer a", 4L), rep("polymer b", 4L),
+        "other plastic", "other material"
+      ),
+      material_type = c(rep("plastic", 9L), "not plastic"),
+      spectrum_type = c(rep("ftir", 9L), "raman"),
+      library_name = "fixture"
+    )
+  )
+  expected <- prune_lib(
+    x, min_n = 2L, cross_class = FALSE,
+    return = "report", progress = FALSE
+  )
+
+  root <- tempfile("OpenSpecy-staged-prune-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+  writer <- OpenSpecy:::.lib_stage_artifact_writer(
+    file.path(root, "input.h5"), file.path(root, "input-metadata.rds"),
+    wavenumber = x$wavenumber, capacity = ncol(x$spectra), chunk_size = 3L,
+    recipe = "derivative", attributes = list(intensity_unit = "absorbance")
+  )
+  writer$append(x$spectra, x$metadata)
+  artifact <- writer$finalize()
+  quarantine_writer <- OpenSpecy:::.lib_quarantine_shard_writer(
+    file.path(root, "quarantine")
+  )
+  observed <- OpenSpecy:::.lib_prune_staged_recipe(
+    artifact, args = list(min_n = 2L, cross_class = FALSE),
+    staging_dir = file.path(root, "pruned"),
+    quarantine_writer = quarantine_writer, progress = FALSE,
+    report = function(...) NULL
+  )
+  object <- OpenSpecy:::.lib_materialize_staged_recipe(observed$artifact)
+  quarantine <- quarantine_writer$bundle(build_signature = "fixture")
+
+  expect_equal(object$wavenumber, expected$object$wavenumber)
+  expect_equal(object$spectra, expected$object$spectra, tolerance = 0)
+  expect_equal(object$metadata, expected$object$metadata, tolerance = 0)
+  expect_equal(
+    observed$reassignments[order(spectrum_id)],
+    expected$reassignments[order(spectrum_id)], tolerance = 0
+  )
+  expect_equal(
+    observed$generic_reassignment_audit[order(spectrum_id)],
+    expected$generic_reassignment_audit[order(spectrum_id)], tolerance = 0
+  )
+  expect_equal(
+    observed$removals[order(spectrum_id)],
+    expected$removals[order(spectrum_id)], tolerance = 0
+  )
+  expect_identical(
+    quarantine$manifest$removed_spectra, as.integer(nrow(observed$removals))
+  )
+  expect_true(all(
+    quarantine$removals$quarantine_original_id %in% observed$removals$spectrum_id
+  ))
+  expect_lte(max(observed$telemetry$query_block), 32L)
+  expect_lte(max(observed$telemetry$candidate_block), 1024L)
+})
+
 test_that("official pruning reattaches resolved generic review audits", {
   wn <- seq(500, 3500, length.out = 80)
   target <- dnorm(seq(-3, 3, length.out = length(wn)))

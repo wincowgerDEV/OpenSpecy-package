@@ -57,6 +57,10 @@ parse_cli <- function(args = commandArgs(trailingOnly = TRUE)) {
     maps = "all",
     data_root = "C:/Users/winco/OneDrive/Documents/Positive_Controls",
     historical_root = "C:/Users/winco/OneDrive/Documents/OS1_Results",
+    current_medoid_path = "",
+    current_medoid_sha256 = "",
+    current_model_path = "",
+    current_model_sha256 = "",
     output_root = paste0(
       "C:/Users/winco/OneDrive/Documents/Positive_Controls/",
       "library_validation_3_libraries"
@@ -97,14 +101,19 @@ artifact_definitions <- function(cli) {
     ),
     current_medoid = list(
       family = "current", representation = "medoid",
-      label = "Current cross-class 0.90 closed derivative medoid library",
+      label = "Current candidate derivative medoid library",
       folder = "06_current_medoid",
-      path = file.path(
+      path = if (nzchar(cli$current_medoid_path)) {
+        cli$current_medoid_path
+      } else file.path(
         open_root, "reference-library-build-2.0.0",
         "releases/bb8cd82c7ecb/medoid_derivative.rds"
       ),
-      expected_sha256 =
+      expected_sha256 = if (nzchar(cli$current_medoid_sha256)) {
+        cli$current_medoid_sha256
+      } else {
         "6cb03c87cf6113c9bc6b2feaf315af9719b6bc4da7110013de774d2eb7bf05cc"
+      }
     ),
     os1_model = list(
       family = "os1", representation = "model",
@@ -128,14 +137,19 @@ artifact_definitions <- function(cli) {
     ),
     current_model = list(
       family = "current", representation = "model",
-      label = "Current cross-class 0.90 closed FTIR derivative model",
+      label = "Current candidate FTIR derivative classification model",
       folder = "09_current_model",
-      path = file.path(
+      path = if (nzchar(cli$current_model_path)) {
+        cli$current_model_path
+      } else file.path(
         open_root, "reference-library-build-2.0.0",
         "releases/bb8cd82c7ecb/model_derivative.rds"
       ),
-      expected_sha256 =
+      expected_sha256 = if (nzchar(cli$current_model_sha256)) {
+        cli$current_model_sha256
+      } else {
         "02a4e968c1417023b098dfdb910965b59afa3a0a6d3954a2440ed7dddc03e955"
+      }
     )
   )
 }

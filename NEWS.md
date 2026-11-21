@@ -106,11 +106,12 @@
   cannot activate its requested UTF-8 locale. Unit normalization uses ASCII
   Unicode escapes, and JCAMP parsing retries native byte handling only when an
   explicit encoding fails despite a valid data marker.
-- The production contract now explicitly disables global class-wide
-  `prune_lib()` correlation passes at large scale. Exact content hashes and
-  strict correlation `> 0.99` within one independent source, spectral type, and
-  cleaned identity remain authoritative, keeping correlations identity-local
-  and block-streamed rather than allocating a multi-million-square matrix.
+- Large file-backed builds now run selected `prune_lib()` recipes with bounded
+  normalized-spectrum and correlation blocks. This restores generic
+  reassignment and ordinary active-set pruning for the derivative and
+  no-baseline production libraries without allocating a global square matrix;
+  the reviewed small-class `min_n` floor remains intact, and source-local exact
+  hash/strict `> 0.99` identity-cohort deduplication remains a separate stage.
 - `train_spec_model()` and `build_model_lib()` now accept ordered hierarchy
   columns and produce schema-versioned, strictly gated logistic models. The
   official type-to-polymer-group-to-class model takes the top-1 route at every

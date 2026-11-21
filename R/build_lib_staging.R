@@ -1300,6 +1300,502 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
   )[, .(spectra = .N), by = .(stage, artifact, library_name)]
 }
 
+.lib_stage_prune_normalized <- function(artifact, path, exclude, report) {
+  .lib_validate_staged_recipe_artifact(artifact, strong = TRUE)
+  if (!is.numeric(exclude) || length(exclude) != 2L || anyNA(exclude)) {
+    stop("'exclude' must be two finite wavenumbers", call. = FALSE)
+  }
+  limits <- sort(exclude)
+  spectral_rows <- which(
+    artifact$wavenumber < limits[[1L]] |
+      artifact$wavenumber > limits[[2L]]
+  )
+  if (!length(spectral_rows)) {
+    stop("'exclude' removes every wavenumber", call. = FALSE)
+  }
+  if (file.exists(path)) unlink(path)
+  handle <- hdf5r::H5File$new(path, mode = "w")
+  on.exit(try(handle$close_all(), silent = TRUE), add = TRUE)
+  row_chunk <- min(256L, artifact$spectra)
+  dataset <- handle$create_dataset(
+    "normalized", dtype = hdf5r::h5types$H5T_IEEE_F64LE,
+    dims = c(artifact$spectra, length(spectral_rows)),
+    chunk_dims = c(row_chunk, length(spectral_rows)), gzip_level = 1L
+  )
+  blocks <- .lib_recipe_blocks(artifact$spectra, artifact$chunk_size)
+  for (block_i in seq_along(blocks)) {
+    columns <- blocks[[block_i]]
+    spectra <- .lib_read_staged_recipe_block(
+      artifact, columns, rows = spectral_rows
+    )
+    dataset[columns, ] <- .lib_prune_normalize(
+      spectra, artifact$wavenumber[spectral_rows], exclude = NULL
+    )
+    rm(spectra)
+    gc(verbose = FALSE)
+    if (block_i == 1L || block_i == length(blocks) || block_i %% 10L == 0L) {
+      report(sprintf(
+        "normalized staged prune block %d/%d (%s; spectra=%d)",
+        block_i, length(blocks), artifact$recipe, max(columns)
+      ))
+    }
+  }
+  handle$flush()
+  handle$close_all()
+  structure(list(
+    path = normalizePath(path, winslash = "/", mustWork = TRUE),
+    dataset = "normalized", spectra = artifact$spectra,
+    wavenumbers = length(spectral_rows), source_rows = spectral_rows,
+    row_chunk = row_chunk, bytes = as.numeric(file.info(path)$size),
+    sha256 = .lib_sha256_file(path)
+  ), class = c("OpenSpecyStagedPruneNormalized", "list"))
+}
+
+.lib_read_staged_prune_rows <- function(dataset, rows, wavenumbers) {
+  value <- dataset[as.integer(rows), seq_len(wavenumbers), drop = FALSE]
+  if (!is.matrix(value)) {
+    value <- matrix(value, nrow = length(rows))
+  }
+  value
+}
+
+.lib_staged_prune_best_match <- function(
+    query, candidates, dataset, ids, wavenumbers, exclude_self = FALSE,
+    query_block_size = 256L, candidate_block_size = 5000L) {
+  candidate_order <- order(ids[candidates], candidates, na.last = TRUE)
+  candidates <- candidates[candidate_order]
+  query_blocks <- split(
+    seq_along(query), ceiling(seq_along(query) / query_block_size)
+  )
+  candidate_blocks <- split(
+    candidates, ceiling(seq_along(candidates) / candidate_block_size)
+  )
+  best_index <- rep(NA_integer_, length(query))
+  best_correlation <- rep(NA_real_, length(query))
+  tolerance_scale <- sqrt(.Machine$double.eps)
+  largest_correlation_bytes <- 0
+  top <- rep(-Inf, length(query))
+  contender_index <- vector("list", length(query))
+  contender_score <- vector("list", length(query))
+  for (candidate_block in candidate_blocks) {
+    candidate_values <- .lib_read_staged_prune_rows(
+      dataset, candidate_block, wavenumbers
+    )
+    for (query_block in query_blocks) {
+      query_rows <- query[query_block]
+      query_values <- .lib_read_staged_prune_rows(
+        dataset, query_rows, wavenumbers
+      )
+      correlations <- tcrossprod(query_values, candidate_values)
+      correlations[!is.finite(correlations)] <- -Inf
+      if (isTRUE(exclude_self)) {
+        self_column <- match(query_rows, candidate_block)
+        has_self <- !is.na(self_column)
+        correlations[cbind(which(has_self), self_column[has_self])] <- -Inf
+      }
+      largest_correlation_bytes <- max(
+        largest_correlation_bytes,
+        as.numeric(length(correlations)) * 8
+      )
+      block_top <- matrixStats::rowMaxs(correlations)
+      next_top <- pmax(top[query_block], block_top)
+      for (row in seq_along(query_rows)) {
+        if (!is.finite(next_top[[row]])) next
+        global_row <- query_block[[row]]
+        tolerance <- tolerance_scale * max(1, abs(next_top[[row]]))
+        if (length(contender_index[[global_row]])) {
+          keep <- abs(
+            contender_score[[global_row]] - next_top[[row]]
+          ) <= tolerance
+          contender_index[[global_row]] <- contender_index[[global_row]][keep]
+          contender_score[[global_row]] <- contender_score[[global_row]][keep]
+        }
+        local <- which(
+          is.finite(correlations[row, ]) &
+            abs(correlations[row, ] - next_top[[row]]) <= tolerance
+        )
+        if (length(local)) {
+          contender_index[[global_row]] <- c(
+            contender_index[[global_row]], candidate_block[local]
+          )
+          contender_score[[global_row]] <- c(
+            contender_score[[global_row]], correlations[row, local]
+          )
+        }
+      }
+      top[query_block] <- next_top
+      rm(query_values, correlations, block_top, next_top)
+    }
+    rm(candidate_values)
+    gc(verbose = FALSE)
+  }
+  for (row in seq_along(query)) {
+    if (!length(contender_index[[row]])) next
+    best_index[[row]] <- contender_index[[row]][[1L]]
+    best_correlation[[row]] <- contender_score[[row]][[1L]]
+  }
+  list(
+    index = best_index, correlation = best_correlation,
+    largest_query_block = min(query_block_size, length(query)),
+    largest_candidate_block = min(candidate_block_size, length(candidates)),
+    largest_correlation_bytes = largest_correlation_bytes
+  )
+}
+
+.lib_staged_prune_block_size <- function(name, default) {
+  value <- suppressWarnings(as.integer(getOption(name, default)))
+  if (length(value) != 1L || is.na(value) || value < 1L) {
+    stop("Option '", name, "' must be one positive integer", call. = FALSE)
+  }
+  value
+}
+
+.lib_staged_prune_argument <- function(args, name, default) {
+  if (is.null(args[[name]])) default else args[[name]]
+}
+
+.lib_prune_staged_recipe <- function(
+    artifact, args, staging_dir, quarantine_writer, progress, report) {
+  .lib_validate_staged_recipe_artifact(artifact, strong = TRUE)
+  if (is.null(args)) args <- list()
+  if (!is.list(args) ||
+      (!is.null(names(args)) && any(!nzchar(names(args))))) {
+    stop("Each selected 'prune' recipe must contain a named argument list",
+         call. = FALSE)
+  }
+  supported <- c(
+    "class_col", "type_col", "material_type_col", "id_col", "min_n",
+    "cross_class", "cross_class_threshold", "exclude", "progress"
+  )
+  unknown <- setdiff(names(args), supported)
+  if (length(unknown)) {
+    stop(
+      "Large file-backed pruning does not support argument(s): ",
+      paste(unknown, collapse = ", "), call. = FALSE
+    )
+  }
+  class_col <- .lib_staged_prune_argument(args, "class_col", "material_class")
+  type_col <- .lib_staged_prune_argument(args, "type_col", "spectrum_type")
+  material_type_col <- .lib_staged_prune_argument(
+    args, "material_type_col", "material_type"
+  )
+  id_col <- .lib_staged_prune_argument(args, "id_col", "sample_name")
+  min_n <- .lib_staged_prune_argument(args, "min_n", 10L)
+  cross_class <- .lib_staged_prune_argument(args, "cross_class", FALSE)
+  exclude <- .lib_staged_prune_argument(args, "exclude", c(2200, 2420))
+  local_progress <- .lib_staged_prune_argument(args, "progress", progress)
+  if (length(min_n) != 1L || is.na(min_n) || min_n < 1 || min_n %% 1 != 0) {
+    stop("'min_n' must be one positive whole number", call. = FALSE)
+  }
+  if (!is.logical(cross_class) || length(cross_class) != 1L ||
+      is.na(cross_class)) {
+    stop("'cross_class' must be TRUE or FALSE", call. = FALSE)
+  }
+  if (isTRUE(cross_class)) {
+    stop(
+      "Large file-backed pruning currently requires cross_class = FALSE",
+      call. = FALSE
+    )
+  }
+  if (!is.logical(local_progress) || length(local_progress) != 1L ||
+      is.na(local_progress)) {
+    stop("'progress' must be TRUE or FALSE", call. = FALSE)
+  }
+
+  dir.create(staging_dir, recursive = TRUE, showWarnings = FALSE)
+  metadata <- data.table::copy(readRDS(artifact$metadata_path))
+  .lib_require_cols(
+    metadata, c(class_col, type_col, material_type_col, id_col),
+    "staged prune metadata"
+  )
+  ids <- as.character(metadata[[id_col]])
+  if (anyNA(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
+    stop("Staged pruning requires populated unique IDs", call. = FALSE)
+  }
+  classes <- trimws(as.character(metadata[[class_col]]))
+  material_types <- trimws(tolower(as.character(metadata[[material_type_col]])))
+  spectrum_types <- trimws(tolower(as.character(metadata[[type_col]])))
+  pools <- .lib_prune_pools(metadata[[type_col]])
+  before_n <- length(ids)
+  normalized_path <- file.path(
+    staging_dir, paste0("normalized-", make.names(artifact$recipe), ".h5")
+  )
+  normalized <- .lib_stage_prune_normalized(
+    artifact, normalized_path, exclude = exclude, report = report
+  )
+  on.exit(unlink(normalized_path, force = TRUE), add = TRUE)
+  handle <- hdf5r::H5File$new(normalized$path, mode = "r")
+  on.exit(try(handle$close_all(), silent = TRUE), add = TRUE)
+  dataset <- handle[[normalized$dataset]]
+  telemetry_rows <- list()
+  telemetry_i <- 0L
+  query_block_size <- .lib_staged_prune_block_size(
+    "OpenSpecy.staged_prune_query_block_size", 256L
+  )
+  candidate_block_size <- .lib_staged_prune_block_size(
+    "OpenSpecy.staged_prune_candidate_block_size", 5000L
+  )
+  best_match <- function(query, candidates, exclude_self, phase) {
+    started <- proc.time()[["elapsed"]]
+    result <- .lib_staged_prune_best_match(
+      query, candidates, dataset, ids, normalized$wavenumbers,
+      exclude_self = exclude_self, query_block_size = query_block_size,
+      candidate_block_size = candidate_block_size
+    )
+    telemetry_i <<- telemetry_i + 1L
+    telemetry_rows[[telemetry_i]] <<- data.table::data.table(
+      artifact = artifact$recipe, phase = phase,
+      queries = length(query), candidates = length(candidates),
+      query_block = as.integer(result$largest_query_block),
+      candidate_block = as.integer(result$largest_candidate_block),
+      max_correlation_bytes = result$largest_correlation_bytes,
+      avoided_square_bytes = 8 * as.double(length(candidates))^2,
+      elapsed_seconds = proc.time()[["elapsed"]] - started
+    )
+    result
+  }
+
+  class_keys <- tolower(classes)
+  generic_labels <- c("other", "other plastic", "other material")
+  generic <- which(class_keys %in% generic_labels)
+  reassignment_rows <- list()
+  audit_rows <- list()
+  groups <- split(generic, paste(pools[generic], class_keys[generic], sep = "\r"))
+  for (query in groups) {
+    generic_class <- class_keys[[query[[1L]]]]
+    target_pool <- pools[[query[[1L]]]]
+    eligible <- !is.na(pools) & pools == target_pool &
+      !class_keys %in% c(generic_labels, "unclassified") &
+      !is.na(classes) & nzchar(classes)
+    if (identical(generic_class, "other plastic")) {
+      eligible <- eligible & material_types == "plastic"
+    } else if (identical(generic_class, "other material")) {
+      eligible <- eligible & class_keys %in% c("organic matter", "mineral")
+    }
+    candidates <- which(eligible)
+    attempted <- data.table::data.table(
+      spectrum_id = ids[query], prior_class = classes[query],
+      material_class = classes[query],
+      prior_material_type = material_types[query],
+      material_type = material_types[query], matched_id = NA_character_,
+      correlation = NA_real_, pool = pools[query],
+      action = if (length(candidates)) {
+        "retained_no_finite_candidate"
+      } else {
+        "retained_no_eligible_candidate"
+      },
+      reason = if (length(candidates)) {
+        "no_finite_candidate"
+      } else {
+        "no_eligible_candidate"
+      }
+    )
+    if (length(candidates)) {
+      best <- best_match(
+        query, candidates, exclude_self = FALSE,
+        phase = paste0("generic_", generic_class, "_", target_pool)
+      )
+      matched <- which(!is.na(best$index))
+      if (length(matched)) {
+        query_rows <- query[matched]
+        candidate_rows <- best$index[matched]
+        classes[query_rows] <- classes[candidate_rows]
+        material_types[query_rows] <- material_types[candidate_rows]
+        attempted[matched, `:=`(
+          material_class = classes[query_rows],
+          material_type = material_types[query_rows],
+          matched_id = ids[candidate_rows],
+          correlation = best$correlation[matched], action = "reassigned",
+          reason = "nearest_eligible_class"
+        )]
+        reassignment_rows[[length(reassignment_rows) + 1L]] <- data.table::copy(
+          attempted[matched]
+        )[, action := NULL][]
+      }
+    }
+    audit_rows[[length(audit_rows) + 1L]] <- attempted
+  }
+  reassignments <- if (length(reassignment_rows)) {
+    data.table::rbindlist(reassignment_rows, fill = TRUE)
+  } else .lib_prune_reassignment_schema()[, artifact := NULL][]
+  generic_audit <- if (length(audit_rows)) {
+    data.table::rbindlist(audit_rows, fill = TRUE)
+  } else {
+    data.table::data.table(
+      spectrum_id = character(), prior_class = character(),
+      material_class = character(), prior_material_type = character(),
+      material_type = character(), matched_id = character(),
+      correlation = numeric(), pool = character(), action = character(),
+      reason = character()
+    )
+  }
+  metadata[[class_col]] <- classes
+  metadata[[material_type_col]] <- material_types
+  class_keys <- tolower(classes)
+  protected <- class_keys %in% c(
+    "unclassified", "other", "other plastic", "other material"
+  )
+  active <- rep(TRUE, before_n)
+  schedule <- data.table::data.table(
+    pool = pools, material_class = classes, is_protected = protected
+  )[
+    !is.na(pool) & !is.na(material_class) & nzchar(material_class),
+    .(initial_n = .N, is_protected = all(is_protected)),
+    by = .(pool, material_class)
+  ][is_protected == FALSE]
+  if (nrow(schedule)) {
+    data.table::setorder(schedule, pool, -initial_n, material_class)
+    schedule[, schedule_order := seq_len(.N), by = pool]
+  } else schedule[, schedule_order := integer()]
+
+  removal_rows <- list()
+  for (schedule_i in seq_len(nrow(schedule))) {
+    target_pool <- schedule$pool[[schedule_i]]
+    target_class <- schedule$material_class[[schedule_i]]
+    initial_target <- which(
+      active & pools == target_pool & !is.na(classes) & classes == target_class
+    )
+    candidates <- which(active & pools == target_pool & !protected)
+    candidates <- candidates[order(ids[candidates], candidates, na.last = TRUE)]
+    best_index <- rep(NA_integer_, before_n)
+    best_correlation <- rep(NA_real_, before_n)
+    query <- initial_target
+    iteration <- 0L
+    repeat {
+      target <- which(
+        active & pools == target_pool & !is.na(classes) & classes == target_class
+      )
+      if (length(target) <= min_n) break
+      if (length(query)) {
+        active_candidates <- candidates[active[candidates]]
+        best <- best_match(
+          query, active_candidates, exclude_self = TRUE,
+          phase = paste0("ordinary_", target_pool, "_", target_class)
+        )
+        best_index[query] <- best$index
+        best_correlation[query] <- best$correlation
+      }
+      target_best <- best_index[target]
+      target_correlation <- best_correlation[target]
+      conflicts <- which(
+        !is.na(target_best) & is.finite(target_correlation) &
+          classes[target_best] != target_class
+      )
+      conflicts <- conflicts[!is.na(conflicts)]
+      if (!length(conflicts)) break
+      removable_n <- min(length(conflicts), length(target) - min_n)
+      if (removable_n < 1L) break
+      conflicts <- data.table::data.table(
+        query = target[conflicts], matched = target_best[conflicts],
+        correlation = target_correlation[conflicts]
+      )
+      conflicts[, query_id := ids[query]]
+      data.table::setorder(conflicts, -correlation, query_id)
+      conflicts <- conflicts[seq_len(removable_n)]
+      active[conflicts$query] <- FALSE
+      iteration <- iteration + 1L
+      removal_rows[[length(removal_rows) + 1L]] <- conflicts[, .(
+        spectrum_id = ids[query], prior_class = classes[query],
+        matched_id = ids[matched], matched_class = classes[matched],
+        correlation, pool = target_pool,
+        schedule_order = schedule$schedule_order[[schedule_i]],
+        reason = "top_match_other_class"
+      )]
+      remaining_target <- target[active[target]]
+      query <- remaining_target[
+        is.na(best_index[remaining_target]) |
+          !active[best_index[remaining_target]]
+      ]
+      if (!length(query)) break
+    }
+    if (isTRUE(local_progress)) report(sprintf(
+      "staged prune %s / %s complete (retained=%d; removed=%d)",
+      target_pool, target_class, sum(active[initial_target]),
+      length(initial_target) - sum(active[initial_target])
+    ))
+  }
+  removals <- if (length(removal_rows)) {
+    data.table::rbindlist(removal_rows, fill = TRUE)
+  } else {
+    data.table::data.table(
+      spectrum_id = character(), prior_class = character(),
+      matched_id = character(), matched_class = character(),
+      correlation = numeric(), pool = character(), schedule_order = integer(),
+      reason = character()
+    )
+  }
+  handle$close_all()
+  handle <- NULL
+  unlink(normalized_path, force = TRUE)
+
+  if (nrow(removals)) {
+    positions <- match(removals$spectrum_id, ids)
+    evidence <- list(
+      matched_id = rep(NA_character_, before_n),
+      opposing_classes = rep(NA_character_, before_n),
+      max_wrong_class_correlation = rep(NA_real_, before_n),
+      schedule_order = rep(NA_integer_, before_n),
+      min_n = rep(as.integer(min_n), before_n)
+    )
+    evidence$matched_id[positions] <- removals$matched_id
+    evidence$opposing_classes[positions] <- removals$matched_class
+    evidence$max_wrong_class_correlation[positions] <- removals$correlation
+    evidence$schedule_order[positions] <- removals$schedule_order
+    reason <- rep("prune_lib_removal", before_n)
+    reason[positions] <- removals$reason
+    .lib_capture_staged_positions(
+      artifact, positions, metadata, quarantine_writer,
+      stage = "pruning", rule = "prune_lib", reason = reason,
+      evidence = evidence, report = report
+    )
+  }
+
+  output_metadata_path <- file.path(
+    staging_dir, paste0("pruned-", make.names(artifact$recipe), "-metadata.rds")
+  )
+  if (all(active)) {
+    saveRDS(metadata, output_metadata_path, compress = FALSE, version = 3)
+    output <- artifact
+    output$metadata_path <- normalizePath(
+      output_metadata_path, winslash = "/", mustWork = TRUE
+    )
+    output$metadata_bytes <- as.numeric(file.info(output_metadata_path)$size)
+    output$metadata_sha256 <- .lib_sha256_file(output_metadata_path)
+  } else {
+    output_path <- file.path(
+      staging_dir, paste0("pruned-", make.names(artifact$recipe), ".h5")
+    )
+    retained <- which(active)
+    writer <- .lib_stage_artifact_writer(
+      output_path, output_metadata_path, wavenumber = artifact$wavenumber,
+      capacity = length(retained), chunk_size = artifact$chunk_size,
+      recipe = artifact$recipe, attributes = artifact$attributes
+    )
+    on.exit(writer$close(), add = TRUE)
+    blocks <- split(
+      retained, ceiling(seq_along(retained) / artifact$chunk_size)
+    )
+    for (block in blocks) {
+      writer$append(
+        .lib_read_staged_recipe_block(artifact, block), metadata[block]
+      )
+    }
+    output <- writer$finalize(object_attributes = artifact$object_attributes)
+  }
+  .lib_validate_staged_recipe_artifact(output, strong = TRUE)
+  list(
+    artifact = output, reassignments = reassignments,
+    generic_reassignment_audit = generic_audit, removals = removals,
+    summary = data.table::data.table(
+      before = before_n, after = sum(active), reassigned = nrow(reassignments),
+      classes_excluded = 0L, cross_class_removed = 0L,
+      threshold_removed = 0L, removed = before_n - sum(active)
+    ),
+    schedule = schedule,
+    telemetry = data.table::rbindlist(telemetry_rows, fill = TRUE)
+  )
+}
+
 .lib_complete_staged_reference_build <- function(
     libraries, tables, prune, remove_other, progress, report,
     staging_dir, build_signature = NA_character_) {
@@ -1307,14 +1803,6 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
     stop("Expected a staged recipe collection", call. = FALSE)
   }
   prune_targets <- intersect(names(prune), names(libraries$artifacts))
-  if (length(prune_targets)) {
-    stop(
-      "Large file-backed completion requires prune = list(); source-local ",
-      "hash and strict correlation deduplication remain active, but the old ",
-      "global prune_lib correlation policy is not scalable or identity-local",
-      call. = FALSE
-    )
-  }
   dir.create(staging_dir, recursive = TRUE, showWarnings = FALSE)
   quarantine_writer <- .lib_quarantine_shard_writer(
     file.path(staging_dir, "quarantine_shards")
@@ -1341,14 +1829,22 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
   )
 
   recipe_stage <- file.path(staging_dir, "completed_recipes")
+  prune_stage <- file.path(staging_dir, "pruned_recipes")
   typed_stage <- file.path(staging_dir, "typed_libraries")
   dir.create(recipe_stage, recursive = TRUE, showWarnings = FALSE)
+  dir.create(prune_stage, recursive = TRUE, showWarnings = FALSE)
   dir.create(typed_stage, recursive = TRUE, showWarnings = FALSE)
   completed_recipes <- list()
   typed <- list()
   quality_rows <- list()
   finalization_rows <- list()
   retention <- list()
+  prune_rows <- list()
+  prune_reassignment_rows <- list()
+  prune_generic_reassignment_rows <- list()
+  prune_removal_rows <- list()
+  prune_telemetry_rows <- list()
+  final_metadata_by_recipe <- list()
   for (recipe in names(libraries$artifacts)) {
     artifact <- libraries$artifacts[[recipe]]
     report(paste0("streaming staged completion (", recipe, ")"))
@@ -1356,15 +1852,49 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
       artifact, metadata_result, staging_dir = recipe_stage,
       quarantine_writer = quarantine_writer, report = report
     )
-    completed_recipes[[recipe]] <- completed$artifact
     quality_rows[[recipe]] <- completed$quality
-    completed_metadata <- readRDS(completed$artifact$metadata_path)
+    quality_metadata <- readRDS(completed$artifact$metadata_path)
     retention[[paste0(recipe, "_other")]] <- .lib_staged_metadata_counts(
       metadata_result$metadata, recipe, "post_other"
     )
     retention[[paste0(recipe, "_quality")]] <- .lib_staged_metadata_counts(
-      completed_metadata, recipe, "post_quality"
+      quality_metadata, recipe, "post_quality"
     )
+    if (recipe %in% prune_targets) {
+      report(paste0("bounded staged pruning (", recipe, ")"))
+      pruned <- .lib_prune_staged_recipe(
+        completed$artifact, args = prune[[recipe]],
+        staging_dir = prune_stage, quarantine_writer = quarantine_writer,
+        progress = progress, report = report
+      )
+      completed$artifact <- pruned$artifact
+      prune_rows[[recipe]] <- data.table::copy(pruned$summary)[
+        , artifact := recipe][]
+      if (nrow(pruned$reassignments)) {
+        prune_reassignment_rows[[recipe]] <- data.table::copy(
+          pruned$reassignments
+        )[, artifact := recipe][]
+      }
+      if (nrow(pruned$generic_reassignment_audit)) {
+        prune_generic_reassignment_rows[[recipe]] <- data.table::copy(
+          pruned$generic_reassignment_audit
+        )[, artifact := recipe][]
+      }
+      if (nrow(pruned$removals)) {
+        prune_removal_rows[[recipe]] <- data.table::copy(
+          pruned$removals
+        )[, artifact := recipe][]
+        data.table::setcolorder(
+          prune_removal_rows[[recipe]],
+          c("artifact", setdiff(names(prune_removal_rows[[recipe]]), "artifact"))
+        )
+      }
+      if (nrow(pruned$telemetry)) {
+        prune_telemetry_rows[[recipe]] <- pruned$telemetry
+      }
+    }
+    completed_recipes[[recipe]] <- completed$artifact
+    completed_metadata <- readRDS(completed$artifact$metadata_path)
     retention[[paste0(recipe, "_prune")]] <- .lib_staged_metadata_counts(
       completed_metadata, recipe, "post_prune"
     )
@@ -1384,6 +1914,7 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
       partitioned$artifacts,
       function(value) readRDS(value$metadata_path)
     ), fill = TRUE)
+    final_metadata_by_recipe[[recipe]] <- final_metadata
     retention[[paste0(recipe, "_final")]] <- .lib_staged_metadata_counts(
       final_metadata, recipe, "final"
     )
@@ -1450,11 +1981,35 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
   common_use_coverage <- replicate_artifact(
     metadata_result$common_use$coverage
   )
-  other_review <- data.table::rbindlist(lapply(recipe_names, function(recipe) {
-    out <- data.table::copy(metadata_result$other_review)
-    out[, artifact := recipe]
-    out
+  review_input <- data.table::rbindlist(lapply(recipe_names, function(recipe) {
+    value <- data.table::copy(metadata_result$other_review)
+    value[, artifact := recipe]
+    value
   }), fill = TRUE)
+  review_libraries <- lapply(recipe_names, function(recipe) {
+    .lib_staged_metadata_proxy(
+      final_metadata_by_recipe[[recipe]], raw_artifact$attributes
+    )
+  })
+  names(review_libraries) <- recipe_names
+  attempted <- if (length(prune_generic_reassignment_rows)) {
+    data.table::rbindlist(prune_generic_reassignment_rows, fill = TRUE)
+  } else NULL
+  other_review <- .lib_finalize_other_review(
+    review_input, review_libraries, prune_targets, attempted = attempted
+  )
+  missing_audit <- other_review[
+    artifact %in% prune_targets & action %in% c(
+      "retained_reassignment_not_attempted", "reassignment_audit_missing"
+    )
+  ]
+  if (nrow(missing_audit)) {
+    stop(
+      "Completed staged pruning left generic reassignment unaudited: ",
+      paste(head(missing_audit$spectrum_id, 20L), collapse = ", "),
+      call. = FALSE
+    )
+  }
   other_filter <- data.table::rbindlist(lapply(recipe_names, function(recipe) {
     out <- data.table::copy(metadata_result$other_filter)
     out[, artifact := recipe]
@@ -1500,16 +2055,23 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
       common_use_coverage = common_use_coverage,
       other_review = other_review,
       other_filter = other_filter,
-      pruning = data.table::data.table(),
+      pruning = data.table::rbindlist(prune_rows, fill = TRUE),
       pruning_excluded_classes = .lib_prune_excluded_assessment_schema(),
-      pruning_reassignments = .lib_prune_reassignment_schema(),
-      pruning_removals = .lib_prune_removal_assessment_schema(),
+      pruning_reassignments = if (length(prune_reassignment_rows)) {
+        data.table::rbindlist(prune_reassignment_rows, fill = TRUE)
+      } else .lib_prune_reassignment_schema(),
+      pruning_removals = if (length(prune_removal_rows)) {
+        data.table::rbindlist(prune_removal_rows, fill = TRUE)
+      } else .lib_prune_removal_assessment_schema(),
       pruning_conflicts = {
         value <- .lib_prune_conflict_edge_schema()
         value[, artifact := character()]
         value
       },
       correlation_closure = data.table::data.table(),
+      staged_pruning = data.table::rbindlist(
+        prune_telemetry_rows, fill = TRUE
+      ),
       automated_test_flags = .lib_collect_automated_test_flags(
         list(staged = .lib_staged_metadata_proxy(
           metadata_result$metadata, raw_artifact$attributes

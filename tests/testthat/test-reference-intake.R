@@ -201,9 +201,15 @@ test_that("reference workflow uses manifest-selected cleaned outputs", {
                fixed = TRUE)
   expect_match(code, "OpenSpecy.recipe_record_staging = TRUE", fixed = TRUE)
   expect_match(code, "OpenSpecy.recipe_chunk_size = 5000L", fixed = TRUE)
+  expect_match(code, "OpenSpecy.staged_prune_query_block_size = 256L",
+               fixed = TRUE)
+  expect_match(code, "OpenSpecy.staged_prune_candidate_block_size = 5000L",
+               fixed = TRUE)
   expect_match(code, "OpenSpecy.staged_completion_threshold = 250000L",
                fixed = TRUE)
-  expect_match(code, "prune = list()", fixed = TRUE)
+  expect_match(code, "derivative = list(cross_class = FALSE)", fixed = TRUE)
+  expect_match(code, "nobaseline = list(cross_class = FALSE)", fixed = TRUE)
+  expect_false(grepl("prune = list()", code, fixed = TRUE))
   expect_match(code, "dedupe_correlation_threshold = 0.99", fixed = TRUE)
   expect_equal(
     length(gregexpr(

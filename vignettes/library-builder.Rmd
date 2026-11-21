@@ -243,7 +243,11 @@ reassignment correlations, spectrum-level removals, and compatible empty
 `build_lib(prune = ...)` maps recipe names to `prune_lib()` argument lists, so
 each selected spectral representation is pruned independently. Its generic
 reassignment and explicit cross-class conflict policies remain separate from
-the non-generic class-preservation rule. In the official
+the non-generic class-preservation rule. Large file-backed builds preserve the
+same deterministic assignments, active-set removals, exclusion range, and
+`min_n` floor while reading normalized spectra and correlation products in
+bounded blocks; their assessment telemetry records the largest query/candidate
+block and the avoided square allocation. In the official
 workflow, an otherwise unresolved identity is temporarily labeled `other`.
 The default `remove_other = TRUE` removes rows without a stable identity or any
 generic review label, but named generic paint, varnish, rubber, latex, resin,

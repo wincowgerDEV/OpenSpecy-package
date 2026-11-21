@@ -69,6 +69,8 @@ options(
   OpenSpecy.metadata_join_report_value_limit = 1000L,
   OpenSpecy.recipe_record_staging = TRUE,
   OpenSpecy.recipe_chunk_size = 5000L,
+  OpenSpecy.staged_prune_query_block_size = 256L,
+  OpenSpecy.staged_prune_candidate_block_size = 5000L,
   OpenSpecy.staged_completion_threshold = 250000L
 )
 data.table::setDTthreads(build_workers)
@@ -195,9 +197,11 @@ message(paste0(
   "100,000 rows; at most 1,000 representative diagnostic values with exact totals"
 ))
 message("  Recipe materialization: HDF5-backed blocks of at most 5,000 spectra")
+message("  Staged pruning: at most 256 queries by 5,000 candidates per block")
 message(paste0(
-  "  Global class-based prune_lib pass: disabled; source-local exact/hash ",
-  "and strict >0.99 identity-cohort deduplication are authoritative"
+  "  Global class pruning: bounded derivative/no-baseline prune_lib policy; ",
+  "generic labels reassigned before ordinary removals; reviewed classes ",
+  "below min_n are preserved"
 ))
 message("  Classification model: flat guardrailed logistic regression")
 message("  High-throughput workers: ", build_workers)
@@ -209,7 +213,10 @@ reference_library_build <- build_lib(
   reuse = FALSE,
   remove_other = TRUE,
   dedupe_correlation_threshold = 0.99,
-  prune = list(),
+  prune = list(
+    derivative = list(cross_class = FALSE),
+    nobaseline = list(cross_class = FALSE)
+  ),
   model_method = "logistic_regression",
   progress = TRUE
 )
