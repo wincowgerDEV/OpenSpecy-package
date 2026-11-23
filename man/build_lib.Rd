@@ -41,6 +41,7 @@ build_lib(
   model_method = c("gated_hierarchical_logistic_regression", "logistic_regression"),
   seed = 123,
   holdout = 0.1,
+  artifact_scope = c("complete", "libraries"),
   ...
 )
 
@@ -290,6 +291,13 @@ fit a model.}
 
 \item{holdout}{fraction of stable spectrum groups reserved for assessment.}
 
+\item{artifact_scope}{official-workflow artifacts to build. The default
+\code{"complete"} preserves the end-to-end libraries, medoids, models, and
+comparisons. \code{"libraries"} promotes completed recipe libraries,
+assessments, and quarantine only. It never creates medoid or model
+checkpoints and ignores \code{previous_library_dir}; completed libraries can
+later be supplied to \code{rebuild_lib_artifacts()}.}
+
 \item{columns}{metadata columns to deduplicate into a template.}
 
 \item{add}{blank columns to add to a template.}
@@ -419,8 +427,11 @@ ordinary RDS artifact is materialized at a time. Such builds return a
 lightweight \code{OpenSpecyFileBackedReferenceBuild} index instead of loading
 every final library into one R session.
 In composable mode, \code{build_lib()} returns a named list of
-\code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
-\code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
+\code{OpenSpecy} libraries. Complete end-to-end mode returns one list
+containing \code{libraries}, \code{medoids}, \code{models}, and
+\code{assessments}. Library-only mode returns a lightweight
+\code{OpenSpecyLibraryOnlyReferenceBuild} index containing promoted library
+paths, assessments, quarantine, and the release-index path.
 Official libraries and medoids are nested by recipe and then
 \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
 recipe, and spectrum type. New official fits are stored under
@@ -475,9 +486,12 @@ returns a data.table summary.
 \description{
 Create reference libraries from source files and OpenSpecy objects.
 When \code{output_dir} is supplied, \code{build_lib()} runs the official
-end-to-end workflow and returns raw,
-processed, medoid, model, and assessment artifacts in one object. Supporting
-functions remain available for advanced composition.
+checkpointed workflow. The default \code{artifact_scope = "complete"}
+returns raw, processed, medoid, model, and assessment artifacts in one
+object. \code{artifact_scope = "libraries"} promotes the completed raw,
+derivative, and no-baseline libraries with their assessments and quarantine,
+then stops before medoid selection, model fitting, or legacy comparison.
+Supporting functions remain available for advanced composition.
 }
 \details{
 \code{build_lib()} combines sources over their full wavenumber range,

@@ -1,5 +1,14 @@
 # OpenSpecy 2.0.3
 
+- Official `build_lib()` runs can now use `artifact_scope = "libraries"` to
+  checkpoint and promote raw, derivative, no-baseline, assessments, and
+  quarantine artifacts without creating medoid, model, or legacy-comparison
+  checkpoints. The maintained `updatedv1` driver uses that scope once per
+  admitted dataset, persists immutable recipe/type manifests below each
+  dataset's `Processed/` folder, and performs a bounded no-filter final join
+  only after every dataset-local build is complete. Repository-owned workflow
+  tables are read explicitly as UTF-8, and identity cleanup preserves
+  stereochemical SMILES backslashes instead of mistaking them for file paths.
 - `automate_particle_analysis(..., particle_id_strategy = "all_cell_id")`
   now resolves material labels from canonical reference spectrum names when a
   custom library has `material_class` but lacks `sample_name`. Cell matches are

@@ -126,7 +126,15 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
     if (is.null(na_plan) || !identical(na_plan$dim, dim(x$spectra))) {
       na_plan <<- .intensity_na_plan(x$spectra)
     }
-    .process_intensity_step(x, fun, args, na_plan = na_plan)
+    processed <- .process_intensity_step(x, fun, args, na_plan = na_plan)
+    if (identical(fun, "smooth_intens")) {
+      protected <- .protect_internal_sg_gaps(processed, na_plan, args)
+      processed <- protected$x
+      if (protected$changed) {
+        na_plan <<- .intensity_na_plan(processed$spectra)
+      }
+    }
+    processed
   }
 
   if(active) {
@@ -178,18 +186,63 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   ignored <- is.na(spectra)
   na_cols <- colSums(ignored) > 0L
   missing_cols <- unname(which(na_cols))
+  ignored_info <- NULL
+  internal_ignored <- NULL
+  lead_tail_only <- TRUE
+  if (length(missing_cols)) {
+    missing_mask <- ignored[, missing_cols, drop = FALSE]
+    boundary_info <- .spectra_ignore_info_from_mask(
+      missing_mask, lead_tail_only = TRUE
+    )
+    internal_ignored <- missing_mask & !boundary_info$ignored
+    lead_tail_only <- !any(internal_ignored)
+    ignored_info <- if (lead_tail_only) {
+      boundary_info
+    } else {
+      .spectra_ignore_info_from_mask(
+        missing_mask, lead_tail_only = FALSE
+      )
+    }
+  }
   list(
     dim = dim(spectra),
     has_na = any(na_cols),
     complete_cols = unname(which(!na_cols)),
     missing_cols = missing_cols,
-    ignored_info = if (length(missing_cols) == 0L) NULL else {
-      .spectra_ignore_info_from_mask(
-        ignored[, missing_cols, drop = FALSE],
-        lead_tail_only = TRUE
-      )
-    }
+    ignored_info = ignored_info,
+    internal_ignored = internal_ignored,
+    lead_tail_only = lead_tail_only
   )
+}
+
+.protect_internal_sg_gaps <- function(x, na_plan, args) {
+  internal <- na_plan$internal_ignored
+  type <- if (is.null(args$type)) "sg" else args$type
+  if (isTRUE(na_plan$lead_tail_only) || is.null(internal) ||
+      !any(internal) || !identical(type, "sg")) {
+    return(list(x = x, changed = FALSE))
+  }
+
+  window <- if (is.null(args$window)) 11L else as.integer(args$window)
+  radius <- floor(window / 2L)
+  protected <- internal
+  if (radius > 0L && nrow(internal) > 1L) {
+    for (offset in seq_len(min(radius, nrow(internal) - 1L))) {
+      protected[(offset + 1L):nrow(internal), ] <-
+        protected[(offset + 1L):nrow(internal), ] |
+        internal[seq_len(nrow(internal) - offset), ]
+      protected[seq_len(nrow(internal) - offset), ] <-
+        protected[seq_len(nrow(internal) - offset), ] |
+        internal[(offset + 1L):nrow(internal), ]
+    }
+  }
+
+  columns <- na_plan$missing_cols
+  block <- as.matrix(x$spectra[, columns, drop = FALSE])
+  changed <- any(protected & !is.na(block))
+  block[protected] <- NA_real_
+  x$spectra[, columns] <- block
+  list(x = x, changed = changed)
 }
 
 .process_intensity_step <- function(x, fun, args = list(), na_plan = NULL) {
@@ -206,7 +259,8 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
   }
   if (length(na_plan$complete_cols) == 0L) {
     return(.manage_na_ignore(
-      x, fun = step, ignored_info = na_plan$ignored_info
+      x, fun = step, ignored_info = na_plan$ignored_info,
+      lead_tail_only = na_plan$lead_tail_only
     ))
   }
 
@@ -222,7 +276,8 @@ process_spec.OpenSpecy <- function(x, active = TRUE,
 
   missing <- .subset_open_specy_columns(x, missing_cols)
   missing <- .manage_na_ignore(
-    missing, fun = step, ignored_info = na_plan$ignored_info
+    missing, fun = step, ignored_info = na_plan$ignored_info,
+    lead_tail_only = na_plan$lead_tail_only
   )
   .check_intensity_step_shape(missing, x, missing_cols)
   out$spectra[, missing_cols] <- missing$spectra

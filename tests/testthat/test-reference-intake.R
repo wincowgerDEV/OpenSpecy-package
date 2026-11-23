@@ -168,6 +168,14 @@ test_that("reference runner forwards an approved visual review to cleaners", {
 
   expect_identical(readLines(file.path(dataset, "review.txt")), "approved")
   expect_true(result$validation$valid)
+
+  helpers$readRDS <- function(path) {
+    warning("fixture serialization warning", call. = FALSE)
+    base::readRDS(path)
+  }
+  warned <- helpers$reference_collect_admitted_inputs(root, manifest_path)
+  expect_false(warned$validation$valid)
+  expect_true("warning_cleaned_output" %in% warned$source_failures$reason)
 })
 
 test_that("reference workflow uses manifest-selected cleaned outputs", {
@@ -176,13 +184,17 @@ test_that("reference workflow uses manifest-selected cleaned outputs", {
     warn = FALSE
   )
   code <- paste(workflow, collapse = "\n")
+  staging <- readLines(
+    reference_workflow_path("reference_library_staging.R"),
+    warn = FALSE
+  )
+  staging_code <- paste(staging, collapse = "\n")
 
   expect_match(code, "reference_collect_admitted_inputs", fixed = TRUE)
   expect_match(code, "reference_intake_validation.csv", fixed = TRUE)
   expect_match(code, "reference_intake_source_failures.csv", fixed = TRUE)
-  expect_match(code, "OPENSPECY_REFERENCE_INCLUDE_RAW_SOURCE", fixed = TRUE)
-  expect_match(code, "OPENSPECY_REFERENCE_MANIFEST_ONLY", fixed = TRUE)
-  expect_match(code, "exact admitted manifest only", fixed = TRUE)
+  expect_match(code, "admitted <- manifest[state == \"admitted\"]", fixed = TRUE)
+  expect_match(code, "identical(admitted$output_path, intake$files)", fixed = TRUE)
   expect_match(code, "unset = \"false\"", fixed = TRUE)
   expect_match(code, "OpenSpecy.correlation_cache = \"bounded\"", fixed = TRUE)
   expect_match(code, "OpenSpecy.source_hash_chunk_size = 20000L", fixed = TRUE)
@@ -207,14 +219,20 @@ test_that("reference workflow uses manifest-selected cleaned outputs", {
                fixed = TRUE)
   expect_match(code, "OpenSpecy.staged_completion_threshold = 250000L",
                fixed = TRUE)
-  expect_match(code, "derivative = list(cross_class = FALSE)", fixed = TRUE)
-  expect_match(code, "nobaseline = list(cross_class = FALSE)", fixed = TRUE)
-  expect_false(grepl("prune = list()", code, fixed = TRUE))
-  expect_match(code, "dedupe_correlation_threshold = 0.99", fixed = TRUE)
-  expect_equal(
-    length(gregexpr(
-      "reference_library_build <- build_lib\\(", code, perl = TRUE
-    )[[1L]]),
-    1L
-  )
+  expect_match(staging_code,
+               "derivative = list(cross_class = FALSE, min_n = 10L)",
+               fixed = TRUE)
+  expect_match(staging_code,
+               "nobaseline = list(cross_class = FALSE, min_n = 10L)",
+               fixed = TRUE)
+  expect_match(staging_code, "dedupe_correlation_threshold = 0.99",
+               fixed = TRUE)
+  expect_match(staging_code, "artifact_scope = \"libraries\"", fixed = TRUE)
+  expect_match(code, "reference_build_dataset(", fixed = TRUE)
+  expect_match(code, "reference_join_dataset_manifests(", fixed = TRUE)
+  expect_false(grepl(
+    "(^|\\n)[[:space:]]*build_lib\\(", code, perl = TRUE
+  ))
+  expect_false(grepl("train_spec_model", staging_code, fixed = TRUE))
+  expect_false(grepl(".lib_build_medoids", staging_code, fixed = TRUE))
 })

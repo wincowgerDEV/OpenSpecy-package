@@ -4,9 +4,12 @@
 #' @description
 #' Create reference libraries from source files and OpenSpecy objects.
 #' When \code{output_dir} is supplied, \code{build_lib()} runs the official
-#' end-to-end workflow and returns raw,
-#' processed, medoid, model, and assessment artifacts in one object. Supporting
-#' functions remain available for advanced composition.
+#' checkpointed workflow. The default \code{artifact_scope = "complete"}
+#' returns raw, processed, medoid, model, and assessment artifacts in one
+#' object. \code{artifact_scope = "libraries"} promotes the completed raw,
+#' derivative, and no-baseline libraries with their assessments and quarantine,
+#' then stops before medoid selection, model fitting, or legacy comparison.
+#' Supporting functions remain available for advanced composition.
 #'
 #' @details
 #' \code{build_lib()} combines sources over their full wavenumber range,
@@ -365,6 +368,12 @@
 #' @param output_dir \code{NULL} for the composable in-memory return, or a
 #' directory that triggers the complete checkpointed workflow. The official
 #' workflow requires an explicit output directory.
+#' @param artifact_scope official-workflow artifacts to build. The default
+#' \code{"complete"} preserves the end-to-end libraries, medoids, models, and
+#' comparisons. \code{"libraries"} promotes completed recipe libraries,
+#' assessments, and quarantine only. It never creates medoid or model
+#' checkpoints and ignores \code{previous_library_dir}; completed libraries can
+#' later be supplied to \code{rebuild_lib_artifacts()}.
 #' @param previous_library_dir directory containing the seven legacy artifacts
 #' used for complete old/new assessment, \code{"system"}, or \code{NULL} to skip
 #' external comparison. The end-to-end workflow defaults to \code{"system"}
@@ -466,8 +475,11 @@
 #' lightweight \code{OpenSpecyFileBackedReferenceBuild} index instead of loading
 #' every final library into one R session.
 #' In composable mode, \code{build_lib()} returns a named list of
-#' \code{OpenSpecy} libraries. Its end-to-end mode returns one list containing
-#' \code{libraries}, \code{medoids}, \code{models}, and \code{assessments}.
+#' \code{OpenSpecy} libraries. Complete end-to-end mode returns one list
+#' containing \code{libraries}, \code{medoids}, \code{models}, and
+#' \code{assessments}. Library-only mode returns a lightweight
+#' \code{OpenSpecyLibraryOnlyReferenceBuild} index containing promoted library
+#' paths, assessments, quarantine, and the release-index path.
 #' Official libraries and medoids are nested by recipe and then
 #' \code{ftir}, \code{raman}, or \code{nir}. Models are nested by algorithm,
 #' recipe, and spectrum type. New official fits are stored under
@@ -608,13 +620,15 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
                       signal_noise = TRUE, assess = FALSE, prune = NULL,
                       progress = TRUE,
                       workflow_data = NULL,
-                      output_dir = NULL, previous_library_dir = "system",
+                      output_dir = NULL,
+                      previous_library_dir = "system",
                       reuse = TRUE, remove_other = TRUE,
                       model_method = c(
                         "gated_hierarchical_logistic_regression",
                         "logistic_regression"
                       ),
                       seed = 123, holdout = 0.1,
+                      artifact_scope = c("complete", "libraries"),
                       ...) {
   if (missing(x)) {
     stop(
@@ -640,6 +654,7 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
       is.na(remove_other)) {
     stop("'remove_other' must be TRUE or FALSE", call. = FALSE)
   }
+  artifact_scope <- match.arg(artifact_scope)
   model_method <- match.arg(model_method)
 
   if (!official_mode) {
@@ -672,7 +687,8 @@ build_lib <- function(x, recipes = .default_lib_recipes(), range = "full",
     restrict_range_args = restrict_range_args,
     signal_noise = signal_noise, assess = assess, prune = prune,
     progress = progress, workflow_data = workflow_data,
-    output_dir = output_dir, previous_library_dir = previous_library_dir,
+    output_dir = output_dir, artifact_scope = artifact_scope,
+    previous_library_dir = previous_library_dir,
     reuse = reuse, remove_other = remove_other,
     model_method = model_method,
     seed = seed, holdout = holdout, ...
@@ -1560,17 +1576,19 @@ rebuild_lib_artifacts <- function(x, output_dir,
 .lib_clean_spectrum_identity <- function(x) {
   out <- trimws(as.character(x))
   missing <- is.na(out)
-  windows_path <- grepl("^[A-Za-z]:[\\\\/]", out) |
-    grepl("\\\\", out)
-  unix_path <- grepl("^(?:/|\\./|\\.\\./)", out, perl = TRUE)
-  out <- gsub("\\\\", "/", out)
   extensions <- .supported_spectrum_extensions()
   pattern <- paste0(
     "\\.(?:", paste(extensions, collapse = "|"), ")$"
   )
+  windows_path <- grepl("^[A-Za-z]:[\\\\/]", out) |
+    grepl("^\\\\\\\\", out) |
+    (grepl("\\\\", out) &
+       grepl(pattern, out, ignore.case = TRUE, perl = TRUE))
+  unix_path <- grepl("^(?:/|\\./|\\.\\./)", out, perl = TRUE)
   suffixed_path <- grepl("/", out, fixed = TRUE) &
     grepl(pattern, out, ignore.case = TRUE, perl = TRUE)
   path <- windows_path | unix_path | suffixed_path
+  out[path] <- gsub("\\\\", "/", out[path])
   out[path] <- sub(".*/", "", out[path])
   repeat {
     cleaned <- sub(pattern, "", out, ignore.case = TRUE, perl = TRUE)
@@ -1648,7 +1666,7 @@ predict_class_reference <- function(metadata, regex_reference,
         }
       )
     }, logical(nrow(out)))
-    if (is.null(dim(hits))) hits <- matrix(hits, ncol = 1L)
+    hits <- matrix(hits, nrow = nrow(out), ncol = nrow(rules))
   }
   if (any(missing_identity) && ncol(hits) > 0L) {
     hits[missing_identity, ] <- FALSE
@@ -3903,8 +3921,10 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
 
 .lib_fill_metadata_key <- function(metadata, canonical, fallback) {
   if (!inherits(metadata, "data.table")) data.table::setDT(metadata)
+  if (!canonical %in% names(metadata)) {
+    data.table::set(metadata, j = canonical, value = NA_character_)
+  }
   if (!fallback %in% names(metadata)) return(data.table::data.table())
-  if (!canonical %in% names(metadata)) metadata[[canonical]] <- NA_character_
 
   primary <- trimws(as.character(metadata[[canonical]]))
   alternate <- trimws(as.character(metadata[[fallback]]))
@@ -8930,7 +8950,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
                                  clean_metadata_values, convert_intensity,
                                  restrict_range_args, signal_noise, assess,
                                  prune, progress, workflow_data, output_dir,
-                                 previous_library_dir, reuse, remove_other,
+                                 artifact_scope, previous_library_dir,
+                                 reuse, remove_other,
                                  model_method,
                                  seed, holdout,
                                  ...) {
@@ -8990,7 +9011,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       convert_intensity = convert_intensity,
       restrict_range_args = restrict_range_args,
       signal_noise = signal_noise, assess = assess, prune = prune,
-      remove_other = remove_other, model_method = model_method,
+      remove_other = remove_other, artifact_scope = artifact_scope,
+      model_method = model_method,
       seed = seed, holdout = holdout
     )
   )
@@ -9126,16 +9148,18 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       return(.lib_finish_staged_reference_build(
         completed_staged, output_dir = output_dir,
         artifact_signature = artifact_signature,
+        artifact_scope = artifact_scope,
         previous_library_dir = previous_library_dir,
         model_method = model_method, progress = progress,
-        report = report, checkpoints = checkpoints
+        report = report, checkpoints = checkpoints, reuse = reuse
       ))
     }
     completed <- .lib_complete_reference_build(
       core_input, tables = tables, prune = prune,
       remove_other = remove_other,
       progress = progress,
-      report = report
+      report = report,
+      build_medoids = identical(artifact_scope, "complete")
     )
     rm(core_input)
     libraries <- completed$libraries
@@ -9164,6 +9188,25 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     quarantine <- .lib_quarantine_bundle(build_signature = artifact_signature)
     .lib_write_quarantine_review(quarantine, output_dir)
     checkpoints$put("quarantined_spectra", quarantine)
+  }
+
+  if (identical(artifact_scope, "libraries")) {
+    report("finalizing library metadata by missing-value count")
+    finalized <- .lib_finalize_reference_metadata(libraries, list())
+    libraries <- finalized$libraries
+    local_assessments$metadata_finalization <- finalized$assessment
+    return(.lib_finish_library_only_reference_build(
+      list(
+        libraries = libraries,
+        assessments = local_assessments,
+        quarantine = quarantine
+      ),
+      output_dir = output_dir,
+      artifact_signature = artifact_signature,
+      reuse = reuse,
+      report = report,
+      checkpoints = checkpoints
+    ))
   }
 
   medoids <- checkpoints$get("medoids")
@@ -9681,7 +9724,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
     stop("Missing workflow data file(s): ",
          paste(paths[missing], collapse = ", "), call. = FALSE)
   }
-  out <- lapply(paths, data.table::fread)
+  # Workflow tables are repository-owned UTF-8 CSVs. Declaring that boundary
+  # is required on Windows installations whose native locale cannot represent
+  # symbols such as Greek letters or registered marks; otherwise exact class
+  # keys are silently read as native/unknown byte strings and fail to match
+  # valid UTF-8 metadata.
+  out <- lapply(paths, function(path) {
+    data.table::fread(path, encoding = "UTF-8")
+  })
   out$paths <- as.list(paths)
   out
 }
@@ -10663,7 +10713,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 }
 
 .lib_complete_reference_build <- function(libraries, tables, prune,
-                                           remove_other, progress, report) {
+                                           remove_other, progress, report,
+                                           build_medoids = TRUE) {
   recipe_staging <- NULL
   if (.lib_is_staged_recipe_collection(libraries)) {
     recipe_staging <- libraries$telemetry
@@ -11101,7 +11152,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
   rm(partition_store)
   gc(verbose = FALSE, full = TRUE)
   closure <- .lib_close_typed_reference_libraries(
-    libraries, prune_spec = prune_spec, report = report, progress = progress
+    libraries, prune_spec = prune_spec, report = report, progress = progress,
+    build_medoids = build_medoids
   )
   libraries <- closure$libraries
   closure$libraries <- NULL
@@ -12085,7 +12137,8 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
 
 .lib_close_typed_reference_libraries <- function(libraries, prune_spec,
                                                   report = NULL,
-                                                  progress = FALSE) {
+                                                  progress = FALSE,
+                                                  build_medoids = TRUE) {
   removal_rows <- list()
   conflict_rows <- list()
   quarantine_parts <- list()
@@ -12217,11 +12270,13 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
           classes = as.character(final_model_view$metadata$material_class),
           threshold = threshold, block_size = 128L
         )
-      if (is.null(medoids[[artifact]])) medoids[[artifact]] <- list()
-      medoids[[artifact]][[type]] <- .lib_build_single_medoid(
-        parent, artifact = artifact, type = type, report = report,
-        progress = progress, correlation_view = model_result$numeric_view
-      )
+      if (isTRUE(build_medoids)) {
+        if (is.null(medoids[[artifact]])) medoids[[artifact]] <- list()
+        medoids[[artifact]][[type]] <- .lib_build_single_medoid(
+          parent, artifact = artifact, type = type, report = report,
+          progress = progress, correlation_view = model_result$numeric_view
+        )
+      }
       model_result$numeric_view <- NULL
       rm(model_result, model_view, final_model_view)
       gc(verbose = FALSE, full = TRUE)
@@ -15310,9 +15365,14 @@ assess_lib <- function(x, class_col = NULL, id_col = "sample_name",
       model_artifacts[[paste0("model_", recipe)]] <- logistic[[recipe]]
     }
   }
+  medoid_artifacts <- if (length(release_medoids)) {
+    stats::setNames(release_medoids, paste0("medoid_", names(release_medoids)))
+  } else {
+    list()
+  }
   artifacts <- c(
     release_libraries,
-    setNames(release_medoids, paste0("medoid_", names(release_medoids))),
+    medoid_artifacts,
     model_artifacts
   )
   if (!is.null(quarantine)) {

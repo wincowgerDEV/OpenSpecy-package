@@ -65,6 +65,38 @@ test_that("process_spec() automatically manages NA and updates attributes", {
   expect_equal(attr(baseline, "baseline"), "nobaseline")
 })
 
+test_that("process_spec() preserves internal deleted-channel gaps", {
+  data(raman_hdpe)
+  os <- raman_hdpe
+  os$spectra[c(1:8, 35:40), 1] <- NA_real_
+  missing <- is.na(os$spectra[, 1])
+
+  baseline <- process_spec(
+    os,
+    conform_spec = FALSE,
+    smooth_intens = FALSE,
+    subtr_baseline = TRUE,
+    make_rel = TRUE
+  )
+
+  expect_identical(is.na(baseline$spectra[, 1]), missing)
+  expect_true(all(is.finite(baseline$spectra[!missing, 1])))
+  expect_equal(attr(baseline, "baseline"), "nobaseline")
+
+  derivative <- process_spec(
+    os,
+    conform_spec = FALSE,
+    subtr_baseline = FALSE,
+    smooth_intens = TRUE,
+    smooth_intens_args = list(
+      polynomial = 3, window = 11, derivative = 1, abs = TRUE
+    ),
+    make_rel = FALSE
+  )
+  expect_true(all(is.na(derivative$spectra[c(1:8, 30:45), 1])))
+  expect_true(all(is.finite(derivative$spectra[16:25, 1])))
+})
+
 test_that("process_spec() bulk-processes complete columns beside NA columns", {
   data(raman_hdpe)
   spectra <- cbind(
@@ -130,6 +162,7 @@ test_that("one NA plan can be reused across intensity steps", {
   expect_equal(plan$ignored_info$first, c(9L, 1L))
   expect_equal(plan$ignored_info$last,
                c(nrow(spectra), nrow(spectra) - 8L))
+  expect_true(plan$lead_tail_only)
 })
 
 test_that("process_spec() passes automated range policies through", {

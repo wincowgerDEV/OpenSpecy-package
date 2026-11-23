@@ -1,9 +1,9 @@
-# Rebuild the official Open Specy reference-library artifacts.
+# Build the updatedv1 OpenSpecy reference libraries one dataset at a time.
 #
-# build_lib() owns source discovery, curated metadata joins, class completion,
-# pruning, one-off filters, medoid/model creation, resumable checkpoints,
-# complete legacy comparisons, assessments, and versioned output promotion.
-# Paths can be overridden without editing this production driver.
+# build_lib() owns source-local scientific processing. This driver admits only
+# the reviewed manifest outputs, completes raw/derivative/nobaseline artifacts
+# in each dataset's Processed folder, and performs a final no-filter join. It
+# intentionally does not create medoids or models.
 
 library(fs)
 
@@ -12,30 +12,6 @@ package_dir <- Sys.getenv(
 )
 
 setwd(package_dir)
-
-data_dir <- Sys.getenv(
-  "OPENSPECY_REFERENCE_SOURCE_DIR",
-  unset = "H:\\My Drive\\Work\\Projects\\OpenSpecy\\SpectraFilesCodeProcessedSpectra"
-)
-
-processed_dir <- data_dir
-
-include_raw_source <- identical(
-  tolower(Sys.getenv("OPENSPECY_REFERENCE_INCLUDE_RAW_SOURCE", unset = "false")),
-  "true"
-)
-manifest_only <- identical(
-  tolower(Sys.getenv("OPENSPECY_REFERENCE_MANIFEST_ONLY", unset = "true")),
-  "true"
-)
-
-output_dir <- Sys.getenv(
-  "OPENSPECY_REFERENCE_OUTPUT_DIR",
-  unset = file.path(dirname(package_dir), "reference-library-build-2.0.0")
-)
-previous_library_dir <- Sys.getenv(
-  "OPENSPECY_REFERENCE_PREVIOUS_LIBRARY_DIR", unset = "system"
-)
 
 if (!requireNamespace("devtools", quietly = TRUE)) {
   stop("Install 'devtools' before running the reference-library rebuild.",
@@ -52,6 +28,14 @@ if (!file_exists(intake_helpers)) {
        call. = FALSE)
 }
 sys.source(intake_helpers, envir = environment())
+staging_helpers <- file.path(
+  package_dir, "workflows", "reference_library_staging.R"
+)
+if (!file_exists(staging_helpers)) {
+  stop("Reference staging helpers do not exist: ", staging_helpers,
+       call. = FALSE)
+}
+sys.source(staging_helpers, envir = environment())
 
 build_workers <- min(8L, parallelly::availableCores(omit = 1L))
 options(
@@ -75,44 +59,6 @@ options(
 )
 data.table::setDTthreads(build_workers)
 
-processed_files_env <- Sys.getenv(
-  "OPENSPECY_REFERENCE_PROCESSED_FILES", unset = ""
-)
-if (nzchar(processed_files_env)) {
-  metadatafiles <- trimws(strsplit(
-    processed_files_env, .Platform$path.sep, fixed = TRUE
-  )[[1L]])
-  metadatafiles <- sort(unique(metadatafiles[nzchar(metadatafiles)]))
-  invalid_processed <- !file_exists(metadatafiles) |
-    tolower(path_ext(metadatafiles)) != "rds" |
-    path_file(path_dir(metadatafiles)) != "Processed"
-  if (!length(metadatafiles) || any(invalid_processed)) {
-    stop(
-      "OPENSPECY_REFERENCE_PROCESSED_FILES must contain existing RDS files ",
-      "whose parent directory is Processed.", call. = FALSE
-    )
-  }
-  message("  Processed source discovery: explicit validated file list")
-} else if (!manifest_only) {
-  if (!dir_exists(processed_dir)) {
-    stop("Processed source directory does not exist: ", processed_dir,
-         call. = FALSE)
-  }
-  metadatafiles <- dir_ls(
-    path = processed_dir,
-    recurse = TRUE,
-    type = "file",
-    glob = "*.rds",
-    fail = FALSE
-  )
-  metadatafiles <- sort(metadatafiles[
-    path_file(path_dir(metadatafiles)) == "Processed"
-  ])
-} else {
-  metadatafiles <- character()
-  message("  Processed source discovery: exact admitted manifest only")
-}
-
 rawrefdata_dir <- Sys.getenv(
   "OPENSPECY_RAWREFDATA_DIR", unset = file.path(package_dir, "rawrefdata")
 )
@@ -120,21 +66,41 @@ intake_manifest <- Sys.getenv(
   "OPENSPECY_REFERENCE_INTAKE_MANIFEST",
   unset = file.path(rawrefdata_dir, "updatedv1", "datasets.csv")
 )
-intake <- list(
-  files = character(), validation = data.table::data.table(),
-  source_failures = data.table::data.table()
-)
-if (file_exists(intake_manifest)) {
-  intake <- reference_collect_admitted_inputs(
-    rawrefdata_dir = rawrefdata_dir,
-    manifest_path = intake_manifest,
-    run_cleaners = identical(
-      tolower(Sys.getenv("OPENSPECY_REFERENCE_RUN_CLEANERS", unset = "false")),
-      "true"
-    )
-  )
-  metadatafiles <- sort(unique(c(metadatafiles, intake$files)))
+if (!file_exists(intake_manifest)) {
+  stop("Reference intake manifest does not exist: ", intake_manifest,
+       call. = FALSE)
 }
+intake <- reference_collect_admitted_inputs(
+  rawrefdata_dir = rawrefdata_dir,
+  manifest_path = intake_manifest,
+  run_cleaners = identical(
+    tolower(Sys.getenv("OPENSPECY_REFERENCE_RUN_CLEANERS", unset = "false")),
+    "true"
+  )
+)
+manifest <- reference_read_intake_manifest(intake_manifest, rawrefdata_dir)
+admitted <- manifest[state == "admitted"]
+if (!nrow(admitted) || !identical(admitted$output_path, intake$files)) {
+  stop("Intake validation and admitted manifest order differ", call. = FALSE)
+}
+output_dir <- Sys.getenv(
+  "OPENSPECY_REFERENCE_OUTPUT_DIR",
+  unset = file.path(rawrefdata_dir, "updatedv1", "Processed",
+                    "reference-library-overhaul")
+)
+comparator_dir <- Sys.getenv(
+  "OPENSPECY_REFERENCE_PREVIOUS_LIBRARY_DIR",
+  unset = file.path(
+    dirname(package_dir),
+    "reference-library-build-bounded-prune-reassignment-20261119-r1",
+    "releases", "57da878d87b2"
+  )
+)
+probe_evidence_path <- Sys.getenv(
+  "OPENSPECY_REFERENCE_PROBE_EVIDENCE",
+  unset = file.path(rawrefdata_dir, "updatedv1", "diagnostics", "probes",
+                    "frozen_probe_evidence.rds")
+)
 intake_review_dir <- file.path(output_dir, "review")
 if (!dir.exists(intake_review_dir) &&
     !dir.create(intake_review_dir, recursive = TRUE, showWarnings = FALSE)) {
@@ -156,30 +122,21 @@ if (nrow(intake$validation) && any(!intake$validation$valid)) {
        ], collapse = "; "), call. = FALSE)
 }
 
-if (!length(metadatafiles)) {
-  stop("No processed RDS sources were selected by the admitted manifest, ",
-       "explicit file list, or processed-source directory", call. = FALSE)
-}
-source_file <- Sys.getenv(
-  "OPENSPECY_REFERENCE_RAW_SOURCE_FILE",
-  unset = file.path(data_dir, "library_raw.rds")
+contract <- reference_freeze_overhaul_contract(
+  admitted = admitted,
+  manifest_path = intake_manifest,
+  output_dir = output_dir,
+  package_dir = package_dir,
+  comparator_dir = comparator_dir,
+  probe_evidence_path = probe_evidence_path
 )
-raw_sources <- character()
-if (include_raw_source) {
-  if (!file_exists(source_file)) {
-    stop("Raw source library does not exist: ", source_file, call. = FALSE)
-  }
-  raw_sources <- source_file
-}
-files <- unique(c(metadatafiles, raw_sources))
 
-message("OpenSpecy reference-library full rebuild")
-message("  Processed sources: ", length(metadatafiles))
-message("  Manifest-admitted sources: ", length(intake$files))
-message("  Raw source: ", if (include_raw_source) source_file else "disabled")
+message("OpenSpecy staged reference-library overhaul")
+message("  Manifest-admitted sources: ", nrow(admitted))
 message("  Output root: ", output_dir)
-message("  Previous-library comparator: ", previous_library_dir)
-message("  Checkpoint reuse: disabled (clean full rebuild)")
+message("  Previous-library comparator: ", comparator_dir)
+message("  Frozen contract: ", contract$signature)
+message("  Checkpoint reuse: enabled per dataset")
 message("  Source-local correlation deduplication: strict > 0.99")
 message("  Correlation cache: bounded blocks (no full square allocation)")
 message("  Source hashing: bounded blocks of at most 20,000 spectra")
@@ -199,36 +156,53 @@ message(paste0(
 message("  Recipe materialization: HDF5-backed blocks of at most 5,000 spectra")
 message("  Staged pruning: at most 256 queries by 5,000 candidates per block")
 message(paste0(
-  "  Global class pruning: bounded derivative/no-baseline prune_lib policy; ",
+  "  Dataset-local pruning: derivative/no-baseline ordinary prune_lib; ",
   "generic labels reassigned before ordinary removals; reviewed classes ",
   "below min_n are preserved"
 ))
-message("  Classification model: flat guardrailed logistic regression")
+message("  Final join: no cross-dataset removals or reassignment")
+message("  Medoid/model stages: disabled")
+message("  Stop threshold: 80% RAM, 75 GiB free disk, or 10 min no progress")
+message("  Runtime stop threshold: twice the frozen representative estimate")
 message("  High-throughput workers: ", build_workers)
 
-reference_library_build <- build_lib(
-  x = files,
-  output_dir = output_dir,
-  previous_library_dir = previous_library_dir,
-  reuse = FALSE,
-  remove_other = TRUE,
-  dedupe_correlation_threshold = 0.99,
-  prune = list(
-    derivative = list(cross_class = FALSE),
-    nobaseline = list(cross_class = FALSE)
-  ),
-  model_method = "logistic_regression",
-  progress = TRUE
-)
+dataset_manifests <- vector("list", nrow(admitted))
+for (i in seq_len(nrow(admitted))) {
+  message(sprintf(
+    "Dataset %d/%d: %s", i, nrow(admitted), admitted$slug[[i]]
+  ))
+  dataset_manifests[[i]] <- reference_build_dataset(
+    input_path = admitted$output_path[[i]],
+    slug = admitted$slug[[i]],
+    workflow_data = file.path(package_dir, "workflows", "data"),
+    build_fun = build_lib,
+    source_checksum = admitted$output_sha256[[i]],
+    source_spectra = intake$validation[
+      match(admitted$slug[[i]], slug), spectra
+    ],
+    progress = TRUE
+  )
+  gc(verbose = FALSE, full = TRUE)
+}
 
-release_dir <- attr(reference_library_build, "output_dir")
-message("Reference-library build complete: ", release_dir)
-message(
-  "Release index: ",
-  file.path(release_dir, "reference_library_build.rds")
+message("All dataset-local builds complete; validating durable manifests")
+dataset_manifests <- lapply(seq_len(nrow(admitted)), function(i) {
+  reference_read_dataset_manifest(
+    input_path = admitted$output_path[[i]],
+    slug = admitted$slug[[i]],
+    verify_hashes = TRUE
+  )
+})
+
+message("Joining completed dataset artifacts without cross-dataset filtering")
+reference_library_build <- reference_join_dataset_manifests(
+  dataset_manifests, output_dir = output_dir, progress = TRUE
 )
-message("Assessments: ", file.path(release_dir, "assessments.rds"))
-message(
-  "Quarantined spectra: ",
-  file.path(release_dir, "quarantined_spectra.rds")
-)
+release_dir <- dirname(reference_library_build$libraries$path[[1L]])
+message("Reference-library overhaul complete: ", release_dir)
+message("Release index: ", file.path(release_dir, "reference_library_build.rds"))
+message("Raw library: ", reference_library_build$libraries[recipe == "raw", path])
+message("Derivative library: ",
+        reference_library_build$libraries[recipe == "derivative", path])
+message("No-baseline library: ",
+        reference_library_build$libraries[recipe == "nobaseline", path])

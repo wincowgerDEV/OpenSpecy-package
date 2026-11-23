@@ -1361,7 +1361,8 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
 
 .lib_staged_prune_best_match <- function(
     query, candidates, dataset, ids, wavenumbers, exclude_self = FALSE,
-    query_block_size = 256L, candidate_block_size = 5000L) {
+    query_block_size = 256L, candidate_block_size = 5000L,
+    return_contenders = FALSE) {
   candidate_order <- order(ids[candidates], candidates, na.last = TRUE)
   candidates <- candidates[candidate_order]
   query_blocks <- split(
@@ -1434,11 +1435,258 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
     best_index[[row]] <- contender_index[[row]][[1L]]
     best_correlation[[row]] <- contender_score[[row]][[1L]]
   }
-  list(
+  result <- list(
     index = best_index, correlation = best_correlation,
     largest_query_block = min(query_block_size, length(query)),
     largest_candidate_block = min(candidate_block_size, length(candidates)),
     largest_correlation_bytes = largest_correlation_bytes
+  )
+  if (isTRUE(return_contenders)) {
+    result$top <- top
+    result$contender_index <- contender_index
+    result$contender_score <- contender_score
+  }
+  result
+}
+
+.lib_staged_prune_conflict_match <- function(
+    query, candidates, target_class, classes, dataset, ids, wavenumbers,
+    query_block_size = 256L, candidate_block_size = 5000L,
+    progress = FALSE, report = function(...) NULL) {
+  result_index <- rep(NA_integer_, length(query))
+  result_correlation <- rep(NA_real_, length(query))
+  same_class <- candidates[
+    is.na(classes[candidates]) | classes[candidates] == target_class
+  ]
+  different_class <- candidates[
+    !is.na(classes[candidates]) & classes[candidates] != target_class
+  ]
+  if (!length(query) || !length(different_class)) {
+    return(list(
+      index = result_index, correlation = result_correlation,
+      largest_query_block = 0L, largest_candidate_block = 0L,
+      largest_correlation_bytes = 0, different_class_candidates = 0L,
+      same_class_blocks_scanned = 0L, early_retained = length(query),
+      exact_conflict_queries = 0L, fallback_queries = 0L
+    ))
+  }
+
+  different <- .lib_staged_prune_best_match(
+    query, different_class, dataset, ids, wavenumbers,
+    exclude_self = FALSE, query_block_size = query_block_size,
+    candidate_block_size = candidate_block_size,
+    return_contenders = TRUE
+  )
+  result_index <- different$index
+  result_correlation <- different$correlation
+  unresolved <- which(
+    !is.na(result_index) & is.finite(result_correlation)
+  )
+  early_retained <- length(query) - length(unresolved)
+  largest_query_block <- different$largest_query_block
+  largest_candidate_block <- different$largest_candidate_block
+  largest_correlation_bytes <- different$largest_correlation_bytes
+  blocks_scanned <- 0L
+  tolerance_scale <- sqrt(.Machine$double.eps)
+  same_class <- same_class[order(ids[same_class], same_class, na.last = TRUE)]
+  same_blocks <- split(
+    same_class, ceiling(seq_along(same_class) / candidate_block_size)
+  )
+  same_top <- rep(-Inf, length(query))
+  same_contender_index <- vector("list", length(query))
+  same_contender_score <- vector("list", length(query))
+
+  for (block_i in seq_along(same_blocks)) {
+    if (!length(unresolved)) break
+    candidate_block <- same_blocks[[block_i]]
+    candidate_values <- .lib_read_staged_prune_rows(
+      dataset, candidate_block, wavenumbers
+    )
+    position_blocks <- split(
+      unresolved, ceiling(seq_along(unresolved) / query_block_size)
+    )
+    resolved_now <- integer()
+    for (positions in position_blocks) {
+      query_rows <- query[positions]
+      query_values <- .lib_read_staged_prune_rows(
+        dataset, query_rows, wavenumbers
+      )
+      correlations <- tcrossprod(query_values, candidate_values)
+      correlations[!is.finite(correlations)] <- -Inf
+      self_column <- match(query_rows, candidate_block)
+      has_self <- !is.na(self_column)
+      correlations[cbind(which(has_self), self_column[has_self])] <- -Inf
+      block_top <- matrixStats::rowMaxs(correlations)
+      next_top <- pmax(same_top[positions], block_top)
+      for (row in seq_along(positions)) {
+        if (!is.finite(next_top[[row]])) next
+        global_row <- positions[[row]]
+        same_tolerance <- tolerance_scale * max(1, abs(next_top[[row]]))
+        if (length(same_contender_index[[global_row]])) {
+          keep <- abs(
+            same_contender_score[[global_row]] - next_top[[row]]
+          ) <= same_tolerance
+          same_contender_index[[global_row]] <-
+            same_contender_index[[global_row]][keep]
+          same_contender_score[[global_row]] <-
+            same_contender_score[[global_row]][keep]
+        }
+        local <- which(
+          is.finite(correlations[row, ]) &
+            abs(correlations[row, ] - next_top[[row]]) <= same_tolerance
+        )
+        if (length(local)) {
+          same_contender_index[[global_row]] <- c(
+            same_contender_index[[global_row]], candidate_block[local]
+          )
+          same_contender_score[[global_row]] <- c(
+            same_contender_score[[global_row]], correlations[row, local]
+          )
+        }
+      }
+      same_top[positions] <- next_top
+      tolerance <- tolerance_scale * pmax(
+        1, abs(block_top), abs(result_correlation[positions])
+      )
+      retained <- is.finite(block_top) &
+        block_top > result_correlation[positions] + tolerance
+      if (any(retained)) resolved_now <- c(
+        resolved_now, positions[retained]
+      )
+      largest_query_block <- max(
+        largest_query_block, as.integer(length(positions))
+      )
+      largest_candidate_block <- max(
+        largest_candidate_block, as.integer(length(candidate_block))
+      )
+      largest_correlation_bytes <- max(
+        largest_correlation_bytes, as.numeric(length(correlations)) * 8
+      )
+      rm(query_values, correlations, block_top, next_top, tolerance)
+    }
+    if (length(resolved_now)) {
+      resolved_now <- unique(resolved_now)
+      result_index[resolved_now] <- NA_integer_
+      result_correlation[resolved_now] <- NA_real_
+      same_contender_index[resolved_now] <- vector(
+        "list", length(resolved_now)
+      )
+      same_contender_score[resolved_now] <- vector(
+        "list", length(resolved_now)
+      )
+      unresolved <- setdiff(unresolved, resolved_now)
+      early_retained <- early_retained + length(resolved_now)
+    }
+    blocks_scanned <- block_i
+    rm(candidate_values)
+    gc(verbose = FALSE)
+    if (isTRUE(progress) &&
+        (block_i == 1L || block_i == length(same_blocks) ||
+         block_i %% 10L == 0L || !length(unresolved))) {
+      report(sprintf(
+        paste0(
+          "adaptive staged prune witness block %d/%d ",
+          "(queries unresolved=%d)"
+        ),
+        block_i, length(same_blocks), length(unresolved)
+      ))
+    }
+  }
+
+  exact_conflict_queries <- length(unresolved)
+  if (exact_conflict_queries) {
+    candidate_order <- candidates[
+      order(ids[candidates], candidates, na.last = TRUE)
+    ]
+    candidate_rank <- rep(NA_integer_, length(classes))
+    candidate_rank[candidate_order] <- seq_along(candidate_order)
+    for (position in unresolved) {
+      safe_index <- same_contender_index[[position]]
+      safe_score <- same_contender_score[[position]]
+      different_index <- different$contender_index[[position]]
+      different_score <- different$contender_score[[position]]
+      combined_top <- max(same_top[[position]], different$top[[position]])
+      tolerance <- tolerance_scale * max(1, abs(combined_top))
+      safe_tied <- is.finite(safe_score) &
+        abs(safe_score - combined_top) <= tolerance
+      different_tied <- is.finite(different_score) &
+        abs(different_score - combined_top) <= tolerance
+      tied_index <- c(safe_index[safe_tied], different_index[different_tied])
+      tied_score <- c(safe_score[safe_tied], different_score[different_tied])
+      winner <- if (length(tied_index)) {
+        which.min(candidate_rank[tied_index])
+      } else integer()
+      if (!length(winner) ||
+          is.na(classes[tied_index[[winner]]]) ||
+          classes[tied_index[[winner]]] == target_class) {
+        result_index[[position]] <- NA_integer_
+        result_correlation[[position]] <- NA_real_
+      } else {
+        result_index[[position]] <- tied_index[[winner]]
+        result_correlation[[position]] <- tied_score[[winner]]
+      }
+    }
+    conflict_positions <- unresolved[!is.na(result_index[unresolved])]
+    if (length(conflict_positions)) {
+      winner_position <- match(
+        result_index[conflict_positions], candidate_order
+      )
+      query_group <- ceiling(conflict_positions / query_block_size)
+      candidate_group <- ceiling(winner_position / candidate_block_size)
+      pair_key <- paste(query_group, candidate_group, sep = ":")
+      for (key in unique(pair_key)) {
+        selected <- conflict_positions[pair_key == key]
+        selected_query_group <- query_group[match(selected, conflict_positions)][[1L]]
+        selected_candidate_group <- candidate_group[
+          match(selected, conflict_positions)
+        ][[1L]]
+        query_positions <- seq.int(
+          (selected_query_group - 1L) * query_block_size + 1L,
+          min(selected_query_group * query_block_size, length(query))
+        )
+        candidate_positions <- seq.int(
+          (selected_candidate_group - 1L) * candidate_block_size + 1L,
+          min(
+            selected_candidate_group * candidate_block_size,
+            length(candidate_order)
+          )
+        )
+        query_values <- .lib_read_staged_prune_rows(
+          dataset, query[query_positions], wavenumbers
+        )
+        candidate_block <- candidate_order[candidate_positions]
+        candidate_values <- .lib_read_staged_prune_rows(
+          dataset, candidate_block, wavenumbers
+        )
+        correlations <- tcrossprod(query_values, candidate_values)
+        result_correlation[selected] <- correlations[cbind(
+          match(selected, query_positions),
+          match(result_index[selected], candidate_block)
+        )]
+        largest_query_block <- max(
+          largest_query_block, as.integer(length(query_positions))
+        )
+        largest_candidate_block <- max(
+          largest_candidate_block, as.integer(length(candidate_block))
+        )
+        largest_correlation_bytes <- max(
+          largest_correlation_bytes, as.numeric(length(correlations)) * 8
+        )
+        rm(query_values, candidate_values, correlations)
+      }
+    }
+  }
+
+  list(
+    index = result_index, correlation = result_correlation,
+    largest_query_block = largest_query_block,
+    largest_candidate_block = largest_candidate_block,
+    largest_correlation_bytes = largest_correlation_bytes,
+    different_class_candidates = length(different_class),
+    same_class_blocks_scanned = blocks_scanned,
+    early_retained = early_retained,
+    exact_conflict_queries = exact_conflict_queries,
+    fallback_queries = 0L
   )
 }
 
@@ -1668,9 +1916,48 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
       if (length(target) <= min_n) break
       if (length(query)) {
         active_candidates <- candidates[active[candidates]]
-        best <- best_match(
-          query, active_candidates, exclude_self = TRUE,
-          phase = paste0("ordinary_", target_pool, "_", target_class)
+        candidate_classes <- classes[active_candidates]
+        if (length(active_candidates) &&
+            all(!is.na(candidate_classes) &
+                candidate_classes == target_class)) {
+          telemetry_i <- telemetry_i + 1L
+          telemetry_rows[[telemetry_i]] <- data.table::data.table(
+            artifact = artifact$recipe,
+            phase = paste0(
+              "ordinary_single_class_short_circuit_",
+              target_pool, "_", target_class
+            ),
+            queries = length(query), candidates = length(active_candidates),
+            query_block = 0L, candidate_block = 0L,
+            max_correlation_bytes = 0,
+            avoided_square_bytes = 8 * as.double(length(active_candidates))^2,
+            elapsed_seconds = 0
+          )
+          break
+        }
+        started <- proc.time()[["elapsed"]]
+        best <- .lib_staged_prune_conflict_match(
+          query, active_candidates, target_class, classes, dataset, ids,
+          normalized$wavenumbers, query_block_size = query_block_size,
+          candidate_block_size = candidate_block_size,
+          progress = local_progress, report = report
+        )
+        telemetry_i <- telemetry_i + 1L
+        telemetry_rows[[telemetry_i]] <- data.table::data.table(
+          artifact = artifact$recipe,
+          phase = paste0(
+            "ordinary_adaptive_conflict_scan_", target_pool, "_", target_class
+          ),
+          queries = length(query), candidates = length(active_candidates),
+          query_block = as.integer(best$largest_query_block),
+          candidate_block = as.integer(best$largest_candidate_block),
+          max_correlation_bytes = best$largest_correlation_bytes,
+          avoided_square_bytes = 8 * as.double(length(active_candidates))^2,
+          different_class_candidates = best$different_class_candidates,
+          same_class_blocks_scanned = best$same_class_blocks_scanned,
+          early_retained = best$early_retained,
+          fallback_queries = best$fallback_queries,
+          elapsed_seconds = proc.time()[["elapsed"]] - started
         )
         best_index[query] <- best$index
         best_correlation[query] <- best$correlation
@@ -1702,10 +1989,7 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
         reason = "top_match_other_class"
       )]
       remaining_target <- target[active[target]]
-      query <- remaining_target[
-        is.na(best_index[remaining_target]) |
-          !active[best_index[remaining_target]]
-      ]
+      query <- remaining_target
       if (!length(query)) break
     }
     if (isTRUE(local_progress)) report(sprintf(
@@ -2323,11 +2607,170 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
   completed
 }
 
+.lib_validate_library_only_completed <- function(completed) {
+  if (.lib_is_staged_typed_collection(completed)) {
+    if (!length(completed$artifacts)) {
+      stop("Library-only staged completion has no recipe artifacts",
+           call. = FALSE)
+    }
+    for (recipe in completed$artifacts) {
+      for (artifact in recipe) {
+        .lib_validate_staged_recipe_artifact(artifact, strong = TRUE)
+      }
+    }
+  } else {
+    libraries <- completed$libraries
+    artifacts <- .lib_named_typed_objects(libraries)
+    if (!length(artifacts)) {
+      stop("Library-only completion has no recipe artifacts", call. = FALSE)
+    }
+    invalid <- vapply(artifacts, function(object) {
+      !is_OpenSpecy(object) ||
+        !isTRUE(suppressWarnings(check_OpenSpecy(object))) ||
+        any(!is.finite(object$wavenumber)) ||
+        anyDuplicated(object$wavenumber) ||
+        is.unsorted(object$wavenumber, strictly = TRUE) ||
+        ncol(object$spectra) != nrow(object$metadata)
+    }, logical(1L))
+    if (any(invalid)) {
+      stop(
+        "Invalid library-only release artifact(s): ",
+        paste(names(artifacts)[invalid], collapse = ", "), call. = FALSE
+      )
+    }
+  }
+  .lib_validate_quarantine(completed$quarantine)
+  invisible(TRUE)
+}
+
+.lib_finish_library_only_reference_build <- function(
+    completed, output_dir, artifact_signature, reuse, report, checkpoints) {
+  .lib_validate_library_only_completed(completed)
+  release_signature <- .lib_release_signature(digest::digest(
+    list(
+      schema = "OpenSpecy_reference_libraries_only_v1",
+      artifact_signature = artifact_signature,
+      artifact_scope = "libraries"
+    ),
+    algo = "sha256"
+  ))
+  release_dir <- file.path(
+    output_dir, "releases", substr(release_signature, 1L, 12L)
+  )
+  dir.create(release_dir, recursive = TRUE, showWarnings = FALSE)
+
+  cached <- checkpoints$get("library_only_reference_build")
+  if (!is.null(cached)) {
+    manifest_path <- file.path(release_dir, "release_manifest.rds")
+    manifest <- tryCatch(readRDS(manifest_path), error = function(error) NULL)
+    paths <- if (is.data.frame(manifest) &&
+                 all(c("path", "checksum") %in% names(manifest))) {
+      as.character(manifest$path)
+    } else character()
+    valid <- inherits(cached, "OpenSpecyLibraryOnlyReferenceBuild") &&
+      identical(cached$schema, "OpenSpecy_reference_libraries_only_v1") &&
+      identical(attr(cached, "build_signature", exact = TRUE),
+                release_signature) &&
+      identical(
+        normalizePath(attr(cached, "output_dir", exact = TRUE),
+                      winslash = "/", mustWork = FALSE),
+        normalizePath(release_dir, winslash = "/", mustWork = FALSE)
+      ) &&
+      length(paths) > 0L && all(file.exists(paths)) &&
+      identical(
+        unname(vapply(paths, .lib_sha256_file, character(1L))),
+        as.character(manifest$checksum)
+      ) &&
+      all(file.exists(c(unname(cached$libraries), cached$release_index)))
+    if (isTRUE(valid)) {
+      report("complete")
+      return(cached)
+    }
+    report("cached library-only release is incomplete; rebuilding promotion")
+  }
+
+  quarantine <- completed$quarantine
+  quarantine$manifest$build_signature <- artifact_signature
+  quarantine$manifest$source_hashes <- artifact_signature
+  quarantine$manifest$release_signature <- release_signature
+  if (.lib_is_staged_typed_collection(completed)) {
+    libraries <- .lib_promote_staged_libraries(
+      completed, release_dir = release_dir, report = report
+    )
+    quarantine <- .lib_promote_staged_quarantine(quarantine, release_dir)
+    quarantine_manifest <- .lib_promote_rds(
+      quarantine, file.path(release_dir, "quarantined_spectra.rds")
+    )
+    artifact_manifest <- data.table::rbindlist(
+      list(libraries$manifest, quarantine_manifest), fill = TRUE
+    )
+    library_paths <- libraries$paths
+  } else {
+    promotion <- .lib_promote_reference_build(
+      list(
+        libraries = completed$libraries,
+        medoids = list(), models = list()
+      ),
+      output_dir = output_dir, signature = release_signature,
+      reuse = reuse, progress = report, quarantine = quarantine
+    )
+    artifact_manifest <- promotion$manifest
+    library_rows <- artifact_manifest[component %in% names(completed$libraries)]
+    library_paths <- stats::setNames(
+      as.character(library_rows$path), as.character(library_rows$component)
+    )[names(completed$libraries)]
+  }
+
+  assessment_components <- completed$assessments
+  assessment_components$output_manifest <- data.table::copy(artifact_manifest)
+  assessments_manifest <- .lib_promote_rds(
+    assessment_components, file.path(release_dir, "assessments.rds")
+  )
+  index_inputs <- data.table::rbindlist(
+    list(artifact_manifest, assessments_manifest), fill = TRUE
+  )
+  index_manifest <- .lib_promote_build_index(
+    release_signature, index_inputs,
+    file.path(release_dir, "reference_library_build.rds")
+  )
+  release_manifest <- data.table::rbindlist(
+    list(index_inputs, index_manifest), fill = TRUE
+  )
+  release_manifest[, status := "available"]
+  attr(release_manifest, "build_signature") <- release_signature
+  .lib_promote_rds(
+    release_manifest, file.path(release_dir, "release_manifest.rds")
+  )
+  .lib_write_quarantine_review(quarantine, output_dir)
+
+  result <- structure(list(
+    schema = "OpenSpecy_reference_libraries_only_v1",
+    libraries = library_paths,
+    assessments = assessment_components,
+    quarantine = quarantine,
+    release_index = file.path(release_dir, "reference_library_build.rds")
+  ), class = c("OpenSpecyLibraryOnlyReferenceBuild", "list"))
+  attr(result, "output_dir") <- normalizePath(
+    release_dir, winslash = "/", mustWork = TRUE
+  )
+  attr(result, "build_signature") <- release_signature
+  checkpoints$put("library_only_reference_build", result)
+  report("complete")
+  result
+}
+
 .lib_finish_staged_reference_build <- function(
     completed, output_dir, artifact_signature, previous_library_dir,
-    model_method, progress, report, checkpoints) {
+    artifact_scope, model_method, progress, report, checkpoints, reuse) {
   if (!.lib_is_staged_typed_collection(completed)) {
     stop("Expected completed staged typed libraries", call. = FALSE)
+  }
+  if (identical(artifact_scope, "libraries")) {
+    return(.lib_finish_library_only_reference_build(
+      completed, output_dir = output_dir,
+      artifact_signature = artifact_signature, reuse = reuse,
+      report = report, checkpoints = checkpoints
+    ))
   }
   if (!identical(model_method, "logistic_regression")) {
     stop(

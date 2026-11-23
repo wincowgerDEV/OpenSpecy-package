@@ -2406,6 +2406,30 @@ test_that("build_lib() standardizes source keys before external lookups", {
     ],
     2L
   )
+
+  missing <- filter_spec(tiny_build_lib(), 1:3)
+  removable_keys <- intersect(
+    c("organization", "user_name"),
+    names(missing$metadata)
+  )
+  if (length(removable_keys)) {
+    missing$metadata[, (removable_keys) := NULL]
+  }
+  inferred <- suppressWarnings(build_lib(
+    missing,
+    recipes = list(raw = list()),
+    metadata_lookups = list(
+      lookup = source_lookup,
+      by = "organization",
+      fill_only = TRUE
+    ),
+    dedupe = FALSE,
+    signal_noise = FALSE,
+    progress = FALSE
+  )$raw)
+  expect_true("organization" %in% names(inferred$metadata))
+  expect_true(all(is.na(inferred$metadata$organization)))
+  expect_true(all(is.na(inferred$metadata$library_name)))
 })
 
 test_that("official library types retain source values and audit provenance fallbacks", {
@@ -2433,12 +2457,13 @@ test_that("build_lib() cleans filename-derived spectrum identities and keys", {
   lib <- tiny_build_lib()
   lib$metadata$spectrum_identity <- c(
     "C:\\incoming\\Sample.CSV", "/tmp/Other.SPC",
-    "relative/folder/Third.HDF5", "compound pe/pa/pe",
+    "relative/folder/Third.HDF5", "smiles: C/C=C\\C [computed]",
     "name.spc.csv", "plain identity", "opus.10", "unsupported.foo"
   )
   lookup <- data.table::data.table(
     spectrum_identity = c(
-      "sample.csv", "other.spc", "third.hdf5", "compound pe/pa/pe",
+      "sample.csv", "other.spc", "third.hdf5",
+      "smiles: c/c=c\\c [computed]",
       "name", "plain identity", "opus.10", "unsupported.foo"
     ),
     material = paste0("material_", seq_len(8))
@@ -2456,7 +2481,7 @@ test_that("build_lib() cleans filename-derived spectrum identities and keys", {
 
   expect_identical(
     built$metadata$spectrum_identity,
-    c("sample", "other", "third", "compound pe/pa/pe", "name",
+    c("sample", "other", "third", "smiles: c/c=c\\c [computed]", "name",
       "plain identity", "opus", "unsupported.foo")
   )
   expect_identical(built$metadata$material, lookup$material)
@@ -3646,9 +3671,20 @@ test_that("file-backed pruning matches prune_lib and quarantines removals", {
     observed$generic_reassignment_audit[order(spectrum_id)],
     expected$generic_reassignment_audit[order(spectrum_id)], tolerance = 0
   )
+  observed_removals <- observed$removals[order(spectrum_id)]
+  expected_removals <- expected$removals[order(spectrum_id)]
+  audit_columns <- setdiff(names(expected_removals), "correlation")
   expect_equal(
-    observed$removals[order(spectrum_id)],
-    expected$removals[order(spectrum_id)], tolerance = 0
+    observed_removals[, ..audit_columns],
+    expected_removals[, ..audit_columns], tolerance = 0
+  )
+  # The bounded file-backed GEMM has a different output width from the
+  # resident all-library GEMM, so its recorded audit score may differ only in
+  # the last floating-point bits even when the exact winner is unchanged.
+  expect_equal(
+    observed_removals$correlation,
+    expected_removals$correlation,
+    tolerance = sqrt(.Machine$double.eps)
   )
   expect_identical(
     quarantine$manifest$removed_spectra, as.integer(nrow(observed$removals))
@@ -3658,6 +3694,133 @@ test_that("file-backed pruning matches prune_lib and quarantines removals", {
   ))
   expect_lte(max(observed$telemetry$query_block), 32L)
   expect_lte(max(observed$telemetry$candidate_block), 1024L)
+})
+
+test_that("file-backed pruning skips output-inert single-class scans", {
+  skip_if_not_installed("hdf5r")
+  set.seed(531)
+  wavenumber <- seq(500, 3500, length.out = 40L)
+  spectra <- matrix(rnorm(40L * 12L), nrow = 40L)
+  colnames(spectra) <- sprintf("single_class_%02d", seq_len(ncol(spectra)))
+  x <- as_OpenSpecy(
+    wavenumber, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra), material_class = "organic matter",
+      material_type = "not plastic", spectrum_type = "ftir",
+      library_name = "single-class fixture"
+    )
+  )
+  expected <- prune_lib(
+    x, min_n = 2L, cross_class = FALSE,
+    return = "report", progress = FALSE
+  )
+
+  root <- tempfile("OpenSpecy-staged-single-class-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+  writer <- OpenSpecy:::.lib_stage_artifact_writer(
+    file.path(root, "input.h5"), file.path(root, "input-metadata.rds"),
+    wavenumber = x$wavenumber, capacity = ncol(x$spectra), chunk_size = 4L,
+    recipe = "derivative", attributes = list(intensity_unit = "absorbance")
+  )
+  writer$append(x$spectra, x$metadata)
+  artifact <- writer$finalize()
+  quarantine_writer <- OpenSpecy:::.lib_quarantine_shard_writer(
+    file.path(root, "quarantine")
+  )
+  observed <- OpenSpecy:::.lib_prune_staged_recipe(
+    artifact, args = list(min_n = 2L, cross_class = FALSE),
+    staging_dir = file.path(root, "pruned"),
+    quarantine_writer = quarantine_writer, progress = FALSE,
+    report = function(...) NULL
+  )
+  object <- OpenSpecy:::.lib_materialize_staged_recipe(observed$artifact)
+  shortcut <- observed$telemetry[
+    grepl("ordinary_single_class_short_circuit", phase, fixed = TRUE)
+  ]
+
+  expect_equal(object$wavenumber, expected$object$wavenumber)
+  expect_equal(object$spectra, expected$object$spectra, tolerance = 0)
+  expect_equal(object$metadata, expected$object$metadata, tolerance = 0)
+  expect_equal(nrow(observed$removals), 0L)
+  expect_equal(nrow(shortcut), 1L)
+  expect_equal(shortcut$queries, 12L)
+  expect_equal(shortcut$candidates, 12L)
+  expect_equal(shortcut$query_block, 0L)
+  expect_equal(shortcut$candidate_block, 0L)
+  expect_equal(shortcut$avoided_square_bytes, 8 * 12^2)
+})
+
+test_that("file-backed pruning resolves sparse opposing classes adaptively", {
+  skip_if_not_installed("hdf5r")
+  set.seed(773)
+  wavenumber <- seq(500, 3500, length.out = 48L)
+  organic_base <- sin(seq(0, 3 * pi, length.out = length(wavenumber)))
+  mineral_base <- cos(seq(0, 2 * pi, length.out = length(wavenumber)))
+  organic <- replicate(40L, organic_base + rnorm(48L, sd = 0.015))
+  mineral <- replicate(4L, mineral_base + rnorm(48L, sd = 0.015))
+  generic <- replicate(2L, mineral_base + rnorm(48L, sd = 0.005))
+  spectra <- cbind(organic, mineral, generic)
+  colnames(spectra) <- sprintf("adaptive_%02d", seq_len(ncol(spectra)))
+  x <- as_OpenSpecy(
+    wavenumber, spectra,
+    metadata = data.table::data.table(
+      sample_name = colnames(spectra),
+      material_class = c(
+        rep("organic matter", ncol(organic)),
+        rep("mineral", ncol(mineral)),
+        rep("other material", ncol(generic))
+      ),
+      material_type = "not plastic", spectrum_type = "ftir",
+      library_name = "adaptive sparse-opposition fixture"
+    )
+  )
+  expected <- prune_lib(
+    x, min_n = 2L, cross_class = FALSE,
+    return = "report", progress = FALSE
+  )
+
+  root <- tempfile("OpenSpecy-staged-adaptive-conflict-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+  writer <- OpenSpecy:::.lib_stage_artifact_writer(
+    file.path(root, "input.h5"), file.path(root, "input-metadata.rds"),
+    wavenumber = x$wavenumber, capacity = ncol(x$spectra), chunk_size = 8L,
+    recipe = "derivative", attributes = list(intensity_unit = "absorbance")
+  )
+  writer$append(x$spectra, x$metadata)
+  artifact <- writer$finalize()
+  quarantine_writer <- OpenSpecy:::.lib_quarantine_shard_writer(
+    file.path(root, "quarantine")
+  )
+  observed <- OpenSpecy:::.lib_prune_staged_recipe(
+    artifact, args = list(min_n = 2L, cross_class = FALSE),
+    staging_dir = file.path(root, "pruned"),
+    quarantine_writer = quarantine_writer, progress = FALSE,
+    report = function(...) NULL
+  )
+  object <- OpenSpecy:::.lib_materialize_staged_recipe(observed$artifact)
+  adaptive <- observed$telemetry[
+    grepl("ordinary_adaptive_conflict_scan", phase, fixed = TRUE)
+  ]
+
+  expect_equal(object$wavenumber, expected$object$wavenumber)
+  expect_equal(object$spectra, expected$object$spectra, tolerance = 0)
+  expect_equal(object$metadata, expected$object$metadata, tolerance = 0)
+  expect_equal(
+    observed$reassignments[order(spectrum_id)],
+    expected$reassignments[order(spectrum_id)], tolerance = 0
+  )
+  expect_equal(
+    observed$removals[order(spectrum_id)],
+    expected$removals[order(spectrum_id)], tolerance = 0
+  )
+  expect_true(nrow(adaptive) >= 2L)
+  expect_true(all(adaptive$different_class_candidates > 0L))
+  expect_true(all(adaptive$early_retained > 0L))
+  expect_true(all(adaptive$fallback_queries == 0L))
+  expect_lte(max(adaptive$query_block), 256L)
+  expect_lte(max(adaptive$candidate_block), 5000L)
 })
 
 test_that("official pruning reattaches resolved generic review audits", {
@@ -4219,6 +4382,18 @@ test_that("predict_class_reference() fills only blanks and audits overlaps", {
   expect_equal(report$overlaps$spectrum_identity, "nylon exact override")
   expect_false(report$overlaps$agreement)
   expect_equal(report$predictions$spectrum_identity, "nylon fiber")
+
+  single <- predict_class_reference(
+    data.table::data.table(
+      spectrum_identity = "smiles: c/c=c\\c [computed]",
+      material = NA_character_
+    ),
+    data.table::data.table(
+      pattern = c("^never$", "^smiles: .*c"),
+      material = c("mineral", "organic matter")
+    )
+  )
+  expect_identical(single$material, "organic matter")
 })
 
 test_that("reference class completion resolves reviewed wrappers and audits uncertainty", {
@@ -4626,6 +4801,47 @@ test_that("build_lib() applies baseline recipes across source-specific NA tails"
 
   expect_equal(built$spectra, expected$spectra, tolerance = 1e-12)
   expect_equal(attr(built, "baseline"), "nobaseline")
+})
+
+test_that("build_lib() preserves internal deleted-channel gaps in recipes", {
+  lib <- filter_spec(tiny_build_lib(), 1:2)
+  lib$spectra[c(1:5, 25:28), 1] <- NA_real_
+  missing <- is.na(lib$spectra[, 1])
+
+  built <- build_lib(
+    list(lib),
+    recipes = list(nobaseline = list(
+      conform_spec = FALSE,
+      smooth_intens = FALSE,
+      subtr_baseline = TRUE,
+      make_rel = TRUE
+    )),
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE
+  )$nobaseline
+
+  expect_identical(is.na(built$spectra[, 1]), missing)
+  expect_true(all(is.finite(built$spectra[!missing, 1])))
+  expect_equal(attr(built, "baseline"), "nobaseline")
+
+  derivative <- build_lib(
+    list(lib),
+    recipes = list(derivative = list(
+      conform_spec = FALSE,
+      smooth_intens = TRUE,
+      smooth_intens_args = list(
+        polynomial = 3, window = 15, derivative = 1, abs = TRUE
+      ),
+      subtr_baseline = FALSE,
+      make_rel = TRUE
+    )),
+    dedupe = FALSE,
+    convert_intensity = FALSE,
+    signal_noise = FALSE
+  )$derivative
+  expect_true(all(is.na(derivative$spectra[c(1:5, 18:35), 1])))
+  expect_true(all(is.finite(derivative$spectra[6:17, 1])))
 })
 
 test_that("extdata files combine into a mini library", {

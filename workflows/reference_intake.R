@@ -322,7 +322,17 @@ reference_collect_admitted_inputs <- function(rawrefdata_dir, manifest_path,
         wavenumbers = 0L, problems = "missing CleanedOS_raw.rds"
       ))
     }
-    object <- tryCatch(readRDS(path), error = function(error) error)
+    read_warnings <- character()
+    object <- tryCatch(
+      withCallingHandlers(
+        readRDS(path),
+        warning = function(warning) {
+          read_warnings <<- c(read_warnings, conditionMessage(warning))
+          invokeRestart("muffleWarning")
+        }
+      ),
+      error = function(error) error
+    )
     if (inherits(object, "error")) {
       failures[[length(failures) + 1L]] <<- data.table::data.table(
         source = path, stage = "intake", reason = "unreadable_cleaned_output",
@@ -331,6 +341,20 @@ reference_collect_admitted_inputs <- function(rawrefdata_dir, manifest_path,
       return(data.table::data.table(
         slug = admitted$slug[[i]], valid = FALSE, spectra = 0L,
         wavenumbers = 0L, problems = conditionMessage(object)
+      ))
+    }
+    if (length(read_warnings)) {
+      problem <- paste(
+        "CleanedOS_raw.rds emitted serialization warning(s):",
+        paste(unique(read_warnings), collapse = "; ")
+      )
+      failures[[length(failures) + 1L]] <<- data.table::data.table(
+        source = path, stage = "intake",
+        reason = "warning_cleaned_output", error = problem
+      )
+      return(data.table::data.table(
+        slug = admitted$slug[[i]], valid = FALSE, spectra = 0L,
+        wavenumbers = 0L, problems = problem
       ))
     }
     result <- reference_validate_cleaned_object(object, admitted[i])

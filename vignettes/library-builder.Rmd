@@ -295,8 +295,14 @@ prune_lib(
 The version-controlled
 [`workflows/OpenSpecy_reference_library.R`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/workflows/OpenSpecy_reference_library.R)
 script retains the source and output path finders and passes those paths to one
-`build_lib()` call. The complete visual flow,
-including checkpoint reuse and old/new assessments, is maintained in
+dataset-local `build_lib(..., artifact_scope = "libraries")` call at a time.
+Each completed dataset keeps immutable raw, derivative, and no-baseline
+recipe/type artifacts plus a checksum/count manifest below its existing
+`Processed/` folder. Only those completed artifacts enter the final bounded
+join, which disables cross-dataset removal and writes the conventional three
+unified recipe files last. Medoid and model stages are deliberately deferred.
+The complete visual flow, including checkpoint reuse and the deferred
+downstream path, is maintained in
 [`.specify/memory/build-lib-diagram.html`](https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/.specify/memory/build-lib-diagram.html).
 Canonically named exact-class, regex-class, library-type, material-hierarchy,
 material-group-crosswalk, known-bad-ID, material-form-regex, and common-use
@@ -371,12 +377,13 @@ closure then precedes independent-library evidence, generic reassignment, and
 conventional top-match pruning. After rounding and type partitioning, the full
 and model-range views are closed again. Raw remains unpruned. Every spectrum
 excluded by cross-class closure is preserved in the review quarantine.
-Each completed library, medoid, model, and assessment component is written with
+Each completed component is written with
 a SHA-256 manifest under `output_dir/checkpoints`. `reuse = TRUE` loads it only when
 the source/lookup signatures, arguments, package version, and builder contract
 still match. Validated output is promoted into a versioned release directory,
-which contains the seven legacy RDS names, explicit algorithm-named model RDS
-files, one aggregate build RDS, and a release manifest. Existing versioned
+which contains the requested recipe RDS files, one aggregate build RDS, and a
+release manifest. A complete-scope build additionally writes medoid and
+algorithm-named model RDS files. Existing versioned
 payloads are immutable: a different hash stops promotion. The release also
 contains `quarantined_spectra.rds`, a versioned bundle of valid `OpenSpecy`
 objects by recipe/type, row-level removal metadata, the long conflict audit, and
@@ -393,8 +400,11 @@ so small source blocks are written and compressed together rather than through
 one HDF5 write per source. Merge telemetry records the buffer capacity, actual
 write count, and largest write for the build audit.
 
-The returned object has four top-level elements: `libraries`, `medoids`,
-`models`, and `assessments`. Libraries are recipe-first and then keyed by
+The default complete-scope returned object has four top-level elements:
+`libraries`, `medoids`, `models`, and `assessments`. A library-only run returns
+library paths, assessments, quarantine, and a release-index path and has class
+`OpenSpecyLibraryOnlyReferenceBuild`; it contains no medoid/model fields or
+checkpoints. Libraries are recipe-first and then keyed by
 `ftir`, `raman`, or `nir`: full Raman uses 200--4000, FTIR uses 400--4000,
 and NIR uses 4000--12000 cm^-1^. FTIR medoids and models use 800--2200 plus
 2420--3200, so their predictor axis matches the standard particle workflow and
@@ -497,26 +507,30 @@ files contain only runtime data and prediction state. The accompanying
 benchmark is development-only and is not part of `build_lib()` or final
 acceptance evidence.
 
-The standard call therefore has this shape:
+The maintained dataset-local stage therefore has this shape:
 
 ```{r official-call-shape, eval=FALSE}
 reference_library_build <- build_lib(
-  files,
-  output_dir = output_dir,
-  previous_library_dir = "system",
+  one_cleaned_dataset,
+  output_dir = dataset_processed_output_dir,
+  artifact_scope = "libraries",
+  previous_library_dir = NULL,
+  reuse = TRUE,
   remove_other = TRUE,
+  dedupe_correlation_threshold = 0.99,
   prune = list(
-    derivative = list(cross_class = FALSE),
-    nobaseline = list(cross_class = FALSE)
-  ),
-  model_method = "logistic_regression"
+    derivative = list(cross_class = FALSE, min_n = 10L),
+    nobaseline = list(cross_class = FALSE, min_n = 10L)
+  )
 )
 ```
 
 This maintenance configuration preserves within-class pruning and generic
-reassignment but disables the cross-class correlation closure that otherwise
-removes conflicts strictly above 0.9. Omitting `prune` retains the official
-cross-class default; omitting `model_method` retains the gated model default.
+reassignment but disables cross-class correlation closure. The strict `> 0.99`
+correlation policy is confined to one dataset/type/identity cohort. The final
+join performs no deduplication, reassignment, pruning, medoid selection, model
+fitting, or legacy comparison. Omitting `artifact_scope` retains the complete
+workflow and its existing medoid/model behavior.
 
 After upstream libraries have already completed, rebuild only the downstream
 artifacts into a new explicit output location:
