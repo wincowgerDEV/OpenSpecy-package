@@ -11,6 +11,9 @@ name: test-coverage
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
@@ -23,7 +26,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::covr
+          extra-packages: |
+            any::covr
+            any::xml2
           needs: coverage
 
       - name: Populate .Renviron with GitHub Secrets
@@ -34,12 +39,27 @@ jobs:
 
       - name: Test coverage
         run: |
-          covr::codecov(
+          coverage <- covr::package_coverage(
+            type = "tests",
             quiet = FALSE,
             clean = FALSE,
             install_path = file.path(Sys.getenv("RUNNER_TEMP"), "package")
           )
+          if ("cobertura" %in% getNamespaceExports("covr")) {
+            covr::cobertura(coverage, file = "coverage.xml")
+          } else {
+            covr::to_cobertura(coverage, filename = "coverage.xml")
+          }
         shell: Rscript {0}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7.1.1
+        with:
+          # Fork pull requests cannot request an identity token.
+          use_oidc: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+          files: ./coverage.xml
+          disable_search: true
+          fail_ci_if_error: true
 
       - name: Show testthat output
         if: always()
@@ -53,4 +73,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-test-failures
-          path: ${{ runner.temp }}/package
+          path: |
+            ${{ runner.temp }}/package
+            coverage.xml
