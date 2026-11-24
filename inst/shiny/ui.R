@@ -473,6 +473,7 @@ advanced_controls <- tagList(
     note = c(
       "Off keeps supported hyperspectral files file-backed and streams bounded chunks for signal/noise, per-pixel correlation thresholding, connected Mean collapse, and active-spectrum inspection.",
       "On deliberately reads every spectrum into R memory before analysis. A file-backed float dataset commonly needs more than twice its on-disk size as an R double matrix, plus processing copies.",
+      "H5 particle acquisitions always import as one mean spectrum per region in either mode, even when Collapse Particle Spectra is off. Their stage centroids appear over a registered mosaic overview when the file contains imagery. Pixel smoothing, grid conform, and pixel collapse apply only to pixel maps.",
       "Identification Batch Size is the maximum number of in-memory query spectra correlated at once. Lower values reduce peak memory but add overhead; higher values are faster when memory allows. Matching results do not change."
     )
   ),
@@ -1641,7 +1642,7 @@ dashboardPage(
                 `aria-describedby` = "openspecy_workerfs_file_count",
                 accept = paste(c(
                   ".csv", ".asp", ".tsv", ".spc", ".jdx", ".dx", ".RData",
-                  ".spa", ".0", ".zip", ".img", ".h5", ".txt", ".json",
+                  ".spa", ".0", ".zip", ".img", ".h5", ".hdf5", ".txt", ".json",
                   ".rds", ".hdr", ".dat", ".jpg", ".jpeg", ".png"
                 ), collapse = ",")
               ),

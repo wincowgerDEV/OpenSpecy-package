@@ -20,9 +20,10 @@
 #' \code{\link[data.table]{fread}()} but \code{\link[utils]{read.csv}()} works
 #' as well.
 #' @param metadata a named list of the metadata; see
-#' @param collapse whether or not to use \code{\link{collapse_spec}()} by
-#' particle_id. For \code{read_h5()}, the default is \code{FALSE} so region
-#' pixels are returned in raw form.
+#' @param collapse for H5 files, \code{NULL} (default) uses acquisition
+#' metadata to distinguish particle regions from ordinary map tiles.
+#' \code{FALSE} returns individual region pixels. \code{TRUE} selects the
+#' legacy collapse by \code{particle_id}.
 #' @param spectral_smooth logical; whether H5 cubes should be smoothed before
 #' matrix conversion.
 #' @param sigma numeric vector passed to \code{\link[mmand]{gaussianSmooth}()}.
@@ -34,7 +35,8 @@
 #' @param read_visual logical; whether H5 mosaic images should be attached as
 #' visual-image attributes when present. H5 region stage coordinates are kept
 #' in nanometres and all mosaic tiles intersecting each region are registered
-#' for overlays and feature color extraction.
+#' for overlays and feature color extraction in ordinary maps. Detected
+#' particle maps attach one overview registered to the mosaic's stage bounds.
 #' \code{\link{as_OpenSpecy}()} for details.
 #' @param \ldots further arguments passed to the submethods.
 #'
@@ -49,10 +51,24 @@
 #' There are many unique iterations of spectral file formats so there may be
 #' bugs in the file conversion. Please contact us if you identify any.
 #'
+#' H5 particle acquisitions are identified by the vendor's particle collection
+#' mode or particle label image datasets. Import averages all measurements in
+#' each region at each original wavenumber, with missing values propagating
+#' through the mean. The recorded region stage center supplies its x/y centroid
+#' in nanometres. The reader keeps one cube at a time and avoids expanding
+#' repeated metadata. When imagery is enabled, readable optical tiles are
+#' sampled onto one stage-registered image capped at 2,048 pixels per side.
+#' Use `read_visual = FALSE` to skip image I/O and `collapse = FALSE` to
+#' read the individual measurements. Pixel smoothing and pixel background
+#' filtering apply to the ordinary map path.
+#'
 #' @return
 #' Text and single-spectrum readers return their established objects.
 #' \code{read_h5()} returns an \code{OpenSpecy} object by default or a compact
-#' \code{Specs} object when requested.
+#' \code{Specs} object when requested for an ordinary map. Detected particle
+#' acquisitions return an \code{OpenSpecy} object with one spectrum per region
+#' and the attributes `openspecy_object_type = "particle_centroids"` and
+#' `openspecy_spatial_unit = "nm"`.
 #'
 #' @examples
 #' read_extdata("raman_hdpe.csv") |> read_text()
@@ -418,7 +434,7 @@ read_extdata <- function(file = NULL) {
 #' @rdname read_ext
 #' @import hdf5r 
 #' @export
-read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
+read_h5 <- function(file, collapse = NULL, spectral_smooth = FALSE,
                     sigma = c(1, 1, 1), read_visual = TRUE,
                     representation = c("OpenSpecy", "Specs"),
                     background_filter = NULL, ...) {
@@ -442,7 +458,11 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
         return(invisible(NULL))
     }
 
-    file_meta <- .read_h5_file_metadata(h5)
+    xml <- .read_h5_metadata_xml(h5)
+    if (is.null(collapse) && .h5_is_particle_map(h5, xml)) {
+        return(.read_h5_particles(h5, file, regions, xml, read_visual))
+    }
+    file_meta <- .read_h5_file_metadata(h5, xml)
     layouts <- lapply(regions, function(reg) {
         dims <- .h5_dataset_dims(
             h5[[paste0("/Regions/", reg, "/Dataset")]]
@@ -649,11 +669,137 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
 
     if (isTRUE(collapse)) {
         warning("read_h5(collapse = TRUE) is retained for compatibility; ",
-                "the default is raw-region output. Prefer explicit ",
+                "prefer explicit ",
                 "collapse_spec() after reading.", call. = FALSE)
         os <- collapse_spec(os, fun = mean, column = "particle_id", ...)
     }
     os
+}
+
+.h5_is_particle_map <- function(h5, xml) {
+    mode <- .h5_xml_first_var(xml, "AutoRegionCollectType")
+    if (identical(mode, "ParticleAnalysisCollection")) return(TRUE)
+    if (!h5$exists("/ParticleImages")) return(FALSE)
+    images <- h5[["/ParticleImages"]]
+    on.exit(images$close(), add = TRUE)
+    any(grepl("^ParticleImage[0-9]+$", names(images)))
+}
+
+.read_h5_particles <- function(h5, file, regions, xml, read_visual) {
+    info <- h5[["/FileInfo"]]
+    axis_metadata <- .read_h5_axis_metadata(info, xml)
+    info_fields <- hdf5r::h5attr_names(info)
+    scale_nm <- 1
+    if ("SpatialUnitOfMeter" %in% info_fields) {
+        scale_nm <- hdf5r::h5attr(info, "SpatialUnitOfMeter") / 1e-9
+        if (length(scale_nm) != 1L || !is.finite(scale_nm) || scale_nm <= 0) {
+            stop("H5 particle import requires a valid spatial unit.",
+                 call. = FALSE)
+        }
+    }
+    spectra_type <- NULL
+    if ("SpectralType" %in% info_fields) {
+        type_label <- hdf5r::h5attr(info, "SpectralType")
+        if (!is.character(type_label)) type_label <- .h5_metadata_text(type_label)
+        type_label <- tolower(trimws(type_label))
+        if (length(type_label) == 1L && startsWith(type_label, "raman")) {
+            spectra_type <- "raman"
+        } else if (identical(type_label, "ftir")) {
+            spectra_type <- "ftir"
+        }
+    }
+    metadata <- data.table::data.table(
+        file_name = basename(file), region = regions, particle_id = regions,
+        stage_x_nm = NA_real_, stage_y_nm = NA_real_, stage_z_nm = NA_real_,
+        stage_units = "nm", source_spectrum_count = 0,
+        collapse_method = "mean"
+    )
+    wavenumber <- NULL
+    for (i in seq_along(regions)) {
+        region <- regions[[i]]
+        dataset <- h5[[paste0("/Regions/", region, "/Dataset")]]
+        dims <- .h5_dataset_dims(dataset)
+        if (length(dims) != 3L || any(dims < 1L)) {
+            stop("H5 particle region must contain a nonempty 3D cube: ",
+                 region, call. = FALSE)
+        }
+        spectral_dim <- .h5_spectral_dim(dims, axis_metadata)
+        n <- dims[[spectral_dim]]
+        if (is.null(wavenumber)) {
+            wavenumber <- .h5_wavenumbers(axis_metadata, n, required = TRUE)
+            spectra <- matrix(NA_real_, nrow = n, ncol = length(regions),
+                              dimnames = list(NULL, regions))
+        } else if (n != length(wavenumber)) {
+            stop("H5 particle regions must share a single spectral axis: ",
+                 region, call. = FALSE)
+        }
+        spatial_dims <- setdiff(seq_along(dims), spectral_dim)
+        stage <- .h5_region_stage(
+            h5, region, ny = dims[spatial_dims[1L]], nx = dims[spatial_dims[2L]]
+        )
+        if (is.null(stage)) {
+            stop("H5 particle region is missing valid stage bounds: ", region,
+                 ". Use collapse = FALSE to read the region on its local grid.",
+                 call. = FALSE)
+        }
+        values <- aperm(dataset$read(), c(spectral_dim, spatial_dims))
+        spectra[, i] <- rowMeans(matrix(values, nrow = n))
+        dataset$close()
+        data.table::set(metadata, i, "stage_x_nm", stage$x_center * scale_nm)
+        data.table::set(metadata, i, "stage_y_nm", stage$y_center * scale_nm)
+        data.table::set(metadata, i, "stage_z_nm", stage$stage_z * scale_nm)
+        data.table::set(metadata, i, "source_spectrum_count",
+                        prod(dims[spatial_dims]))
+    }
+
+    metadata$centroid_x <- metadata$stage_x_nm
+    metadata$centroid_y <- metadata$stage_y_nm
+    out <- as_OpenSpecy(
+        wavenumber, spectra = spectra, metadata = metadata,
+        coords = data.table::data.table(x = metadata$stage_x_nm,
+                                        y = metadata$stage_y_nm),
+        attributes = list(spectra_type = spectra_type)
+    )
+    attr(out, "openspecy_spatial_unit") <- "nm"
+    if (isTRUE(read_visual)) {
+        attr(out, "visual_image") <- .read_h5_particle_mosaic(h5, scale_nm)
+    }
+    .mark_particle_centroid_object(out)
+}
+
+.h5_axis_metadata_keys <- list(
+    n = c("SpectrumPoints", "m_SpectrumPoints", "m_NumberOfPoints", "NPT"),
+    start = c("SpectralRangeStart", "m_StartFrequency", "m_StartFreq",
+              "m_StartFrequency.1"),
+    end = c("SpectralRangeEnd", "m_EndFrequency", "m_EndFreq",
+            "m_EndFrequency.1")
+)
+
+.read_h5_axis_metadata <- function(info, xml) {
+    keys <- unlist(.h5_axis_metadata_keys, use.names = FALSE)
+    info_fields <- hdf5r::h5attr_names(info)
+    out <- list()
+    for (key in keys) {
+        value <- if (key %in% info_fields) hdf5r::h5attr(info, key)
+        if (length(value) != 1L) value <- .h5_xml_first_var(xml, key)
+        if (length(value)) out[[key]] <- value
+    }
+    out
+}
+
+.h5_xml_first_var <- function(xml, key) {
+    if (is.null(xml)) return(NULL)
+    literal_key <- gsub(".", "[.]", key, fixed = TRUE)
+    pattern <- paste0('<VAR[^>]*NAME="', literal_key,
+                      '"[^>]*>([^<]{0,120})</VAR>')
+    match <- regmatches(xml, regexec(pattern, xml, perl = TRUE,
+                                    useBytes = TRUE))[[1L]]
+    if (length(match)) .h5_scalar_value(match[[2L]])
+}
+
+.read_h5_metadata_xml <- function(h5) {
+    path <- "/FileInfo/MetaData"
+    if (h5$exists(path)) .h5_metadata_text(h5[[path]]$read())
 }
 
 .h5_dataset_dims <- function(dset) {
@@ -662,7 +808,7 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
     as.integer(dims)
 }
 
-.read_h5_file_metadata <- function(h5) {
+.read_h5_file_metadata <- function(h5, xml = .read_h5_metadata_xml(h5)) {
     out <- list()
     if (h5$exists("/FileInfo")) {
         fi <- h5[["/FileInfo"]]
@@ -672,10 +818,7 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
             if (!is.null(val) && length(val) == 1L) out[[a]] <- val
         }
     }
-    if (h5$exists("/FileInfo/MetaData")) {
-        xml <- .h5_metadata_text(h5[["/FileInfo/MetaData"]]$read())
-        out <- utils::modifyList(out, .h5_xml_scalar_vars(xml))
-    }
+    if (!is.null(xml)) out <- utils::modifyList(out, .h5_xml_scalar_vars(xml))
     out
 }
 
@@ -714,8 +857,7 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
 }
 
 .h5_spectral_dim <- function(dims, file_meta) {
-    n <- .h5_meta_first(file_meta, c("SpectrumPoints", "m_SpectrumPoints",
-                                    "m_NumberOfPoints", "NPT"))
+    n <- .h5_meta_first(file_meta, .h5_axis_metadata_keys$n)
     if (!is.null(n)) {
         idx <- which(dims == as.integer(n))[1L]
         if (!is.na(idx)) return(idx)
@@ -723,16 +865,18 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
     which.max(dims)
 }
 
-.h5_wavenumbers <- function(file_meta, n) {
-    start <- .h5_meta_first(file_meta, c("SpectralRangeStart",
-                                        "m_StartFrequency", "m_StartFreq",
-                                        "m_StartFrequency.1"))
-    end <- .h5_meta_first(file_meta, c("SpectralRangeEnd",
-                                      "m_EndFrequency", "m_EndFreq",
-                                      "m_EndFrequency.1"))
+.h5_wavenumbers <- function(file_meta, n, required = FALSE) {
+    start <- .h5_meta_first(file_meta, .h5_axis_metadata_keys$start)
+    end <- .h5_meta_first(file_meta, .h5_axis_metadata_keys$end)
     if (!is.null(start) && !is.null(end) &&
         is.finite(as.numeric(start)) && is.finite(as.numeric(end))) {
-        return(seq(as.numeric(start), as.numeric(end), length.out = n))
+        if (!required || (n > 1L && as.numeric(start) != as.numeric(end))) {
+            return(seq(as.numeric(start), as.numeric(end), length.out = n))
+        }
+    }
+    if (required) {
+        stop("H5 particle import requires a valid spectral range and at least two bands.",
+             call. = FALSE)
     }
     warning("H5 spectral range not found, using index values instead",
             call. = FALSE)
@@ -940,6 +1084,82 @@ read_h5 <- function(file, collapse = FALSE, spectral_smooth = FALSE,
 .h5_intersecting_tiles <- function(tiles, extent) {
     which(tiles$x_max >= extent$x_min & tiles$x_min <= extent$x_max &
           tiles$y_max >= extent$y_min & tiles$y_min <= extent$y_max)
+}
+
+.read_h5_particle_mosaic <- function(h5, scale_nm) {
+    if (!h5$exists("/Mosaic")) return(NULL)
+    mosaic <- h5[["/Mosaic"]]
+    on.exit(mosaic$close(), add = TRUE)
+    if (!inherits(mosaic, "H5Group") || !mosaic$exists("Centers")) return(NULL)
+    tiles <- tryCatch(.h5_mosaic_stage_tiles(mosaic[["Centers"]]$read()),
+                      error = function(e) NULL)
+    if (is.null(tiles)) return(NULL)
+    images <- paste0("Image", tiles$image_index)
+    valid <- images %in% .h5_mosaic_image_names(mosaic) &
+        is.finite(tiles$x_min) & is.finite(tiles$x_max) &
+        is.finite(tiles$y_min) & is.finite(tiles$y_max) &
+        tiles$x_min < tiles$x_max & tiles$y_min < tiles$y_max
+    tiles <- tiles[valid]
+    images <- images[valid]
+    if (!length(images)) return(NULL)
+
+    x_bounds <- c(min(tiles$x_min), max(tiles$x_max))
+    y_bounds <- c(min(tiles$y_min), max(tiles$y_max))
+    extent <- c(diff(x_bounds), diff(y_bounds))
+    if (!all(is.finite(extent))) return(NULL)
+    size <- pmax(1L, as.integer(round(2048 * extent / max(extent))))
+    xs <- x_bounds[1L] + (seq_len(size[1L]) - 0.5) * extent[1L] / size[1L]
+    ys <- y_bounds[2L] - (seq_len(size[2L]) - 0.5) * extent[2L] / size[2L]
+    canvas <- array(as.raw(255), dim = c(size[2L], size[1L], 3L))
+
+    rendered <- unreadable <- 0L
+    for (i in seq_along(images)) {
+        cols <- which(xs >= tiles$x_min[i] & xs < tiles$x_max[i])
+        rows <- which(ys > tiles$y_min[i] & ys <= tiles$y_max[i])
+        if (!length(cols) || !length(rows)) next
+        tile <- tryCatch(
+            .h5_sample_mosaic_tile(
+                mosaic, images[[i]],
+                (xs[cols] - tiles$x_min[i]) / (tiles$x_max[i] - tiles$x_min[i]),
+                (tiles$y_max[i] - ys[rows]) / (tiles$y_max[i] - tiles$y_min[i])
+            ),
+            error = function(e) NULL
+        )
+        if (is.null(tile)) {
+            unreadable <- unreadable + 1L
+        } else {
+            canvas[rows, cols, ] <- tile
+            rendered <- rendered + 1L
+        }
+    }
+    if (!rendered) return(NULL)
+
+    list(
+        image = canvas,
+        bottom_left = c(1L, size[2L]),
+        top_right = c(size[1L], 1L),
+        source = "/Mosaic",
+        transform = list(
+            method = "h5_particle_mosaic",
+            stage_units = "nm",
+            canvas_stage_extent = as.list(stats::setNames(
+                c(x_bounds, y_bounds) * scale_nm,
+                c("x_min", "x_max", "y_min", "y_max")
+            ))
+        ),
+        diagnostics = list(
+            registered_tiles = length(images),
+            rendered_tiles = rendered, unreadable_tiles = unreadable
+        )
+    )
+}
+
+.h5_sample_mosaic_tile <- function(mosaic, name, x_fraction, y_fraction) {
+    dataset <- mosaic[[name]]
+    on.exit(dataset$close(), add = TRUE)
+    dims <- dataset$dims
+    if (length(dims) != 1L || dims > 16 * 1024^2) return(NULL)
+    .read_visual_bmp_bytes(dataset$read(), x_fraction, y_fraction)
 }
 
 .h5_stitch_region_mosaic <- function(mosaic, tiles, extent) {

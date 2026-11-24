@@ -97,7 +97,7 @@ read_extdata(file = NULL)
 
 read_h5(
   file,
-  collapse = FALSE,
+  collapse = NULL,
   spectral_smooth = FALSE,
   sigma = c(1, 1, 1),
   read_visual = TRUE,
@@ -120,9 +120,10 @@ as well.}
 
 \item{metadata}{a named list of the metadata; see}
 
-\item{collapse}{whether or not to use \code{\link{collapse_spec}()} by
-particle_id. For \code{read_h5()}, the default is \code{FALSE} so region
-pixels are returned in raw form.}
+\item{collapse}{for H5 files, \code{NULL} (default) uses acquisition
+metadata to distinguish particle regions from ordinary map tiles.
+\code{FALSE} returns individual region pixels. \code{TRUE} selects the
+legacy collapse by \code{particle_id}.}
 
 \item{spectral_smooth}{logical; whether H5 cubes should be smoothed before
 matrix conversion.}
@@ -132,7 +133,8 @@ matrix conversion.}
 \item{read_visual}{logical; whether H5 mosaic images should be attached as
 visual-image attributes when present. H5 region stage coordinates are kept
 in nanometres and all mosaic tiles intersecting each region are registered
-for overlays and feature color extraction.
+for overlays and feature color extraction in ordinary maps. Detected
+particle maps attach one overview registered to the mosaic's stage bounds.
 \code{\link{as_OpenSpecy}()} for details.}
 
 \item{representation}{for H5 maps, return an ordinary dense
@@ -147,7 +149,10 @@ receive mapping 0 and foreground spectra retain their read values.}
 \value{
 Text and single-spectrum readers return their established objects.
 \code{read_h5()} returns an \code{OpenSpecy} object by default or a compact
-\code{Specs} object when requested.
+\code{Specs} object when requested for an ordinary map. Detected particle
+acquisitions return an \code{OpenSpecy} object with one spectrum per region
+and the attributes \code{openspecy_object_type = "particle_centroids"} and
+\code{openspecy_spatial_unit = "nm"}.
 }
 \description{
 Functions for reading spectral data from external file types.
@@ -169,6 +174,17 @@ Other functions have been adapted various online sources.
 Metadata is harvested if possible.
 There are many unique iterations of spectral file formats so there may be
 bugs in the file conversion. Please contact us if you identify any.
+
+H5 particle acquisitions are identified by the vendor's particle collection
+mode or particle label image datasets. Import averages all measurements in
+each region at each original wavenumber, with missing values propagating
+through the mean. The recorded region stage center supplies its x/y centroid
+in nanometres. The reader keeps one cube at a time and avoids expanding
+repeated metadata. When imagery is enabled, readable optical tiles are
+sampled onto one stage-registered image capped at 2,048 pixels per side.
+Use \code{read_visual = FALSE} to skip image I/O and \code{collapse = FALSE} to
+read the individual measurements. Pixel smoothing and pixel background
+filtering apply to the ordinary map path.
 }
 \examples{
 read_extdata("raman_hdpe.csv") |> read_text()

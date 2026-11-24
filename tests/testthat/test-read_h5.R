@@ -21,9 +21,84 @@ test_that("read_h5() keeps raw region spectra by default", {
   expect_equal(length(os$wavenumber), 4)
   expect_equal(range(os$wavenumber), c(100, 400))
   expect_equal(ncol(os$spectra), 6)
+  expect_false(OpenSpecy:::.is_particle_centroid_object(os))
   expect_contains(names(os$metadata),
                   c("region", "particle_id", "subpixel", "row", "col",
                     "stage_pos_1"))
+})
+
+.make_particle_h5 <- function(marker = "mode", stage = TRUE, axis = TRUE) {
+  file <- tempfile(fileext = ".hdf5")
+  h5 <- hdf5r::H5File$new(file, mode = "w")
+  on.exit(h5$close_all(), add = TRUE)
+  info <- h5$create_group("FileInfo")
+  xml <- paste0(
+    '<VAR NAME="SpectrumPoints">4</VAR>',
+    if (axis) paste0(
+      '<VAR NAME="m_StartFrequency">400</VAR>',
+      '<VAR NAME="m_EndFrequency">100</VAR>'
+    ),
+    if (identical(marker, "mode")) {
+      '<VAR NAME="AutoRegionCollectType">ParticleAnalysisCollection</VAR>'
+    },
+    paste(rep('<VAR NAME="IgnoredRegionField">2</VAR>', 100L), collapse = "")
+  )
+  info[["MetaData"]] <- as.integer(charToRaw(xml))
+  info$create_attr("SpectralType", robj = "Raman Shift")
+  info$create_attr("SpatialUnitOfMeter", robj = 2e-9)
+  if (marker %in% c("image", "empty")) {
+    group <- h5$create_group("ParticleImages")
+    if (identical(marker, "image")) group[["ParticleImage0"]] <- 0L
+  }
+  regions <- h5$create_group("Regions")
+  first <- regions$create_group("Region1")
+  first[["Dataset"]] <- array(as.numeric(seq_len(36)), dim = c(4, 3, 3))
+  if (stage) first[["-StagePosXYZ"]] <- c(20, -100, 5, 10, -80, 5)
+  second <- regions$create_group("Region2")
+  second[["Dataset"]] <- array(as.numeric(101:116), dim = c(2, 2, 4))
+  second[["-StagePosXYZ"]] <- c(100, -30, 5, 140, -20, 5)
+  file
+}
+
+test_that("H5 acquisition metadata selects bounded particle means and centroids", {
+  skip_if_not_installed("hdf5r")
+  file <- .make_particle_h5()
+  pixels <- read_h5(file, collapse = FALSE, read_visual = FALSE)
+  expected <- vapply(c("Region1", "Region2"), function(region) {
+    rowMeans(pixels$spectra[, pixels$metadata$region == region, drop = FALSE])
+  }, numeric(4))
+  particles <- read_h5(
+    file, representation = "Specs", spectral_smooth = TRUE,
+    background_filter = specs_background_filter("sig", 1e6, step = 1)
+  )
+  expect_true(check_OpenSpecy(particles))
+  expect_identical(particles$wavenumber, pixels$wavenumber)
+  expect_identical(particles$spectra, expected)
+  expect_identical(particles$metadata$col_id, colnames(expected))
+  expect_equal(particles$metadata$source_spectrum_count, c(9, 4))
+  expect_equal(particles$metadata$x, c(30, 240))
+  expect_equal(particles$metadata$y, c(-180, -50))
+  expect_equal(particles$metadata$centroid_x, particles$metadata$x)
+  expect_equal(particles$metadata$centroid_y, particles$metadata$y)
+  expect_identical(attr(particles, "openspecy_object_type"), "particle_centroids")
+  expect_identical(attr(particles, "openspecy_spatial_unit"), "nm")
+  expect_identical(attr(particles, "spectra_type"), "raman")
+  expect_false(any(grepl("IgnoredRegionField|subpixel", names(particles$metadata))))
+  expect_null(attr(particles, "visual_image"))
+  expect_false(OpenSpecy:::.is_particle_centroid_object(pixels))
+  expect_equal(ncol(pixels$spectra), 13)
+})
+
+test_that("H5 particle labels distinguish acquisitions from similar map cubes", {
+  skip_if_not_installed("hdf5r")
+  particles <- read_any(.make_particle_h5("image"))
+  pixels <- read_h5(.make_particle_h5("empty"), representation = "Specs")
+  expect_true(OpenSpecy:::.is_particle_centroid_object(particles))
+  expect_equal(ncol(particles$spectra), 2)
+  expect_true(check_Specs(pixels))
+  expect_equal(specs_source_count(pixels), 13)
+  expect_error(read_h5(.make_particle_h5(stage = FALSE)), "stage bounds: Region1")
+  expect_error(read_h5(.make_particle_h5(axis = FALSE)), "valid spectral range")
 })
 
 test_that("read_h5() preserves cube order while assembling regions", {

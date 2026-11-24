@@ -226,7 +226,7 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
   .read_visual_bmp_bytes(readBin(con, what = "raw", n = size))
 }
 
-.read_visual_bmp_bytes <- function(image) {
+.read_visual_bmp_bytes <- function(image, x_fraction = NULL, y_fraction = NULL) {
   raw_bytes <- if (is.raw(image)) image else as.raw(image)
   if (length(raw_bytes) < 14L)
     stop("BMP data are too short", call. = FALSE)
@@ -282,6 +282,26 @@ detect_image_origin <- function(image, red_threshold = 50, red_ratio = 2,
     ])
     palette_bgra <- matrix(palette_raw, ncol = 4L, byrow = TRUE)
     palette <- palette_bgra[, 3:1, drop = FALSE] / 255
+  }
+
+  if (!is.null(x_fraction) && !is.null(y_fraction)) {
+    columns <- pmin(width, 1 + floor(x_fraction * width))
+    rows <- pmin(height_abs, 1 + floor(y_fraction * height_abs))
+    if (height > 0L) rows <- height_abs - rows + 1
+    bytes_per_pixel <- bits / 8L
+    offsets <- outer(
+      pixel_offset + (rows - 1) * row_stride,
+      (columns - 1) * bytes_per_pixel, "+"
+    )
+    samples <- if (bits == 8L) {
+      palette[as.integer(raw_bytes[offsets]) + 1L, , drop = FALSE]
+    } else {
+      vapply(2:0, function(channel) {
+        as.integer(raw_bytes[offsets + channel]) / 255
+      }, numeric(length(offsets)))
+    }
+    return(array(as.raw(round(samples * 255)),
+                 dim = c(length(rows), length(columns), 3L)))
   }
 
   out <- array(0, dim = c(height_abs, width, 3L))

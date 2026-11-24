@@ -1,5 +1,11 @@
 # OpenSpecy 2.0.3
 
+- `read_h5()` and the bundled Shiny app detect vendor-declared H5 particle
+  acquisitions and import one mean spectrum per region at its stage centroid.
+  A downsampled mosaic overview retains the optical context and its stage
+  registration. Shiny plots the centroids above the image. Supply
+  `read_visual = FALSE` to skip image I/O or `collapse = FALSE` to read
+  individual measurements into R.
 - Official reference metadata now uses a tracked dataset dictionary to provide
   every spectrum with a descriptive `library_name` and an exact
   `spectrum_origin` of `Observed` or `Computed`. A signed metadata-only child

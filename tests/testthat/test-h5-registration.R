@@ -27,6 +27,63 @@
   )
 }
 
+test_that("particle H5 retains one bounded mosaic registered in centroid units", {
+  skip_if_not_installed("hdf5r")
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file), add = TRUE)
+  h5 <- hdf5r::H5File$new(file, mode = "w")
+  info <- h5$create_group("FileInfo")
+  info$create_attr("SpectralRangeStart", robj = 100)
+  info$create_attr("SpectralRangeEnd", robj = 300)
+  info$create_attr("SpatialUnitOfMeter", robj = 2e-9)
+  info[["MetaData"]] <- as.integer(charToRaw(paste0(
+    '<VAR NAME="AutoRegionCollectType">ParticleAnalysisCollection</VAR>'
+  )))
+  region <- h5$create_group("Regions")$create_group("Region1")
+  region[["Dataset"]] <- array(as.numeric(seq_len(12)), c(3, 2, 2))
+  region[["-StagePosXYZ"]] <- c(-6, -6, 0, -4, -4, 0)
+  mosaic <- h5$create_group("Mosaic")
+  mosaic[["Centers"]] <- rbind(
+    c(0, -10, -5, -5, -10, 0), c(0, -10, -5, 5, 0, 10),
+    c(10, 0, 5, -5, -10, 0), c(10, 0, 5, 5, 0, 10)
+  )
+  mosaic[["Image0"]] <- as.integer(.h5_registration_bmp(c(255, 0, 0)))
+  mosaic[["Image2"]] <- as.integer(.h5_registration_bmp(c(0, 255, 0)))
+  mosaic[["Image3"]] <- 0L
+  h5$close_all()
+
+  particles <- read_h5(file)
+  spectra_only <- read_h5(file, read_visual = FALSE)
+  expect_true(check_OpenSpecy(particles))
+  expect_equal(particles$metadata$x, -10)
+  expect_equal(particles$metadata$y, -10)
+  visual <- visual_image(particles, require = TRUE)
+  expect_identical(visual$transform$method, "h5_particle_mosaic")
+  expect_equal(visual$transform$canvas_stage_extent,
+               list(x_min = -20, x_max = 20, y_min = -20, y_max = 20))
+  expect_identical(dim(visual$image), c(2048L, 2048L, 3L))
+  expect_identical(visual$image[1536, 512, ], as.raw(c(255, 0, 0)))
+  expect_identical(visual$image[512, 512, ], as.raw(c(0, 255, 0)))
+  expect_identical(visual$image[1536, 1536, ], as.raw(c(255, 255, 255)))
+  expect_equal(unlist(visual$diagnostics), c(registered_tiles = 3L,
+                                           rendered_tiles = 2L,
+                                           unreadable_tiles = 1L))
+  expect_null(visual_image(spectra_only))
+  attr(particles, "visual_image") <- NULL
+  expect_equal(particles, spectra_only)
+})
+
+test_that("sampled BMP decoding preserves channel and row order", {
+  bmp <- .h5_registration_bmp(c(255, 0, 0))
+  bmp[55:57] <- as.raw(c(0, 255, 0))
+  bmp[63:65] <- as.raw(c(255, 0, 0))
+  full <- OpenSpecy:::.read_visual_bmp_bytes(bmp)
+  overview <- OpenSpecy:::.read_visual_bmp_bytes(
+    bmp, x_fraction = 0.25, y_fraction = c(0.25, 0.75)
+  )
+  expect_identical(overview, array(as.raw(full[, 1, ] * 255), c(2L, 1L, 3L)))
+})
+
 test_that("read_h5 registers every intersecting tile by region and stage", {
   skip_if_not_installed("hdf5r")
 

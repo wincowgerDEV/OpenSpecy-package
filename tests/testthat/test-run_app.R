@@ -1551,18 +1551,23 @@ test_that("bundled app exposes the gated Cluster Buster strategy", {
   expect_match(server_source, "app_cluster_buster_decisions(", fixed = TRUE)
 })
 
-test_that("collapse and spatial smooth are silently ignored for a single spectrum", {
+test_that("pixel operations skip single spectra and explicit centroid sources", {
   app_path <- run_app(test_mode = TRUE)
   server_source <- paste(readLines(file.path(app_path, "server.R"), warn = FALSE),
                          collapse = "\n")
 
   expect_match(
     server_source,
-    paste0(
-      "if(!isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L) {"
-    ),
+    "!isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L",
     fixed = TRUE
   )
+  expect_match(server_source, "if(app_is_explicit_centroid_source(uploaded) ||",
+               fixed = TRUE)
+  expect_match(server_source,
+               "if(app_is_explicit_centroid_source(source)) return(FALSE)",
+               fixed = TRUE)
+  expect_match(server_source, "!app_is_explicit_centroid_source(da) &&",
+               fixed = TRUE)
   expect_match(
     server_source,
     "isTRUE(input$collapse_decision) && count > 1L",

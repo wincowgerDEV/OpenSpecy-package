@@ -305,6 +305,7 @@ heatmap_spec.default <- function(x, ...) {
   # Backward compatibility for processed particle RDS files written before
   # the explicit object-type attribute was introduced.
   metadata <- data.table::as.data.table(x$metadata)
+  if ("subpixel" %in% names(metadata)) return(FALSE)
   coordinates <- if (all(c("centroid_x", "centroid_y") %in% names(metadata))) {
     c("centroid_x", "centroid_y")
   } else if (all(c("x", "y") %in% names(metadata)) &&

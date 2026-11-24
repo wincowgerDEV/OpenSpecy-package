@@ -410,7 +410,7 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
     return(NULL)
   }
 
-  if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.jpg$)|(\\.jpeg$)|(\\.png$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
+  if (!all(grepl("(\\.tsv$)|(\\.h5$)|(\\.hdf5$)|(\\.txt$)|(\\.img$)|(\\.dat$)|(\\.hdr$)|(\\.jpg$)|(\\.jpeg$)|(\\.png$)|(\\.json$)|(\\.rds$)|(\\.csv$)|(\\.asp$)|(\\.spa$)|(\\.spc$)|(\\.jdx$)|(\\.dx$)|(\\.RData$)|(\\.zip$)|(\\.[0-9]$)",
              ignore.case = TRUE, as.character(file_info$name)))) {
     set_upload_status(paste(
       "Uploaded data type is not supported. Check the upload guidance for",
@@ -491,6 +491,14 @@ read_uploaded_files <- function(file_info, mounted = FALSE) {
           }
           combined <- if(is_OpenSpecy(members) || is_Specs(members)) {
             members
+          } else if(is.list(members) && any(vapply(
+            members, app_is_explicit_centroid_source, logical(1)
+          ))) {
+            if(length(members) != 1L) {
+              stop("Select one particle centroid dataset per Run to keep its stage coordinates registered.",
+                   call. = FALSE)
+            }
+            members[[1L]]
           } else {
             c_spec(
               members, range = "common",
@@ -1071,7 +1079,7 @@ observeEvent(input$run_analysis, {
         }
         return(da)
       }
-      if(isTruthy(input$xy_grid) &&
+      if(!app_is_explicit_centroid_source(da) && isTruthy(input$xy_grid) &&
          (!all(diff(sort(da$metadata$y)) %in% c(0,1)) ||
           !all(diff(sort(da$metadata$x)) %in% c(0,1)))){
           grid <- gen_grid(nrow(da$metadata))
@@ -1515,7 +1523,8 @@ observeEvent(input$run_analysis, {
     if(is_Specs(uploaded)) return(uploaded)
     # Spatial smoothing has no neighbors to smooth across for a single
     # uploaded spectrum; silently skip it rather than erroring.
-    if(!isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L) {
+    if(app_is_explicit_centroid_source(uploaded) ||
+       !isTRUE(input$spatial_decision) || ncol(uploaded$spectra) <= 1L) {
       return(uploaded)
     }
     analysis_phase(
@@ -1981,6 +1990,7 @@ observeEvent(input$run_analysis, {
     # to group; silently ignore the setting for a single uploaded spectrum
     # instead of erroring.
     source <- if(is.null(preprocessed$data)) NULL else data()
+    if(app_is_explicit_centroid_source(source)) return(FALSE)
     count <- if(is_Specs(source)) {
       specs_source_count(source)
     } else if(!is.null(source)) ncol(source$spectra) else 0L
@@ -4468,14 +4478,19 @@ output$progress_bars <- renderUI({
       data <- heatmap_data_for(resolved_map_color())
       visual <- registered_visual()
       if(!is.null(visual) && isTRUE(input$visual_overlay)) {
-        data$visual_image <- visual$image
-        calibration <- pixel_calibration()
-        full_projection <- app_project_source_coordinates(
-          preprocessed$data, source_metadata(preprocessed$data),
-          pixel_size = calibration$size, pixel_unit = calibration$unit
-        )
-        data$visual_x <- full_projection$metadata$x
-        data$visual_y <- full_projection$metadata$y
+        if(!is.null(visual$layout_image)) {
+          data$visual_layout_image <- visual$layout_image
+          data$visual_crop <- canonical_state()$settings$spatial_crop
+        } else {
+          data$visual_image <- visual$image
+          calibration <- pixel_calibration()
+          full_projection <- app_project_source_coordinates(
+            preprocessed$data, source_metadata(preprocessed$data),
+            pixel_size = calibration$size, pixel_unit = calibration$unit
+          )
+          data$visual_x <- full_projection$metadata$x
+          data$visual_y <- full_projection$metadata$y
+        }
         transparency <- suppressWarnings(as.numeric(input$overlay_transparency))
         if(length(transparency) != 1L || !is.finite(transparency)) {
           transparency <- 20

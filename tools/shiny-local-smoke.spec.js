@@ -19,6 +19,7 @@ const filespecFixtureDir = path.join(
 const particleRdsFixture = path.join(
   filespecFixtureDir, "particles_processed.rds"
 );
+const particleH5Fixture = path.join(filespecFixtureDir, "particle-regions.hdf5");
 let port = Number(process.env.OPENSPECY_LOCAL_SMOKE_PORT || 0);
 let app;
 let stderr = "";
@@ -562,6 +563,19 @@ test.beforeAll(async () => {
       "attr(x, 'openspecy_spatial_unit') <- 'um'",
       "attr(x, 'openspecy_object_type') <- 'particle_centroids'",
       `saveRDS(x, ${JSON.stringify(particleRdsFixture.replace(/\\/g, "/"))})`,
+      `h5 <- hdf5r::H5File$new(${JSON.stringify(particleH5Fixture.replace(/\\/g, "/"))}, 'w')`,
+      "info <- h5$create_group('FileInfo')",
+      "info$create_attr('SpectralRangeStart', robj=min(axis))",
+      "info$create_attr('SpectralRangeEnd', robj=max(axis))",
+      "xml <- '<VAR NAME=\"AutoRegionCollectType\">ParticleAnalysisCollection</VAR>'",
+      "info[['MetaData']] <- as.integer(charToRaw(xml))",
+      "regions <- h5$create_group('Regions')",
+      "for(i in 1:2) { region <- regions$create_group(paste0('Region', i)); region[['Dataset']] <- array(rep(spectra[, i], 9), c(length(axis), 3, 3)); region[['-StagePosXYZ']] <- c(1000*i-20, -500*i-10, 0, 1000*i+20, -500*i+10, 0) }",
+      "mosaic <- h5$create_group('Mosaic')",
+      "mosaic[['Centers']] <- matrix(c(0,-1500,-750,1500,0,3000), nrow=1)",
+      "bmp <- c(66,77,70,0,0,0,rep(0,4),54,0,0,0,40,0,0,0,2,0,0,0,2,0,0,0,1,0,24,0,rep(0,24), 100,65,32,150,120,68,0,0,180,140,112,210,168,132,0,0)",
+      "mosaic[['Image0']] <- as.integer(bmp)",
+      "h5$close_all()",
     ].join("; ")],
     { cwd: repo, windowsHide: true, encoding: "utf8" }
   );
@@ -1553,6 +1567,88 @@ test("processed particle RDS crops into selectable centroid points", async ({ pa
     path: testInfo.outputPath("processed-particle-centroid-crop.png"),
     fullPage: true,
   });
+});
+
+test("H5 particle import plots stage centroids automatically", async ({ page }, testInfo) => {
+  test.setTimeout(180000);
+  const severeErrors = [];
+  const stderrStart = stderr.length;
+  page.on("pageerror", (error) => severeErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error" && /Error in|unused argument|there is no package/i.test(message.text())) {
+      severeErrors.push(message.text());
+    }
+  });
+  await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
+  await expectLocalPicker(page);
+  const run = page.locator("#run_analysis");
+  await expect(run).toBeHidden();
+  await page.evaluate(() => {
+    const disabled = [
+      "load_entire_map", "threshold_decision", "identification_active",
+      "xy_crop_decision", "smooth_decision", "spike_decision",
+      "saturation_decision", "range_decision", "make_rel_decision",
+      "conform_decision", "intensity_decision", "baseline_decision",
+      "co2_decision", "collapse_decision",
+    ];
+    for (const id of disabled) {
+      const input = document.getElementById(id);
+      if (input.checked) input.click();
+    }
+    for (const id of ["spatial_decision", "xy_grid"]) {
+      const input = document.getElementById(id);
+      if (!input.checked) input.click();
+    }
+  });
+  await stageLocalFiles(page, particleH5Fixture);
+  await run.click();
+  await expect(page.locator("#heatmap_frame")).toBeVisible({ timeout: 90000 });
+  await expect.poll(async () => page.locator("#heatmapA").evaluate((plot) => {
+    const marker = (plot.data || []).find((trace) => trace.type === "scattergl");
+    const image = plot.layout?.images?.[0];
+    return marker && image && {
+      x: Array.from(marker.x),
+      y: Array.from(marker.y),
+      unit: plot.layout?.xaxis?.title?.text,
+      imageBounds: [image.x, image.y, image.sizex, image.sizey],
+      layer: image.layer,
+      hasImage: /^data:image\/png;base64,/.test(image.source),
+    };
+  }), { timeout: 60000 }).toEqual({
+    x: [1000, 2000], y: [-500, -1000], unit: "X (nm)",
+    imageBounds: [0, 0, 3000, 1500], layer: "below", hasImage: true,
+  });
+  await expect(run).toBeHidden();
+  await page.screenshot({
+    path: testInfo.outputPath("h5-particle-centroids.png"), fullPage: true,
+  });
+  await page.locator("#visual_overlay").evaluate((input) => {
+    if (input.checked) input.click();
+  });
+  await expect.poll(() => page.locator("#heatmapA").evaluate((plot) =>
+    plot.layout?.images?.length || 0
+  )).toBe(0);
+  await expect(run).toBeHidden();
+  const downloadCard = page.locator("#download_selection").locator(
+    "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' card ')][1]"
+  );
+  if (await downloadCard.evaluate((card) => card.classList.contains("collapsed-card"))) {
+    await toggleCard(downloadCard);
+  }
+  await selectizeOption(page, "download_selection", "Processed Spectra");
+  const download = await consumeDownload(page);
+  expect(download.filename).toMatch(/^Processed-Spectra-.*\.csv$/i);
+  const [header, ...rows] = download.content.toString("utf8").trim().split(/\r?\n/);
+  const fields = header.split(",");
+  expect(fields).toContain("source_spectrum_count");
+  expect(rows.map((row) => {
+    const values = row.split(",");
+    return ["particle_id", "centroid_x", "centroid_y", "source_spectrum_count"]
+      .map((field) => values[fields.indexOf(field)]);
+  })).toEqual([["Region1", "1000", "-500", "9"], ["Region2", "2000", "-1000", "9"]]);
+  await expect(page.locator(".shiny-output-error:visible")).toHaveCount(0);
+  expect(severeErrors).toEqual([]);
+  expect(stderr.slice(stderrStart)).not.toMatch(/Warning: Error in|cannot allocate vector/);
 });
 
 test("Test Map metadata sidebar selects a non-first spectrum", async ({ page }, testInfo) => {

@@ -48,6 +48,13 @@ memory while compacting regular coordinates and repeated metadata. Dense
 it maps rejected or non-finite pixels to an exact-zero virtual spectrum and
 records that decision. Coordinate and repeated-metadata compaction is lossless.
 
+When the vendor marks an H5 as a particle acquisition, `read_h5()` returns
+one mean spectrum per region in an `OpenSpecy` object with stage-centroid
+coordinates in nanometres. `visual_image()` retrieves the stage-registered
+overview of the embedded mosaic, capped at 2,048 pixels on its longest side.
+Use `read_visual = FALSE` to skip image I/O or `collapse = FALSE` to retain
+every measurement from a particle acquisition.
+
 ```{r compact-specs, eval=FALSE}
 policy <- specs_background_filter(
   metric = "run_sig_over_noise", minimum = 4, sigma = c(1, 1, 1)

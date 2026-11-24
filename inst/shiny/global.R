@@ -21,7 +21,7 @@ app_shiny_files <- function(name) {
 app_local_file_extensions <- function() {
   c(
     "csv", "asp", "tsv", "spc", "jdx", "dx", "RData", "spa", "0",
-    "zip", "img", "h5", "txt", "json", "rds", "hdr", "dat",
+    "zip", "img", "h5", "hdf5", "txt", "json", "rds", "hdr", "dat",
     "jpg", "jpeg", "png"
   )
 }
@@ -1132,6 +1132,12 @@ app_workerfs_fread <- function(file, ...) {
   data.table::fread(text = paste(lines, collapse = "\n"), ...)
 }
 
+app_is_explicit_centroid_source <- function(x) {
+  is_OpenSpecy(x) && identical(
+    attr(x, "openspecy_object_type", exact = TRUE), "particle_centroids"
+  )
+}
+
 app_read_uploaded_members <- function(paths, mounted = FALSE,
                                       representation = "OpenSpecy",
                                       background_filter = NULL,
@@ -1149,7 +1155,7 @@ app_read_uploaded_members <- function(paths, mounted = FALSE,
   read_one <- function(path, use_workerfs_text) {
     if(isTRUE(use_workerfs_text)) {
       read_text(file = path, method = app_workerfs_fread)
-    } else if(grepl("\\.(zip|h5)$", path, ignore.case = TRUE)) {
+    } else if(grepl("\\.(zip|h5|hdf5)$", path, ignore.case = TRUE)) {
       read_any(
         file = path, c_spec = FALSE, representation = representation,
         background_filter = background_filter,
@@ -2680,6 +2686,11 @@ app_registered_visual <- function(source) {
   image <- tryCatch(OpenSpecy:::.image_rgb_array(visual$image),
                     error = function(e) NULL)
   if(is.null(image)) return(NULL)
+  if(identical(visual$transform$method, "h5_particle_mosaic")) {
+    return(list(layout_image = app_visual_layout_image(
+      NULL, NULL, image, stage_bounds = visual$transform$canvas_stage_extent
+    )))
+  }
   rows <- range(round(c(visual$bottom_left[[2L]], visual$top_right[[2L]])))
   cols <- range(round(c(visual$bottom_left[[1L]], visual$top_right[[1L]])))
   rows <- pmin(pmax(rows, 1L), dim(image)[[1L]])
@@ -2720,8 +2731,16 @@ app_visual_trace_geometry <- function(x, y, image) {
   )
 }
 
-app_visual_layout_image <- function(x, y, image, opacity = 1) {
-  geometry <- app_visual_trace_geometry(x, y, image)
+app_visual_layout_image <- function(x, y, image, opacity = 1,
+                                    stage_bounds = NULL) {
+  geometry <- if(is.null(stage_bounds)) {
+    app_visual_trace_geometry(x, y, image)
+  } else {
+    list(
+      x_boundary = c(stage_bounds$x_min, stage_bounds$x_max),
+      y_boundary = c(stage_bounds$y_min, stage_bounds$y_max)
+    )
+  }
   opacity <- suppressWarnings(as.numeric(opacity))
   if(length(opacity) != 1L || !is.finite(opacity)) opacity <- 1
   list(
@@ -2730,7 +2749,8 @@ app_visual_layout_image <- function(x, y, image, opacity = 1) {
     x = geometry$x_boundary[[1L]], y = geometry$y_boundary[[2L]],
     sizex = diff(geometry$x_boundary), sizey = diff(geometry$y_boundary),
     xanchor = "left", yanchor = "top", sizing = "stretch",
-    opacity = pmin(pmax(opacity, 0), 1), layer = "above"
+    opacity = pmin(pmax(opacity, 0), 1),
+    layer = if(is.null(stage_bounds)) "above" else "below"
   )
 }
 
@@ -6158,7 +6178,19 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
       overlay_opacity <- 1
     }
     layout_images <- list()
-    if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
+    x_range <- y_range <- NULL
+    if(!is.null(data$visual_layout_image)) {
+      overlay <- data$visual_layout_image
+      overlay$opacity <- pmin(pmax(overlay_opacity, 0), 1)
+      layout_images <- list(overlay)
+      if(is.null(data$visual_crop)) {
+        x_range <- range(c(data$x, overlay$x, overlay$x + overlay$sizex))
+        y_range <- range(c(data$y, overlay$y, overlay$y - overlay$sizey))
+      } else {
+        x_range <- unname(data$visual_crop[c("xmin", "xmax")])
+        y_range <- unname(data$visual_crop[c("ymin", "ymax")])
+      }
+    } else if(!is.null(data$visual_image) && length(dim(data$visual_image)) == 3L) {
       image <- pmin(pmax(data$visual_image, 0), 1)
       layout_images <- list(app_visual_layout_image(
         if(is.null(data$visual_x)) data$x else data$visual_x,
@@ -6170,9 +6202,9 @@ app_particle_plotly <- function(data, source = "heat_plot", select = NULL) {
     axis_unit <- if(isTruthy(data$axis_unit)) data$axis_unit else "pixel"
     plot <- plotly::layout(
       plot,
-      xaxis = list(title = paste0("X (", axis_unit, ")")),
+      xaxis = list(title = paste0("X (", axis_unit, ")"), range = x_range),
       yaxis = list(title = paste0("Y (", axis_unit, ")"),
-                   scaleanchor = "x", scaleratio = 1),
+                   scaleanchor = "x", scaleratio = 1, range = y_range),
       images = layout_images, shapes = layout_shapes,
       dragmode = "select",
       showlegend = FALSE,
