@@ -111,7 +111,7 @@ dimnames.OpenSpecyStagedMatrix <- function(x) {
   }
   protected <- c(
     "sample_name", "spectrum_identity", "organization", "user_name",
-    "material", "library_name", "spectrum_type"
+    "material", "library_name", "spectrum_origin", "spectrum_type"
   )
   candidates <- setdiff(
     names(metadata)[vapply(metadata, is.character, logical(1L))],

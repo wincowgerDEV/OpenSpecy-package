@@ -44,7 +44,238 @@
     !is.unsorted(x$wavenumber, strictly = TRUE)
 }
 
-.reference_recipe_types <- function(path, recipe, release_dir) {
+.reference_metadata_rule_version <- "canonical_dataset_metadata_v1"
+.reference_metadata_target_columns <- c("library_name", "spectrum_origin")
+
+reference_dataset_metadata <- function(admitted, dictionary_path) {
+  required <- c("slug", "origin")
+  if (!is.data.frame(admitted) || !nrow(admitted) ||
+      !all(required %in% names(admitted))) {
+    stop("Admitted metadata requires nonempty slug and origin columns",
+         call. = FALSE)
+  }
+  if (!is.character(dictionary_path) || length(dictionary_path) != 1L ||
+      !file.exists(dictionary_path)) {
+    stop("Canonical dataset dictionary does not exist", call. = FALSE)
+  }
+  dictionary <- data.table::fread(
+    dictionary_path, encoding = "UTF-8", na.strings = c("", "NA")
+  )
+  if (!identical(names(dictionary), c("slug", "library_name")) ||
+      anyNA(dictionary$slug) || anyNA(dictionary$library_name) ||
+      any(!nzchar(trimws(dictionary$slug))) ||
+      any(!nzchar(trimws(dictionary$library_name))) ||
+      anyDuplicated(dictionary$slug) || anyDuplicated(dictionary$library_name)) {
+    stop("Canonical dataset dictionary must contain unique nonblank slugs and library names",
+         call. = FALSE)
+  }
+  if (any(nchar(trimws(dictionary$library_name)) < 8L) ||
+      any(!grepl("[[:space:]]", dictionary$library_name))) {
+    stop("Canonical library names must be descriptive rather than acronym-only",
+         call. = FALSE)
+  }
+  slugs <- as.character(admitted$slug)
+  if (anyNA(slugs) || any(!nzchar(trimws(slugs))) || anyDuplicated(slugs)) {
+    stop("Admitted dataset slugs must be unique and nonblank", call. = FALSE)
+  }
+  missing <- setdiff(slugs, dictionary$slug)
+  extra <- setdiff(dictionary$slug, slugs)
+  if (length(missing) || length(extra)) {
+    stop(
+      "Canonical dataset dictionary coverage differs (missing: ",
+      paste(missing, collapse = ", "), "; extra: ",
+      paste(extra, collapse = ", "), ")", call. = FALSE
+    )
+  }
+  origin <- tolower(trimws(as.character(admitted$origin)))
+  spectrum_origin <- ifelse(
+    origin == "experimental", "Observed",
+    ifelse(origin %in% c("computed_solid", "computed_molecule"),
+           "Computed", NA_character_)
+  )
+  if (anyNA(spectrum_origin)) {
+    stop("Unsupported admitted origin value(s): ",
+         paste(unique(origin[is.na(spectrum_origin)]), collapse = ", "),
+         call. = FALSE)
+  }
+  index <- match(slugs, dictionary$slug)
+  data.table::data.table(
+    slug = slugs,
+    library_name = as.character(dictionary$library_name[index]),
+    detailed_origin = origin,
+    spectrum_origin = spectrum_origin,
+    metadata_rule_version = .reference_metadata_rule_version
+  )
+}
+
+.reference_validate_dataset_metadata <- function(dataset_metadata) {
+  required <- c(
+    "slug", "library_name", "spectrum_origin", "metadata_rule_version"
+  )
+  required_values <- if (is.data.frame(dataset_metadata) &&
+                         all(required %in% names(dataset_metadata))) {
+    as.data.frame(dataset_metadata)[, required, drop = FALSE]
+  } else NULL
+  if (!is.data.frame(dataset_metadata) || !nrow(dataset_metadata) ||
+      !all(required %in% names(dataset_metadata)) ||
+      is.null(required_values) || anyNA(required_values) ||
+      anyDuplicated(dataset_metadata$slug) ||
+      any(!nzchar(trimws(as.character(dataset_metadata$slug)))) ||
+      any(!nzchar(trimws(as.character(dataset_metadata$library_name)))) ||
+      any(!as.character(dataset_metadata$spectrum_origin) %in%
+          c("Observed", "Computed")) ||
+      any(as.character(dataset_metadata$metadata_rule_version) !=
+          .reference_metadata_rule_version)) {
+    stop("Canonical dataset metadata is malformed", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+reference_apply_dataset_metadata <- function(object, dataset_metadata,
+                                             source_slug = NULL,
+                                             block_size = 100000L) {
+  if (!.reference_valid_object(object)) {
+    stop("Canonical metadata requires a valid OpenSpecy object", call. = FALSE)
+  }
+  .reference_validate_dataset_metadata(dataset_metadata)
+  block_size <- as.integer(block_size)
+  if (length(block_size) != 1L || is.na(block_size) || block_size < 1L) {
+    stop("Metadata block size must be one positive integer", call. = FALSE)
+  }
+  metadata <- object$metadata
+  if (!data.table::is.data.table(metadata)) {
+    metadata <- data.table::as.data.table(metadata)
+    object$metadata <- metadata
+  }
+  if ("source_dataset" %in% names(metadata)) {
+    source_dataset <- as.character(metadata$source_dataset)
+  } else {
+    if (!is.character(source_slug) || length(source_slug) != 1L ||
+        is.na(source_slug) || !nzchar(source_slug)) {
+      stop("A source slug is required when source_dataset is absent",
+           call. = FALSE)
+    }
+    source_dataset <- rep(source_slug, nrow(metadata))
+  }
+  if (anyNA(source_dataset) || any(!nzchar(source_dataset))) {
+    stop("Canonical metadata requires nonblank source_dataset values",
+         call. = FALSE)
+  }
+  map_index <- match(source_dataset, as.character(dataset_metadata$slug))
+  if (anyNA(map_index)) {
+    stop("Canonical metadata has unmapped source_dataset values: ",
+         paste(unique(source_dataset[is.na(map_index)]), collapse = ", "),
+         call. = FALSE)
+  }
+  rows <- nrow(metadata)
+  library_name <- rep(NA_character_, rows)
+  spectrum_origin <- rep(NA_character_, rows)
+  starts <- seq.int(1L, max(1L, rows), by = block_size)
+  if (!rows) starts <- integer()
+  for (start in starts) {
+    end <- min(rows, start + block_size - 1L)
+    index <- start:end
+    mapped <- map_index[index]
+    library_name[index] <- as.character(dataset_metadata$library_name[mapped])
+    spectrum_origin[index] <-
+      as.character(dataset_metadata$spectrum_origin[mapped])
+  }
+  old_library <- if ("library_name" %in% names(metadata)) {
+    as.character(metadata$library_name)
+  } else rep(NA_character_, rows)
+  old_origin <- if ("spectrum_origin" %in% names(metadata)) {
+    as.character(metadata$spectrum_origin)
+  } else rep(NA_character_, rows)
+  changed <- function(old, new) {
+    sum(is.na(old) != is.na(new) |
+          (!is.na(old) & !is.na(new) & old != new))
+  }
+  data.table::setalloccol(metadata, ncol(metadata) + 2L)
+  data.table::set(metadata, j = "library_name", value = library_name)
+  data.table::set(metadata, j = "spectrum_origin", value = spectrum_origin)
+  target_order <- intersect(
+    c("library_name", "spectrum_origin"), names(metadata)
+  )
+  data.table::setcolorder(
+    metadata, c(
+      setdiff(names(metadata), target_order), target_order
+    )
+  )
+  object$metadata <- metadata
+  if (!.reference_valid_object(object) ||
+      !identical(as.character(object$metadata$sample_name),
+                 colnames(object$spectra))) {
+    stop("Canonical metadata update broke OpenSpecy alignment", call. = FALSE)
+  }
+  list(
+    object = object,
+    telemetry = data.table::data.table(
+      rows = as.integer(rows),
+      chunks = as.integer(length(starts)),
+      largest_block = as.integer(if (rows) min(rows, block_size) else 0L),
+      changed_library_name = as.integer(changed(old_library, library_name)),
+      changed_spectrum_origin = as.integer(changed(old_origin, spectrum_origin)),
+      metadata_full_copy = FALSE,
+      rule_version = .reference_metadata_rule_version
+    )
+  )
+}
+
+reference_validate_dataset_metadata_values <- function(object,
+                                                       dataset_metadata,
+                                                       source_slug = NULL) {
+  if (!.reference_valid_object(object)) {
+    stop("Canonical metadata validation requires a valid OpenSpecy object",
+         call. = FALSE)
+  }
+  .reference_validate_dataset_metadata(dataset_metadata)
+  metadata <- object$metadata
+  required <- c("library_name", "spectrum_origin")
+  required_values <- if (all(required %in% names(metadata))) {
+    as.data.frame(metadata)[, required, drop = FALSE]
+  } else NULL
+  if (!all(required %in% names(metadata)) ||
+      is.null(required_values) || anyNA(required_values) ||
+      any(!nzchar(trimws(as.character(metadata$library_name)))) ||
+      any(!as.character(metadata$spectrum_origin) %in%
+          c("Observed", "Computed"))) {
+    stop("Canonical metadata fields are missing, blank, or invalid",
+         call. = FALSE)
+  }
+  source_dataset <- if ("source_dataset" %in% names(metadata)) {
+    as.character(metadata$source_dataset)
+  } else rep(source_slug, nrow(metadata))
+  map_index <- match(source_dataset, as.character(dataset_metadata$slug))
+  expected_library <- as.character(dataset_metadata$library_name[map_index])
+  expected_origin <- as.character(dataset_metadata$spectrum_origin[map_index])
+  actual_library <- as.character(metadata$library_name)
+  actual_origin <- as.character(metadata$spectrum_origin)
+  differs <- function(actual, expected) {
+    is.na(actual) != is.na(expected) |
+      (!is.na(actual) & !is.na(expected) & actual != expected)
+  }
+  mismatch <- which(
+    is.na(map_index) | differs(actual_library, expected_library) |
+      differs(actual_origin, expected_origin)
+  )
+  if (length(mismatch)) {
+    examples <- head(mismatch, 5L)
+    stop(
+      "Canonical metadata values differ from the tracked dataset mapping ",
+      "at ", length(mismatch), " row(s); examples: ",
+      paste0(
+        source_dataset[examples], " [library=", actual_library[examples],
+        "/", expected_library[examples], "; origin=",
+        actual_origin[examples], "/", expected_origin[examples], "]",
+        collapse = ", "
+      ), call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
+.reference_recipe_types <- function(path, recipe, release_dir,
+                                    dataset_metadata, source_slug) {
   promote <- .reference_internal(".lib_promote_rds")
   object <- .reference_read_rds(path)
   if (!is.list(object) || !length(object) ||
@@ -53,6 +284,15 @@
          call. = FALSE)
   }
   rows <- lapply(names(object), function(type) {
+    normalized <- reference_apply_dataset_metadata(
+      object[[type]], dataset_metadata = dataset_metadata,
+      source_slug = source_slug
+    )
+    object[[type]] <- normalized$object
+    reference_validate_dataset_metadata_values(
+      object[[type]], dataset_metadata = dataset_metadata,
+      source_slug = source_slug
+    )
     type_key <- tolower(type)
     observed <- unique(tolower(as.character(
       object[[type]]$metadata$spectrum_type
@@ -73,7 +313,12 @@
       path = as.character(promoted$path),
       size = as.numeric(promoted$size),
       checksum_algorithm = "sha256",
-      checksum = as.character(promoted$checksum)
+      checksum = as.character(promoted$checksum),
+      metadata_rule_version = .reference_metadata_rule_version,
+      metadata_rows = normalized$telemetry$rows,
+      metadata_chunks = normalized$telemetry$chunks,
+      metadata_largest_block = normalized$telemetry$largest_block,
+      metadata_full_copy = normalized$telemetry$metadata_full_copy
     )
   })
   rm(object)
@@ -85,6 +330,7 @@ reference_build_dataset <- function(input_path, slug, workflow_data,
                                     build_fun = build_lib,
                                     source_checksum = NULL,
                                     source_spectra = NULL,
+                                    dataset_metadata,
                                     progress = TRUE) {
   if (!is.character(input_path) || length(input_path) != 1L ||
       !file.exists(input_path) || basename(input_path) != "CleanedOS_raw.rds" ||
@@ -110,6 +356,15 @@ reference_build_dataset <- function(input_path, slug, workflow_data,
     stop("'source_spectra' must be NULL or one positive integer",
          call. = FALSE)
   }
+  .reference_validate_dataset_metadata(dataset_metadata)
+  dataset_metadata <- data.table::as.data.table(
+    data.table::copy(dataset_metadata)
+  )
+  if (nrow(dataset_metadata) != 1L ||
+      !identical(as.character(dataset_metadata$slug), slug)) {
+    stop("Dataset build requires one matching canonical metadata row",
+         call. = FALSE)
+  }
   output_dir <- file.path(dirname(input_path), "OpenSpecy_reference_library")
   result <- build_fun(
     x = input_path,
@@ -133,10 +388,24 @@ reference_build_dataset <- function(input_path, slug, workflow_data,
     stop("Dataset build did not return all three library-only recipes: ", slug,
          call. = FALSE)
   }
-  release_dir <- attr(result, "output_dir", exact = TRUE)
+  processing_release_dir <- attr(result, "output_dir", exact = TRUE)
+  processing_build_signature <- attr(result, "build_signature", exact = TRUE)
+  metadata_signature <- digest::digest(list(
+    schema = "OpenSpecy_dataset_canonical_metadata_v1",
+    processing_build_signature = processing_build_signature,
+    canonical_metadata = data.table::as.data.table(dataset_metadata)[, .(
+      slug, library_name, detailed_origin, spectrum_origin,
+      metadata_rule_version
+    )]
+  ), algo = "sha256")
+  release_dir <- file.path(
+    output_dir, "releases", substr(metadata_signature, 1L, 12L)
+  )
+  dir.create(release_dir, recursive = TRUE, showWarnings = FALSE)
   artifact_rows <- lapply(names(result$libraries), function(recipe) {
     .reference_recipe_types(
-      result$libraries[[recipe]], recipe = recipe, release_dir = release_dir
+      result$libraries[[recipe]], recipe = recipe, release_dir = release_dir,
+      dataset_metadata = dataset_metadata, source_slug = slug
     )
   })
   artifacts <- data.table::rbindlist(artifact_rows, fill = TRUE)
@@ -146,8 +415,10 @@ reference_build_dataset <- function(input_path, slug, workflow_data,
     stop("Promoted dataset artifacts are incomplete: ", slug, call. = FALSE)
   }
   source_info <- file.info(input_path)
-  quarantine_path <- file.path(release_dir, "quarantined_spectra.rds")
-  assessments_path <- file.path(release_dir, "assessments.rds")
+  quarantine_path <- file.path(
+    processing_release_dir, "quarantined_spectra.rds"
+  )
+  assessments_path <- file.path(processing_release_dir, "assessments.rds")
   manifest <- list(
     schema = "OpenSpecy_dataset_library_manifest_v1",
     slug = slug,
@@ -161,7 +432,8 @@ reference_build_dataset <- function(input_path, slug, workflow_data,
         .reference_sha256(input_path)
       } else source_checksum
     ),
-    build_signature = attr(result, "build_signature", exact = TRUE),
+    build_signature = metadata_signature,
+    processing_build_signature = processing_build_signature,
     policy = list(
       artifact_scope = "libraries",
       correlation_threshold = 0.99,
@@ -171,7 +443,11 @@ reference_build_dataset <- function(input_path, slug, workflow_data,
         nobaseline = list(cross_class = FALSE, min_n = 10L)
       ),
       medoids = FALSE,
-      models = FALSE
+      models = FALSE,
+      canonical_metadata = as.list(dataset_metadata[1L, .(
+        slug, library_name, detailed_origin, spectrum_origin,
+        metadata_rule_version
+      )])
     ),
     artifacts = artifacts,
     assessments = data.table::data.table(
@@ -218,6 +494,19 @@ reference_validate_dataset_manifest <- function(manifest, input_path = NULL,
       !is.data.frame(manifest$source) || nrow(manifest$source) != 1L ||
       !is.data.frame(manifest$artifacts) || !nrow(manifest$artifacts)) {
     stop("Dataset library manifest is malformed", call. = FALSE)
+  }
+  canonical_metadata <- tryCatch(
+    data.table::as.data.table(manifest$policy$canonical_metadata),
+    error = function(error) NULL
+  )
+  if (is.null(canonical_metadata) || nrow(canonical_metadata) != 1L) {
+    stop("Dataset library manifest lacks canonical dataset metadata: ",
+         manifest$slug, call. = FALSE)
+  }
+  .reference_validate_dataset_metadata(canonical_metadata)
+  if (!identical(as.character(canonical_metadata$slug), manifest$slug)) {
+    stop("Dataset library manifest canonical metadata slug differs: ",
+         manifest$slug, call. = FALSE)
   }
   if (!is.null(slug) && !identical(manifest$slug, slug)) {
     stop("Dataset library manifest slug differs: ", slug, call. = FALSE)
@@ -286,7 +575,8 @@ reference_read_dataset_manifest <- function(input_path, slug,
 }
 
 .reference_join_typed_paths <- function(paths, expected_counts, source_slugs,
-                                        recipe, type, release_dir, signature,
+                                        dataset_metadata, recipe, type,
+                                        release_dir, signature,
                                         progress = TRUE) {
   if (!length(paths) || any(!file.exists(paths))) {
     stop("Final join requires existing typed artifact paths", call. = FALSE)
@@ -396,6 +686,9 @@ reference_read_dataset_manifest <- function(input_path, slug,
   }
   object$metadata$source_dataset <- source_dataset
   object$metadata$source_sample_name <- ids
+  reference_validate_dataset_metadata_values(
+    object, dataset_metadata = dataset_metadata
+  )
   collision <- duplicated(ids) | duplicated(ids, fromLast = TRUE)
   collision_groups <- unique(ids[collision])
   if (any(collision)) {
@@ -453,6 +746,14 @@ reference_join_dataset_manifests <- function(manifests, output_dir,
   }
   invisible(lapply(manifests, reference_validate_dataset_manifest,
                    verify_hashes = FALSE))
+  dataset_metadata <- data.table::rbindlist(lapply(manifests, function(x) {
+    data.table::as.data.table(x$policy$canonical_metadata)
+  }), fill = TRUE)
+  .reference_validate_dataset_metadata(dataset_metadata)
+  if (!identical(as.character(dataset_metadata$slug), manifest_slugs)) {
+    stop("Dataset manifest order differs from canonical metadata order",
+         call. = FALSE)
+  }
   source_rows <- data.table::rbindlist(lapply(manifests, function(manifest) {
     data.table::copy(manifest$artifacts)[, slug := manifest$slug]
   }), fill = TRUE)
@@ -463,6 +764,10 @@ reference_join_dataset_manifests <- function(manifests, output_dir,
     schema = "OpenSpecy_final_library_join_v2",
     artifact_checksums = source_rows[, .(
       slug, recipe, spectrum_type, spectra, checksum
+    )],
+    canonical_metadata = dataset_metadata[, .(
+      slug, library_name, detailed_origin, spectrum_origin,
+      metadata_rule_version
     )],
     policy = list(
       range = "full", res = 6, dedupe = FALSE,
@@ -487,6 +792,7 @@ reference_join_dataset_manifests <- function(manifests, output_dir,
       paths = as.character(group$path),
       expected_counts = group$spectra,
       source_slugs = as.character(group$slug),
+      dataset_metadata = dataset_metadata,
       recipe = group$recipe[[1L]],
       type = group$spectrum_type[[1L]],
       release_dir = release_dir,
@@ -548,7 +854,8 @@ reference_join_dataset_manifests <- function(manifests, output_dir,
         assessments_checksum = x$assessments$checksum,
         quarantine_path = x$quarantine$path,
         quarantine_checksum = x$quarantine$checksum,
-        quarantine_removals = x$quarantine$removals
+        quarantine_removals = x$quarantine$removals,
+        canonical_metadata = x$policy$canonical_metadata
       )
     }), vapply(manifests, `[[`, character(1L), "slug"))
   )

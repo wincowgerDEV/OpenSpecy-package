@@ -1,16 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 3.23.0 -> 3.24.0
+Version change: 3.24.0 -> 3.25.0
 Modified principles/sections:
-- Reference Library and External Workflow Verification: require global filtering before production metadata union and retained-row-only binding
-- Development Workflow and Quality Gates: require old/new metadata equivalence, allocation benchmarks, and production-scale replay after a metadata-copy stop
-- Governance: block full-table post-bind filtering or blank-column copies at production scale
+- Reference Library and External Workflow Verification: require canonical app-facing dataset metadata and signed immutable metadata-only child releases
+- Development Workflow and Quality Gates: require target-only metadata patch equivalence and dataset-native migration before the next full build
+- Governance: block incomplete, in-place, or spectrally mutating reference-library metadata patches
 Added sections:
 - None
 Removed sections:
 - None
 Templates requiring updates:
-- .specify/templates/plan-template.md, AGENTS.md, shared speckit-constitution/plan/implement skills, openspecy-rebuild-reference-library, and build-lib diagram: synchronized
+- .specify/templates/plan-template.md, AGENTS.md, speckit-constitution/plan skills, openspecy-rebuild-reference-library, and build-lib diagram: synchronized
 Follow-up TODOs:
 - None
 -->
@@ -590,6 +590,36 @@ release promotion MUST prove that shard counts equal the unique removal ledger
 and that every promoted hash is unchanged. Sharding changes storage only and
 MUST NOT weaken spectrum values or removal provenance.
 
+App-facing reference metadata MUST use a tracked dataset-keyed dictionary for
+canonical fields that are constant within a source dataset. Every released
+spectrum MUST have a nonblank, interpretable `library_name`; acronym-only or
+unexpanded internal slugs are not sufficient display labels. Observed versus
+computed provenance MUST be exposed through a controlled field whose public
+values are exactly `Observed` or `Computed`, while retaining any more detailed
+source-origin field. Dictionary coverage, key uniqueness, allowed values, and
+agreement with the admitted intake manifest MUST be validated before release.
+
+A small correction that changes only reference metadata MAY be delivered as an
+immutable post-join child release without rerunning spectral cleaning or recipe
+processing. Such a patch MUST freeze and sign the parent pointer, index and
+artifact hashes, admitted manifest, tracked dictionary, consumed code, ordered
+rules, output target, and resource blocks. It MUST write new artifacts
+atomically rather than edit the parent in place; process one artifact at a time
+within declared memory/disk limits; preserve row order; and prove exact equality
+of wavenumbers, spectral values, identifiers, object attributes, and every
+non-target metadata field before promotion. All typed artifacts and aggregate
+recipe bundles MUST pass warning-free serialization rechecks, strong hashes,
+and a balance audit. Metadata patches MUST NOT filter, reorder, reclassify,
+reassign, prune, or create medoid/model artifacts.
+
+Every rule introduced through a post-join metadata patch MUST also be applied
+at the dataset-local artifact boundary before the next full build writes its
+dataset manifest. The regular final join MUST validate these canonical fields
+but MUST NOT synthesize or repair them. Post-join cleanup remains a migration
+path for already released parents and later small metadata corrections, not a
+permanent substitute for correct dataset-local outputs; a rule already native
+in all source artifacts MUST be removed from the release-specific migration.
+
 At production launch, the source files, lookup data, package code, and settings
 consumed by the run MUST be treated as frozen. Parallel work MAY continue only
 on surfaces excluded from that run contract. Promotion or comparison MUST
@@ -849,6 +879,11 @@ Before implementation is complete:
   quarantine, balance spectrum dispositions, and restate effective policy in
   the handoff. Frozen positive-control work MUST preserve its predeclared hashes,
   compatibility gate, probe, checkpoint, and no-tuning boundary.
+- Official metadata-only reference child releases MUST prove complete canonical
+  dataset-key coverage, exact target-only metadata deltas, spectral/axis/ID/
+  attribute and untouched-metadata equality, warning-free re-read, immutable
+  parent hashes, and dataset-local integration of each migration rule for the
+  next full build.
 - Raw measured or physically simulated reference datasets MUST first use
   `openspecy-ingest-reference-datasets`; class tables remain unchanged until a
   validated `CleanedOS_raw.rds` exists, and the production rebuild remains
@@ -952,6 +987,10 @@ They MUST also block an official reference-library release that enriches a
 resident production-scale target by repeatedly copying its full metadata table,
 or that lacks evidence for the frozen metadata block and no-copy production
 path.
+They MUST also block a metadata-only reference patch that edits its parent in
+place, lacks complete canonical dataset-key coverage, changes spectra/axes/IDs/
+attributes or untargeted metadata, performs filtering or scientific processing,
+or leaves its rules only in post-join cleanup after a subsequent full build.
 They MUST also block a production rebuild that binds all staged metadata before
 applying known global exclusions or cross-source hashes, subsets a nearly
 all-retained full table, or copies that table merely to remove globally blank
@@ -970,4 +1009,4 @@ a maintainer license assumption as though it were source-declared terms.
 Temporary exceptions MUST be documented in the feature plan with the reason,
 risk, and follow-up task.
 
-**Version**: 3.24.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-21
+**Version**: 3.25.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-11-23

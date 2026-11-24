@@ -91,6 +91,13 @@ The plan replaces separate `spec.md`, `research.md`, `data-model.md`,
   output, signatures/reuse, spectrum dispositions, a quarantine containing
   every removed ingested spectrum plus stage/rule/reason provenance, and legacy
   comparison.
+- Metadata-only official child releases must declare the immutable parent and
+  artifact hashes, admitted manifest and tracked dictionary, ordered rule/code
+  hashes, target fields/allowed values, bounded one-artifact processing,
+  target-only metadata delta and exact spectra/axes/IDs/attributes/untouched
+  metadata proof, serialization/bundle audit, prohibited scientific stages,
+  and the dataset-local integration that retires each release-specific rule at
+  the next full build.
 - Raw reference-dataset plans must apply
   `openspecy-ingest-reference-datasets` and name the ignored manifest,
   folder/cleaner/output contract, active-transfer write locks, declared-license

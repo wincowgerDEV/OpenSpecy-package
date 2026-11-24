@@ -9,6 +9,7 @@ if (!requireNamespace("devtools", quietly = TRUE) ||
 devtools::load_all(".", quiet = TRUE)
 helpers <- new.env(parent = globalenv())
 sys.source("workflows/reference_library_staging.R", envir = helpers)
+sys.source("workflows/patch_reference_library_metadata.R", envir = helpers)
 
 source_count <- 4L
 spectra_per_source <- 500L
@@ -17,6 +18,16 @@ block_size <- 500L
 repetitions <- 3L
 root <- tempfile("OpenSpecy-reference-staging-benchmark-")
 dir.create(root, recursive = TRUE, showWarnings = FALSE)
+source_slugs <- sprintf("benchmark-%02d", seq_len(source_count))
+dataset_metadata <- data.table::data.table(
+  slug = source_slugs,
+  library_name = sprintf(
+    "Benchmark Source %02d Reference Library", seq_len(source_count)
+  ),
+  detailed_origin = "experimental",
+  spectrum_origin = "Observed",
+  metadata_rule_version = "canonical_dataset_metadata_v1"
+)
 
 make_source <- function(source_index) {
   wavenumber <- seq(400, by = 6, length.out = wavenumber_count)
@@ -47,7 +58,11 @@ make_source <- function(source_index) {
 
 paths <- vapply(seq_len(source_count), function(i) {
   path <- file.path(root, sprintf("source-%02d.rds", i))
-  saveRDS(make_source(i), path)
+  object <- helpers$reference_apply_dataset_metadata(
+    make_source(i), dataset_metadata = dataset_metadata[i],
+    source_slug = source_slugs[[i]], block_size = 1000L
+  )$object
+  saveRDS(object, path)
   path
 }, character(1L))
 input_hashes <- vapply(paths, helpers$.reference_sha256, character(1L))
@@ -78,7 +93,8 @@ rows <- lapply(seq_len(repetitions), function(repetition) {
   artifact <- helpers$.reference_join_typed_paths(
     paths = paths,
     expected_counts = rep(spectra_per_source, source_count),
-    source_slugs = sprintf("benchmark-%02d", seq_len(source_count)),
+    source_slugs = source_slugs,
+    dataset_metadata = dataset_metadata,
     recipe = "raw",
     type = "ftir",
     release_dir = release_dir,
@@ -109,6 +125,7 @@ rows <- lapply(seq_len(repetitions), function(repetition) {
       nrow(object$spectra) * ncol(object$spectra) * 8 / 1024^2,
     max_merge_block_mib =
       nrow(object$spectra) * block_size * 8 / 1024^2,
+    output_path = artifact$path,
     output_sha256 = helpers$.reference_sha256(artifact$path)
   )
 })
@@ -122,6 +139,58 @@ cat(sprintf(
   "max merge block/dense target: %.4f; median elapsed: %.3fs\n",
   max(result$max_merge_block_mib / result$modeled_dense_target_mib),
   stats::median(result$elapsed_seconds)
+))
+
+# Repeated metadata-only patch probe. Protected fingerprints must remain exact,
+# and the updater must not copy the complete metadata table.
+metadata_rows <- lapply(seq_len(repetitions), function(repetition) {
+  object <- readRDS(result$output_path[[1L]])
+  object$metadata[, `:=`(
+    library_name = NA_character_, spectrum_origin = NA_character_
+  )]
+  before <- helpers$reference_metadata_patch_fingerprint(
+    object, metadata_block = 1000L, spectral_block = block_size
+  )
+  profile <- file.path(root, sprintf("metadata-allocation-%02d.out", repetition))
+  gc(reset = TRUE)
+  Rprofmem(profile, threshold = 100000L)
+  started <- proc.time()[["elapsed"]]
+  normalized <- helpers$reference_apply_dataset_metadata(
+    object, dataset_metadata = dataset_metadata, block_size = 1000L
+  )
+  elapsed <- proc.time()[["elapsed"]] - started
+  Rprofmem(NULL)
+  after <- helpers$reference_metadata_patch_fingerprint(
+    normalized$object, metadata_block = 1000L, spectral_block = block_size
+  )
+  if (!helpers$.reference_patch_equal_fingerprint(before, after) ||
+      anyNA(normalized$object$metadata$library_name) ||
+      any(normalized$object$metadata$spectrum_origin != "Observed") ||
+      isTRUE(normalized$telemetry$metadata_full_copy)) {
+    stop("Metadata-only benchmark changed protected content", call. = FALSE)
+  }
+  allocations <- readLines(profile, warn = FALSE)
+  bytes <- suppressWarnings(as.numeric(sub(" .*", "", allocations)))
+  data.table::data.table(
+    repetition = repetition, rows = nrow(normalized$object$metadata),
+    chunks = normalized$telemetry$chunks,
+    largest_block = normalized$telemetry$largest_block,
+    elapsed_seconds = elapsed,
+    profiled_allocated_mib = sum(bytes, na.rm = TRUE) / 1024^2,
+    spectra_sha256 = after$spectra_sha256,
+    untouched_metadata_sha256 = after$untouched_metadata_sha256
+  )
+})
+metadata_result <- data.table::rbindlist(metadata_rows)
+if (data.table::uniqueN(metadata_result$spectra_sha256) != 1L ||
+    data.table::uniqueN(metadata_result$untouched_metadata_sha256) != 1L) {
+  stop("Metadata-only benchmark was not deterministic", call. = FALSE)
+}
+print(metadata_result)
+cat(sprintf(
+  "metadata patch median: %.3fs; largest block: %d rows\n",
+  stats::median(metadata_result$elapsed_seconds),
+  max(metadata_result$largest_block)
 ))
 
 # Preserve the superseded all-pairs scan as a repeated same-output benchmark.

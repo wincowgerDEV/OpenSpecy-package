@@ -2432,6 +2432,21 @@ test_that("build_lib() standardizes source keys before external lookups", {
   expect_true(all(is.na(inferred$metadata$library_name)))
 })
 
+test_that("build_lib() retains populated library names and fills only blanks", {
+  metadata <- data.table::data.table(
+    library_name = c(" Descriptive Source Library ", "", NA_character_),
+    organization = c("organization a", "organization b", NA_character_),
+    user_name = c("user a", "user b", "user c")
+  )
+
+  assigned <- OpenSpecy:::.lib_assign_library_name(metadata)
+
+  expect_identical(
+    assigned$library_name,
+    c("Descriptive Source Library", "organization b", "user c")
+  )
+})
+
 test_that("official library types retain source values and audit provenance fallbacks", {
   metadata <- data.table::data.table(
     library_type = c("polymers", NA, ""),

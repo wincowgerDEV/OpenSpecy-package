@@ -1,5 +1,11 @@
 # OpenSpecy 2.0.3
 
+- Official reference metadata now uses a tracked dataset dictionary to provide
+  every spectrum with a descriptive `library_name` and an exact
+  `spectrum_origin` of `Observed` or `Computed`. A signed metadata-only child
+  release workflow can apply small metadata corrections to completed libraries
+  without rerunning spectra, pruning, medoids, or models; the same rules are
+  applied at dataset-local promotion in future full builds.
 - Official `build_lib()` runs can now use `artifact_scope = "libraries"` to
   checkpoint and promote raw, derivative, no-baseline, assessments, and
   quarantine artifacts without creating medoid, model, or legacy-comparison

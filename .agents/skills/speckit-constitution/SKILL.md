@@ -46,6 +46,10 @@ workflow preferences that should survive individual features.
    retained-row-only binding, by-reference blank-column removal, exact
    equivalence, and a repeated allocation benchmark. Keep observed row counts
    and memory peaks in the active plan.
+   Treat a post-join metadata-only reference patch as an immutable child
+   release: require complete tracked dataset-key coverage, signed parent/rule
+   inputs, target-only deltas with exact spectral/structural preservation, and
+   dataset-local adoption before the next full build retires that migration.
 6. Use the system `skill-creator` workflow for new skills. If its Python
    initializer is unavailable after executable discovery, create only the
    required `SKILL.md` (add `agents/openai.yaml` for Codex display metadata

@@ -443,8 +443,9 @@ while the NIR interval is derived from finite coverage within 4000--12000.
 Assessments use five ordered process lists:
 \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 \code{functionality}, with no more than ten nonempty review tables in total.
-Every spectrum receives a derived \code{library_name}: populated
-\code{organization} first, otherwise \code{user_name}. The cleanup summary
+Every spectrum receives a \code{library_name}: a populated source value is
+retained, with blank values filled from \code{organization} and then
+\code{user_name}. The cleanup summary
 includes source-library counts at each major stage and identifies the first
 stage and reason whenever an entire source library is dropped. Accuracy
 tables contain overall aggregate metrics only in long form, confusion tables

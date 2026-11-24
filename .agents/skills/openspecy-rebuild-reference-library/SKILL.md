@@ -160,6 +160,28 @@ RDS shards immediately. Freeze every shard's count, bytes, and SHA-256 in a v3
 index; verify hashes before and after release copying, and derive review CSVs
 from the balanced ledger without loading all payload spectra.
 
+## Metadata-Only Child Releases
+
+Use a metadata-only child release instead of a full rebuild only when every
+change is confined to named metadata fields. Freeze the parent pointer, index,
+typed and aggregate hashes, admitted manifest, tracked dataset dictionary,
+ordered rule/code hashes, output target, metadata block, fingerprint block,
+memory/disk limits, and progress/stop boundaries. Never modify the parent.
+
+Process one typed artifact at a time and write a new signature-named release.
+Require complete source-dataset key coverage, nonblank canonical values, exact
+allowed-value validation, and strong before/after evidence that wavenumbers,
+spectra, column IDs, row order, object attributes, and every untargeted metadata
+field are unchanged. Re-read and validate every typed artifact and aggregate
+bundle, rehash the unchanged quarantine/disposition references, and prohibit
+filtering, reassignment, pruning, medoid selection, or model fitting.
+
+Add each patch rule to dataset-local artifact promotion before the next full
+build. The regular final join validates those values and does not repair them.
+Keep the post-join script as a generic migration mechanism, but remove a
+release-specific rule once all newly built dataset artifacts natively satisfy
+it.
+
 ## Frozen Positive Controls
 
 Pin input maps, truth, eligibility/exclusions, artifacts, code, and every

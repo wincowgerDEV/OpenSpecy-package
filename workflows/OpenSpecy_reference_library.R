@@ -83,6 +83,12 @@ admitted <- manifest[state == "admitted"]
 if (!nrow(admitted) || !identical(admitted$output_path, intake$files)) {
   stop("Intake validation and admitted manifest order differ", call. = FALSE)
 }
+dataset_metadata <- reference_dataset_metadata(
+  admitted = admitted,
+  dictionary_path = file.path(
+    package_dir, "workflows", "data", "reference_dataset_metadata.csv"
+  )
+)
 output_dir <- Sys.getenv(
   "OPENSPECY_REFERENCE_OUTPUT_DIR",
   unset = file.path(rawrefdata_dir, "updatedv1", "Processed",
@@ -133,6 +139,10 @@ contract <- reference_freeze_overhaul_contract(
 
 message("OpenSpecy staged reference-library overhaul")
 message("  Manifest-admitted sources: ", nrow(admitted))
+message("  Canonical library names: ", nrow(dataset_metadata),
+        " (", sum(dataset_metadata$spectrum_origin == "Observed"),
+        " Observed; ", sum(dataset_metadata$spectrum_origin == "Computed"),
+        " Computed)")
 message("  Output root: ", output_dir)
 message("  Previous-library comparator: ", comparator_dir)
 message("  Frozen contract: ", contract$signature)
@@ -180,6 +190,7 @@ for (i in seq_len(nrow(admitted))) {
     source_spectra = intake$validation[
       match(admitted$slug[[i]], slug), spectra
     ],
+    dataset_metadata = dataset_metadata[slug == admitted$slug[[i]]],
     progress = TRUE
   )
   gc(verbose = FALSE, full = TRUE)

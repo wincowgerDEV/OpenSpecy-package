@@ -491,8 +491,9 @@
 #' Assessments use five ordered process lists:
 #' \code{cleanup}, \code{ref_lib}, \code{medoid}, \code{model}, and
 #' \code{functionality}, with no more than ten nonempty review tables in total.
-#' Every spectrum receives a derived \code{library_name}: populated
-#' \code{organization} first, otherwise \code{user_name}. The cleanup summary
+#' Every spectrum receives a \code{library_name}: a populated source value is
+#' retained, with blank values filled from \code{organization} and then
+#' \code{user_name}. The cleanup summary
 #' includes source-library counts at each major stage and identifies the first
 #' stage and reason whenever an entire source library is dropped. Accuracy
 #' tables contain overall aggregate metrics only in long form, confusion tables
@@ -3956,19 +3957,22 @@ lib_metadata_name_lookup <- function(..., regex = NULL, defaults = TRUE,
       rep(NA_character_, nrow(metadata))
     }
   }
+  library_name <- value("library_name")
   organization <- value("organization")
   user_name <- value("user_name")
-  blank <- is.na(organization) | !nzchar(organization)
-  organization[blank] <- user_name[blank]
-  blank <- is.na(organization) | !nzchar(organization)
-  organization[blank] <- NA_character_
-  organization
+  blank <- is.na(library_name) | !nzchar(library_name)
+  library_name[blank] <- organization[blank]
+  blank <- is.na(library_name) | !nzchar(library_name)
+  library_name[blank] <- user_name[blank]
+  blank <- is.na(library_name) | !nzchar(library_name)
+  library_name[blank] <- NA_character_
+  library_name
 }
 
 .lib_assign_library_name <- function(metadata) {
   metadata <- data.table::as.data.table(metadata)
-  organization <- .lib_library_name_values(metadata)
-  data.table::set(metadata, j = "library_name", value = organization)
+  library_name <- .lib_library_name_values(metadata)
+  data.table::set(metadata, j = "library_name", value = library_name)
   metadata
 }
 

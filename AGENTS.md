@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 Use `.specify/memory/constitution.md` as durable project memory and the active
 concise feature plan as the implementation brief. Default Spec Kit workflow:
-the active plan is `specs/058-staged-reference-library-overhaul/plan.md`;
+the active plan is `specs/059-reference-library-metadata-patches/plan.md`;
 create or update one `plan.md` under `specs/<feature>/`; keep it under 100
 nonblank lines and target 1,500 words, with goals, requirements, technical
 decisions, package surfaces, a short work checklist, verification, and open
@@ -92,7 +92,17 @@ process one file-backed recipe/block at a time, promote ordinary RDS recipes
 sequentially, and store removed spectra in hashed `OpenSpecy` shards whose
 counts balance the ledger. Freeze the large-build trigger and global
 `prune_lib()` enablement separately from source-local identity deduplication;
-and restate those settings in the handoff. Frozen holdout work must
+and restate those settings in the handoff. Canonical app-facing dataset
+metadata must come from a tracked slug-keyed dictionary: every released row
+has a descriptive nonblank `library_name` plus exact `Observed`/`Computed`
+provenance while detailed origin remains available. Metadata-only corrections
+may create a signed immutable child release without spectral rebuilding only
+when parent/artifact/mapping/code hashes are frozen, target-only deltas and
+exact spectra/axes/IDs/attributes/untouched metadata are proved, all outputs
+re-read cleanly, and no filtering, pruning, medoid, or model work occurs. Add
+each patch rule at the dataset-local artifact boundary before the next full
+build; the regular final join validates but never repairs it, and retire the
+release-specific migration once all dataset artifacts are native. Frozen holdout work must
 pin inputs, truth, artifacts, and output-determining controls, return through
 compatibility/probe gates after
 any invalidating change, and never tune a candidate on the same holdout. The

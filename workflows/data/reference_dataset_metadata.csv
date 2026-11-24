@@ -1,0 +1,69 @@
+slug,library_name
+raspi_rampi,Raman Spectra and Maps for Plastics Identification
+ftir_plastics_c4_c8,Industrial Plastic Polymers - Fourier-transform Infrared Spectra
+textile_fibres,Natural and Man-made Textile Fibres - Infrared Spectra
+api_raman,Active Pharmaceutical Ingredients - Raman Spectra
+usgs_v7,United States Geological Survey Spectral Library Version 7
+blop,Bioplastic Library of Polymers
+infra_art,Art Reference Materials - Fourier-transform Infrared Spectra
+ramanbiolib,Biomolecules - Open Raman Spectral Library
+mlrod,Machine Learning Raman Open Dataset
+crd,Computed Raman Database
+canepa_inorganic,Computed Inorganic Compounds - Raman and Infrared Spectra
+wurm,Computed Mineral Physical Data - Raman and Infrared Spectra
+qm9s,QM9 Molecules - Computed Molecular Spectra
+qme14s,QM14S Molecules - TranSpec Computed Infrared Subset
+raman_ir_chembl,ChEMBL Molecules - Computed Raman and Infrared Spectra
+squirl,QM9 Molecules - Calculated Infrared Spectral Library
+rxn4chemistry,Patent-derived Molecules - Computed Infrared Spectra
+ir_nmr_177k,"177,000 Patent-derived Molecules - Computed Infrared Spectra"
+mve,Molecular Vibration Explorer
+legacy_ftir_aline,Aline Carvalho Polymers - Fourier-transform Infrared Library
+legacy_ftir_beautyetal,Beauty et al. Polymers - Fourier-transform Infrared Library
+legacy_ftir_flopp,De Frond Polymer Particles - Fourier-transform Infrared Library
+legacy_ftir_hida,High-throughput Identification Array - Fourier-transform Infrared Library
+legacy_ftir_nist_jdx,National Institute of Standards and Technology Chemistry WebBook - Infrared Library
+legacy_ftir_polymerkit,Hawai'i Pacific University Polymer Kit 1.0 - Fourier-transform Infrared
+legacy_ftir_primpke,Primpke et al. Polymer Library - Fourier-transform Infrared
+legacy_ftir_rruff,RRUFF Minerals - Fourier-transform Infrared Library
+legacy_ftir_archaeometrie,Archaeometrie Laboratory Glues Gums and Resins - Fourier-transform Infrared
+legacy_ftir_kimmel_center,Kimmel Center Natural and Biogenic Materials - Fourier-transform Infrared
+legacy_ftir_pslc,Polymer Science Learning Center Organic Chemistry - Fourier-transform Infrared
+legacy_ftir_rruff_spectragryph,RRUFF Minerals - Fourier-transform Infrared Spectragryph Export
+legacy_ftir_swgdrug,Scientific Working Group for the Analysis of Seized Drugs - Fourier-transform Infrared
+legacy_ftir_suja_thermo,Suja Sukumaran and Thermo Fisher Scientific - Fourier-transform Infrared
+legacy_ftir_usda,United States Department of Agriculture Soil - Fourier-transform Infrared
+legacy_raman_cabernard,Cabernard Polymers - Raman Library
+legacy_raman_crystallography,Raman Open Database - Crystallography Subset
+legacy_raman_handbook,Handbook of Raman Spectra - Minerals
+legacy_raman_horiba,Horiba Scientific Polymers - Raman Library
+legacy_raman_jenn_lynch,Jenn Lynch and Hawai'i Pacific University Polymers - Raman Library
+legacy_raman_known_uploads,Known Open Specy User Uploads - Raman Library
+legacy_raman_rochman_slopp,Munno et al. Plastic Particles - Raman Library
+legacy_raman_rruff,RRUFF Minerals - Raman Library
+legacy_raman_carbohydrates,Carbohydrates - Raman Library
+legacy_raman_chsos,Cultural Heritage Science Open Source Pigments - Raman Library
+legacy_raman_pharm_excipients,Pharmaceutical Excipients - Raman Library
+legacy_raman_rruff_3087,"RRUFF Minerals - Raman Spectragryph Export 3,087"
+legacy_raman_rruff_5185,"RRUFF Excellent Minerals - Raman Spectragryph Export 5,185"
+legacy_raman_ucl_pigments,University College London Pigments - Raman Library
+legacy_ftir_argiro,Argiro Microplastics - Fourier-transform Infrared Library
+legacy_ftir_elise_g,Elise G Material References - Fourier-transform Infrared Library
+legacy_ftir_gicquel,Gicquel Synthetic Microplastics - Computed Fourier-transform Infrared
+legacy_ftir_julia,Lake Tahoe Submerged Plastic Particles - Fourier-transform Infrared
+legacy_ftir_mippr,Moore Institute for Plastic Pollution Research - Fourier-transform Infrared Collection
+legacy_ftir_nico,Nico Reference Collection - Fourier-transform Infrared
+legacy_ftir_nrel,National Renewable Energy Laboratory Polymer Standards - Fourier-transform Infrared
+legacy_ftir_plopp,Paint and Binder Spectral Library - Fourier-transform Infrared
+legacy_ftir_rachel_kozloski,Rachel Kozloski Biofouled Polymers - Fourier-transform Infrared
+legacy_mixed_robin_mpx,Robin Reference Spectral Database
+legacy_raman_ocean_microplastics,Ocean Microplastics - Raman Library
+legacy_raman_oskar,Oskar Polyvinylidene Fluoride - Raman Library
+legacy_raman_walters_art,Walters Art Museum - Raman Library
+legacy_raman_pigments,Pigments - Raman Library
+legacy_raman_polymerkit_hpu,Hawai'i Pacific University Polymer Kit 1.0 - Raman
+legacy_raman_rochman_extra,Rochman Laboratory Supplemental Spectra - Raman
+legacy_raman_romanian,Romanian Minerals - Raman Library
+legacy_raman_rruff_lr,RRUFF Minerals - Low-resolution Raman Library
+legacy_raman_ucr,University of California Riverside - Raman Reference Set
+legacy_raman_weathered,Naturally Weathered Microplastics - Raman Library
