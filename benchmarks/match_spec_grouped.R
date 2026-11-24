@@ -55,6 +55,18 @@ legacy_ungrouped <- function() {
 }
 current_ungrouped <- function() match_spec(query, library, top_n = 2L)
 
+# The previous explicit batch path passed no progress callback.
+legacy_batched <- function() {
+  OpenSpecy:::.match_spec_blockwise(query, library, top_n = 2L, block_size = 30L)
+}
+current_batched <- function() {
+  lines <- capture.output(
+    result <- match_spec(query, library, top_n = 2L, batch_size = 30L)
+  )
+  stopifnot(length(lines) == ceiling(n_query / 30L))
+  result
+}
+
 stopifnot(isTRUE(all.equal(
   legacy_grouped(), current_grouped(), tolerance = 1e-12,
   check.attributes = FALSE
@@ -63,6 +75,7 @@ stopifnot(isTRUE(all.equal(
   legacy_ungrouped(), current_ungrouped(), tolerance = 1e-12,
   check.attributes = FALSE
 )))
+stopifnot(identical(legacy_batched(), current_batched()))
 
 elapsed <- function(fun, n = 5L) {
   replicate(n, unname(system.time(invisible(fun()))[["elapsed"]]))
@@ -71,16 +84,29 @@ grouped_old <- elapsed(legacy_grouped)
 grouped_new <- elapsed(current_grouped)
 ungrouped_old <- elapsed(legacy_ungrouped)
 ungrouped_new <- elapsed(current_ungrouped)
+# Time several searches per sample so one timer tick cannot dominate the result.
+batch_timings <- vapply(seq_len(9L), function(i) {
+  methods <- list(legacy = legacy_batched, console = current_batched)
+  if (i %% 2L == 0L) methods <- rev(methods)
+  totals <- vapply(methods, function(fun) {
+    system.time(for (j in seq_len(5L)) fun())[["elapsed"]]
+  }, numeric(1L))
+  totals[c("legacy", "console")]
+}, numeric(2L))
+batched <- apply(batch_timings, 1L, median) / 5
 
 result <- data.frame(
   route = c("grouped legacy split", "grouped current",
-            "ungrouped legacy", "ungrouped current"),
+            "ungrouped legacy", "ungrouped current",
+            "batched legacy", "batched console"),
   median_seconds = c(stats::median(grouped_old), stats::median(grouped_new),
-                     stats::median(ungrouped_old), stats::median(ungrouped_new))
+                     stats::median(ungrouped_old), stats::median(ungrouped_new),
+                     batched[1L], batched[2L])
 )
 print(result, row.names = FALSE)
 stopifnot(stats::median(ungrouped_new) <=
             stats::median(ungrouped_old) * 1.10)
+stopifnot(batched[2L] <= batched[1L] * 1.10)
 cat(sprintf(
   "Grouped result rows: %d; maximum score block: %.2f MiB\n",
   n_query * n_groups * 2L,

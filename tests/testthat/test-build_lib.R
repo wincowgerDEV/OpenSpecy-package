@@ -3678,29 +3678,22 @@ test_that("file-backed pruning matches prune_lib and quarantines removals", {
   expect_equal(object$wavenumber, expected$object$wavenumber)
   expect_equal(object$spectra, expected$object$spectra, tolerance = 0)
   expect_equal(object$metadata, expected$object$metadata, tolerance = 0)
-  expect_equal(
-    observed$reassignments[order(spectrum_id)],
-    expected$reassignments[order(spectrum_id)], tolerance = 0
-  )
-  expect_equal(
-    observed$generic_reassignment_audit[order(spectrum_id)],
-    expected$generic_reassignment_audit[order(spectrum_id)], tolerance = 0
-  )
-  observed_removals <- observed$removals[order(spectrum_id)]
-  expected_removals <- expected$removals[order(spectrum_id)]
-  audit_columns <- setdiff(names(expected_removals), "correlation")
-  expect_equal(
-    observed_removals[, ..audit_columns],
-    expected_removals[, ..audit_columns], tolerance = 0
-  )
-  # The bounded file-backed GEMM has a different output width from the
-  # resident all-library GEMM, so its recorded audit score may differ only in
-  # the last floating-point bits even when the exact winner is unchanged.
-  expect_equal(
-    observed_removals$correlation,
-    expected_removals$correlation,
-    tolerance = sqrt(.Machine$double.eps)
-  )
+  # Bounded and resident matrix products can round the same score differently.
+  for (field in c("reassignments", "generic_reassignment_audit", "removals")) {
+    observed_audit <- observed[[field]][order(spectrum_id)]
+    expected_audit <- expected[[field]][order(spectrum_id)]
+    expect_identical(names(observed_audit), names(expected_audit))
+    audit_columns <- setdiff(names(expected_audit), "correlation")
+    expect_equal(
+      observed_audit[, ..audit_columns],
+      expected_audit[, ..audit_columns], tolerance = 0
+    )
+    observed_score <- observed_audit$correlation
+    expected_score <- expected_audit$correlation
+    expect_identical(is.na(observed_score), is.na(expected_score))
+    finite <- !is.na(expected_score)
+    expect_lte(max(0, abs(observed_score[finite] - expected_score[finite])), 1e-12)
+  }
   expect_identical(
     quarantine$manifest$removed_spectra, as.integer(nrow(observed$removals))
   )

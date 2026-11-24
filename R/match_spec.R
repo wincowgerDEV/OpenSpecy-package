@@ -50,6 +50,12 @@
 #' requires a finite \code{top_n}; \code{NULL} preserves the ordinary dense
 #' correlation path unless \code{top_n_by} requires grouped matching. It is not
 #' supported for trained model libraries.
+#' @param progress for batched spectral matching, \code{TRUE} prints a console
+#' line after each batch with the count, elapsed time, and estimated time
+#' remaining. It defaults to \code{TRUE} when \code{batch_size} is supplied.
+#' Set \code{FALSE} or \code{NULL} for quiet operation, or pass a callback
+#' accepting \code{completed_blocks} and \code{total_blocks} to report
+#' progress elsewhere.
 #' @param cor_matrix a correlation matrix for object and library,
 #' can be returned by \code{cor_spec()}
 #' @param order an \code{OpenSpecy} used for sorting, ideally the unprocessed
@@ -360,6 +366,19 @@ cor_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
   do.call(progress, args)
 }
 
+.match_console_progress <- function() {
+  started <- proc.time()[["elapsed"]]
+  function(completed_blocks, total_blocks) {
+    elapsed <- proc.time()[["elapsed"]] - started
+    remaining <- elapsed * (total_blocks - completed_blocks) / completed_blocks
+    cat(sprintf(
+      "match_spec: batch %d/%d | elapsed %.1f s | ETA %.1f s\n",
+      completed_blocks, total_blocks, elapsed, remaining
+    ))
+    utils::flush.console()
+  }
+}
+
 .blockwise_retained_capacity <- function(query_count, top_n,
                                          bytes_per_row = 32) {
   rows <- as.double(query_count) * as.double(top_n)
@@ -492,7 +511,8 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                                  add_library_metadata = NULL,
                                  add_object_metadata = NULL, 
                                  compute = "optimized",
-                                 fill = NULL, ...) {
+                                 fill = NULL, ...,
+                                 progress = !is.null(batch_size)) {
   .validate_grouped_top_n(top_n, top_n_by)
   batch_size <- .validate_match_batch_size(batch_size)
   if(is_OpenSpecy(library)) {
@@ -510,10 +530,12 @@ match_spec.OpenSpecy <- function(x, library, na.rm = T, conform = F,
                    add_library_metadata = add_library_metadata,
                    add_object_metadata = add_object_metadata)
     } else {
+      if (isTRUE(progress)) progress <- .match_console_progress()
+      if (identical(progress, FALSE)) progress <- NULL
       res <- .match_spec_blockwise(
         x, library = library, top_n = top_n, top_n_by = top_n_by,
         block_size = if (is.null(batch_size)) 1000L else batch_size,
-        na.rm = na.rm, conform = conform, type = type, ...
+        na.rm = na.rm, conform = conform, type = type, progress = progress, ...
       )
       res <- .append_match_metadata(
         res, x, library, add_library_metadata, add_object_metadata

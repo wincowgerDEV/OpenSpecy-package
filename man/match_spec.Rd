@@ -58,7 +58,8 @@ match_spec(x, ...)
   add_object_metadata = NULL,
   compute = "optimized",
   fill = NULL,
-  ...
+  ...,
+  progress = !is.null(batch_size)
 )
 
 ident_spec(
@@ -156,6 +157,13 @@ joined; \code{NULL} if you don't want to join.}
 fill missing values for alignment with AI classification. When omitted and
 the model library contains a \code{fill} object, that stored training filler
 is used. Finite query values replace the filler; query \code{NA}s do not.}
+
+\item{progress}{for batched spectral matching, \code{TRUE} prints a console
+line after each batch with the count, elapsed time, and estimated time
+remaining. It defaults to \code{TRUE} when \code{batch_size} is supplied.
+Set \code{FALSE} or \code{NULL} for quiet operation, or pass a callback
+accepting \code{completed_blocks} and \code{total_blocks} to report
+progress elsewhere.}
 
 \item{cor_matrix}{a correlation matrix for object and library,
 can be returned by \code{cor_spec()}}

@@ -1517,7 +1517,7 @@ plot.OpenSpecyParticleAnalysis <- function(x, sample = 1L, which = NULL, ...) {
   if (is_OpenSpecy(library)) {
     matches <- match_spec(
       proc_map, library, top_n = 1L, batch_size = 1000L,
-      compute = "optimized"
+      compute = "optimized", progress = FALSE
     )
     row_order <- match(colnames(proc_map$spectra), matches$object_id)
     proc_map$metadata$max_cor_val <- matches$match_val[row_order]

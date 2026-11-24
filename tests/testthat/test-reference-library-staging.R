@@ -10,14 +10,17 @@ reference_staging_helpers <- local({
   if (!length(existing)) {
     NULL
   } else {
+    staging_path <- normalizePath(existing[[1L]], winslash = "/", mustWork = TRUE)
+    workflow_root <- dirname(staging_path)
     helper_environment <- new.env(parent = environment())
-    sys.source(existing[[1L]], envir = helper_environment)
+    sys.source(staging_path, envir = helper_environment)
     patch_path <- file.path(
-      dirname(existing[[1L]]), "patch_reference_library_metadata.R"
+      workflow_root, "patch_reference_library_metadata.R"
     )
     if (file.exists(patch_path)) {
       sys.source(patch_path, envir = helper_environment)
     }
+    attr(helper_environment, "workflow_root") <- workflow_root
     helper_environment
   }
 })
@@ -123,7 +126,7 @@ test_that("final staging join retains every dataset-local spectrum", {
     staging_dataset_manifest(file.path(root, "a"), "a", first),
     staging_dataset_manifest(file.path(root, "b"), "b", second)
   )
-  withr::local_options(list(
+  old_options <- options(
     OpenSpecy.build_workers = 1L,
     OpenSpecy.source_hash_chunk_size = 2L,
     OpenSpecy.source_record_staging = TRUE,
@@ -136,7 +139,8 @@ test_that("final staging join retains every dataset-local spectrum", {
     OpenSpecy.metadata_join_report_value_limit = 2L,
     OpenSpecy.recipe_record_staging = TRUE,
     OpenSpecy.recipe_chunk_size = 2L
-  ))
+  )
+  on.exit(options(old_options), add = TRUE)
 
   result <- reference_staging_helpers$reference_join_dataset_manifests(
     manifests, output_dir = file.path(root, "final"), progress = FALSE
@@ -332,10 +336,7 @@ test_that("metadata-only child releases preserve protected OpenSpecy content", {
       "Computed Minerals Reference Library"
     )
   ), dictionary_path)
-  workflow_root <- normalizePath(
-    testthat::test_path("..", "..", "workflows"),
-    winslash = "/", mustWork = TRUE
-  )
+  workflow_root <- attr(reference_staging_helpers, "workflow_root")
   child_root <- file.path(root, "child")
   contract <- reference_staging_helpers$reference_freeze_metadata_patch_contract(
       parent_pointer_path = pointer_path,

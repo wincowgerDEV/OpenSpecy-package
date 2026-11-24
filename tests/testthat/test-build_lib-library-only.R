@@ -132,7 +132,7 @@ test_that("library scope completes a forced file-backed build without models", {
   output_dir <- file.path(
     tempdir(), paste0("library-only-staged-", sample.int(1e8, 1))
   )
-  withr::local_options(list(
+  old_options <- options(
     OpenSpecy.build_workers = 1L,
     OpenSpecy.source_hash_chunk_size = 2L,
     OpenSpecy.source_record_staging = TRUE,
@@ -146,7 +146,8 @@ test_that("library scope completes a forced file-backed build without models", {
     OpenSpecy.recipe_record_staging = TRUE,
     OpenSpecy.recipe_chunk_size = 2L,
     OpenSpecy.staged_completion_threshold = 1L
-  ))
+  )
+  on.exit(options(old_options), add = TRUE)
 
   result <- suppressWarnings(build_lib(
     input_path,

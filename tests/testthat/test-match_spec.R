@@ -665,7 +665,7 @@ test_that("blockwise top matches equal full correlation and identification", {
     expect_identical(unique(actual$object_id), colnames(query$spectra))
 
     public <- match_spec(
-      query, library, top_n = top_n, batch_size = 2L
+      query, library, top_n = top_n, batch_size = 2L, progress = FALSE
     )
     expect_equal(public, expected)
   }
@@ -697,6 +697,47 @@ test_that("match_spec batch_size validates bounded spectral matching", {
   )
 })
 
+test_that("explicit match_spec batches print progress unless overridden", {
+  batch_size <- 2L
+  total <- as.integer(ceiling(ncol(tiny_map$spectra) / batch_size))
+  lines <- capture.output(
+    reported <- match_spec(tiny_map, test_lib, top_n = 1L,
+                           batch_size = batch_size)
+  )
+  expect_identical(
+    sub(" \\| elapsed.*$", "", lines),
+    sprintf("match_spec: batch %d/%d", seq_len(total), total)
+  )
+  expect_true(all(grepl("elapsed [0-9.]+ s \\| ETA [0-9.]+ s$", lines)))
+  expect_match(tail(lines, 1L), "ETA 0.0 s", fixed = TRUE)
+
+  expect_output(
+    quiet <- match_spec(tiny_map, test_lib, top_n = 1L,
+                        batch_size = batch_size, progress = FALSE),
+    NA
+  )
+  expect_output(
+    null <- match_spec(tiny_map, test_lib, top_n = 1L,
+                       batch_size = batch_size, progress = NULL),
+    NA
+  )
+  updates <- integer()
+  expect_output(
+    custom <- match_spec(
+      tiny_map, test_lib, top_n = 1L, batch_size = batch_size,
+      progress = function(completed_blocks, total_blocks) {
+        expect_identical(total_blocks, total)
+        updates <<- c(updates, completed_blocks)
+      }
+    ),
+    NA
+  )
+  expect_identical(updates, seq_len(total))
+  expect_identical(reported, quiet)
+  expect_identical(reported, null)
+  expect_identical(reported, custom)
+})
+
 test_that("grouped matching retains Top N independently per library group", {
   library <- as_OpenSpecy(
     1:5,
@@ -722,8 +763,25 @@ test_that("grouped matching retains Top N independently per library group", {
     compute_file_id = FALSE
   )
 
-  actual <- match_spec(query, library, top_n = 1L,
-                       top_n_by = "organization")
+  expect_output(
+    actual <- match_spec(query, library, top_n = 1L, top_n_by = "organization"),
+    NA
+  )
+  grouped_lines <- capture.output(
+    grouped_reported <- match_spec(
+      query, library, top_n = 1L, top_n_by = "organization",
+      batch_size = 1L
+    )
+  )
+  expect_identical(
+    sub(" \\| elapsed.*$", "", grouped_lines),
+    sprintf("match_spec: batch %d/4", 1:4)
+  )
+  grouped_quiet <- match_spec(
+    query, library, top_n = 1L, top_n_by = "organization",
+    batch_size = 1L, progress = NULL
+  )
+  expect_identical(grouped_reported, grouped_quiet)
   expect_identical(actual$object_id, c("up", "up", "down", "down"))
   expect_identical(actual$library_id,
                    c("a_first", "b_peak", "b_reverse", "a_first"))

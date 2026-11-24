@@ -277,30 +277,33 @@ test_that("local and hosted modes render exactly one upload control", {
   sys.source(file.path(app_path, "global.R"), envir = env)
   Sys.unsetenv("OPENSPECY_SHINY_WASM")
 
-  render_mode <- function(wasm) {
+  render_mode <- function(wasm, native_dialog) {
     options(openspecy.shiny.wasm = wasm)
+    ui_env <- new.env(parent = env)
+    # Exercise the controls without initializing Tk on a headless runner.
+    ui_env$app_native_dialog_available <- function() native_dialog
     as.character(source(file.path(app_path, "ui.R"),
-                        local = new.env(parent = env))$value)
+                        local = ui_env)$value)
   }
-  local_html <- render_mode(FALSE)
-  hosted_html <- render_mode(TRUE)
+  native_html <- render_mode(FALSE, TRUE)
+  filesystem_html <- render_mode(FALSE, FALSE)
+  hosted_html <- render_mode(TRUE, TRUE)
 
-  if(env$app_native_dialog_available()) {
-    expect_match(local_html, 'id="local_native_files"', fixed = TRUE)
-    expect_false(grepl('id="local_files"', local_html, fixed = TRUE))
-  } else {
-    expect_match(local_html, 'id="local_files"', fixed = TRUE)
-    expect_false(grepl('id="local_native_files"', local_html, fixed = TRUE))
+  expect_match(native_html, 'id="local_native_files"', fixed = TRUE)
+  expect_false(grepl('id="local_files"', native_html, fixed = TRUE))
+  expect_match(filesystem_html, 'id="local_files"', fixed = TRUE)
+  expect_false(grepl('id="local_native_files"', filesystem_html, fixed = TRUE))
+  for (local_html in c(native_html, filesystem_html)) {
+    expect_length(
+      regmatches(local_html, gregexpr("Choose spectra...", local_html,
+                                      fixed = TRUE))[[1L]],
+      1L
+    )
+    expect_match(local_html, 'id="openspecy_local_file_count"', fixed = TRUE)
+    expect_match(local_html, "No files uploaded", fixed = TRUE)
+    expect_false(grepl('id="upload_status"', local_html, fixed = TRUE))
+    expect_false(grepl("openspecy_workerfs_files", local_html, fixed = TRUE))
   }
-  expect_length(
-    regmatches(local_html, gregexpr("Choose spectra...", local_html,
-                                    fixed = TRUE))[[1L]],
-    1L
-  )
-  expect_match(local_html, 'id="openspecy_local_file_count"', fixed = TRUE)
-  expect_match(local_html, "No files uploaded", fixed = TRUE)
-  expect_false(grepl('id="upload_status"', local_html, fixed = TRUE))
-  expect_false(grepl("openspecy_workerfs_files", local_html, fixed = TRUE))
   expect_false(grepl('id="local_files"', hosted_html, fixed = TRUE))
   expect_false(grepl('id="local_native_files"', hosted_html, fixed = TRUE))
   expect_match(hosted_html, 'id="openspecy_workerfs_files"', fixed = TRUE)

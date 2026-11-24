@@ -1,5 +1,8 @@
 # OpenSpecy 2.0.3
 
+- `match_spec()` now prints one console line per completed batch when
+  `batch_size` is supplied, including elapsed time and an ETA. Pass
+  `progress = FALSE` to run quietly.
 - `read_h5()` and the bundled Shiny app detect vendor-declared H5 particle
   acquisitions and import one mean spectrum per region at its stage centroid.
   A downsampled mosaic overview retains the optical context and its stage
