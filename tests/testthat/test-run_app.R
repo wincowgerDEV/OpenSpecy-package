@@ -1070,19 +1070,15 @@ test_that("bundled app uses collapsed responsive panels and one shared theme", {
   expect_match(server_source,
                'result$diagnostics$check == "high_tail"', fixed = TRUE)
   expect_match(
-    server_source,
-    'outputOptions(output, "download_ui", suspendWhenHidden = FALSE)',
+    ui_source, '"download_selection", "Download type",',
     fixed = TRUE
   )
-  download_ui <- sub(
-    ".*output\\$download_ui <- renderUI\\(\\{",
-    "",
-    server_source
+  expect_match(
+    server_source,
+    'updateSelectInput(session, "download_selection",\n                      choices = choice_names, selected = selected)',
+    fixed = TRUE
   )
-  download_ui <- sub("observeEvent\\(input\\$download_selection,.*", "",
-                     download_ui)
-  expect_match(download_ui, "selectInput(", fixed = TRUE)
-  expect_false(grepl("footnote(", download_ui, fixed = TRUE))
+  expect_false(grepl('uiOutput("download_ui")', ui_source, fixed = TRUE))
 })
 
 test_that("bundled app keeps disabled child controls out of analysis dependencies", {

@@ -70,3 +70,15 @@
 
 - Approved by: user request, 2026-08-21.
 - Follow-up: maintainer push is required to obtain the final Actions deployment result; remote synchronization was not authorized.
+
+## November 24 download smoke follow-up
+
+- Hosted CI follow-up. Run 45512587902 at `dfaf473` built and validated the Pages site, then timed out waiting for the Raman download selector to switch from User Metadata to Top Matches.
+- [x] Locate the failed step and freeze the matching wasm artifact from run 45511771549.
+- [x] Reproduce the failure with the pinned runtime. User Metadata persisted at 45 seconds even though Raman matches were visible.
+- [x] Keep the download selector mounted and publish its choices and selection in one update from the committed Run. Update the pipeline diagram's Download: Top Matches node.
+- [x] Run the fast hosted gate and verify the nested-frame journey, including genuine Raman and map exports.
+- The root landing page, `/app/`, `/pkgdown/`, and dependency and library pins remain the assembly contract. Generated output goes under ignored `_wasm/`.
+- Download state follows the existing Run lifecycle. No upload offers test data and metadata. A staged upload clears result choices. While Run is processing, the busy overlay owns the interaction. A successful Run selects Thresholded Particles for collapsed maps or Top Matches for identification. Subsequent menu updates preserve a valid user selection. A failed Run has no committed result choices and retains Run for retry. Native download handlers continue to read the same canonical OpenSpecy result.
+- Windows `run_app` and hosted contracts passed 1,072 and 391 assertions respectively. Local Chromium verified the default, a genuine SpecyPro export, and preservation of Processed Spectra when SpecyPro becomes unavailable. The hosted journey passed in 4.0 minutes with the patched app source, the 119-package wasm artifact at `dfaf473`, and the same four dated library revisions as CI. The 151,830,778 byte site passed assembly checks. Reviewed desktop, expanded, mobile, and local download-panel screenshots. Evidence is in ignored `_wasm/dfaf473-deploy-diagnosis`.
+- GitHub still needs a run from a commit containing the app-source fix. The pinned package, build driver, dependencies, and publication workflow require no changes from this follow-up.

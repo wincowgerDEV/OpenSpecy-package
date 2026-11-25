@@ -4794,31 +4794,40 @@ output$progress_bars <- renderUI({
     )
   }
 
-  # Data Download options ----
-  # Progress Bars
-  output$download_ui <- renderUI({
+  # Keep the Selectize binding mounted while the available downloads change.
+  # Publish the choices and contextual selection together once Run settles.
+  previous_download_menu <- NULL
+  observe({
+    req(!isTRUE(analysis_running()))
     state <- canonical_state()
+    has_upload <- !is.null(preprocessed$data)
+    has_result <- has_upload && !is.null(state$object)
     choice_names <- app_download_choices(
-      has_upload = !is.null(preprocessed$data),
-      identification = !is.null(preprocessed$data) &&
-        !is.null(state$object) &&
-        isTRUE(state$settings$identification_active),
-      collapse = isTRUE(state$settings$collapse) && !is.null(state$object),
+      has_upload = has_upload,
+      identification = has_result && isTRUE(state$settings$identification_active),
+      collapse = has_result && isTRUE(state$settings$collapse),
       compact = is_Specs(preprocessed$data),
       specypro = specypro_export_ready()
     )
+    run <- if(has_result) isolate(input$run_analysis)
+    menu <- list(choices = choice_names, run = run)
+    if(identical(menu, previous_download_menu)) return()
+
     values <- unname(choice_names)
+    preferred <- intersect(c("Thresholded Particles", "Top Matches"), values)
     current <- isolate(input$download_selection)
-    selected <- if(isTruthy(current) && current %in% values) current else
+    selected <- if(length(preferred) &&
+                   !identical(run, previous_download_menu$run)) {
+      preferred[[1L]]
+    } else if(isTruthy(current) && current %in% values) {
+      current
+    } else {
       values[[1L]]
-    selectInput(
-      inputId = "download_selection",
-      label = "Download type",
-      choices = choice_names,
-      selected = selected
-    )
+    }
+    previous_download_menu <<- menu
+    updateSelectInput(session, "download_selection",
+                      choices = choice_names, selected = selected)
   })
-  outputOptions(output, "download_ui", suspendWhenHidden = FALSE)
 
   output$specypro_download_guidance <- renderUI({
     req(identical(input$download_selection, "SpecyPro Export"))
@@ -4832,36 +4841,6 @@ output$progress_bars <- renderUI({
   outputOptions(
     output, "specypro_download_guidance", suspendWhenHidden = FALSE
   )
-
-  # Once a particle-analysis result exists, jump the download type to
-  # Thresholded Particles: it is the primary artifact for a large/collapsed
-  # run and would otherwise stay stuck on whatever was selected before the
-  # particle pipeline had a result (e.g. the initial "Test Data" default).
-  observeEvent(canonical_state()$object, {
-    state <- canonical_state()
-    req(isTRUE(state$settings$collapse), !is.null(state$object))
-    updateSelectInput(session, "download_selection",
-                      selected = "Thresholded Particles")
-  }, ignoreNULL = TRUE)
-
-  # Same "jump to the newly relevant default" treatment for identification
-  # results as the canonical particle result gets above -- without it, "User Metadata"
-  # (always a valid choice) can never be displaced once selected, even after
-  # identification produces Top Matches. particle_pipeline_enabled() is
-  # excluded so it doesn't fight the Thresholded Particles default when both
-  # are active.
-  # max_cor() re-invalidates several times while identification/library
-  # loading settle, and each invalidation carries an analysis_phase() busy
-  # message; observing it directly kept the busy overlay's idle grace timer
-  # from ever elapsing. Debouncing decouples "how often max_cor() recomputes"
-  # from "how often we push a client update", so the default jump fires once,
-  # after the result actually settles.
-  max_cor_settled <- shiny::debounce(reactive(max_cor()), 1000)
-
-  observeEvent(max_cor_settled(), {
-    req(!is.null(max_cor_settled()), !isTRUE(canonical_state()$settings$collapse))
-    updateSelectInput(session, "download_selection", selected = "Top Matches")
-  }, ignoreNULL = TRUE)
 
   observeEvent(input$download_selection, {
     label <- app_download_label(input$download_selection)

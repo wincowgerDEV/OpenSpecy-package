@@ -3308,6 +3308,15 @@ test("SpecyPro export downloads the current committed Raman result", async ({ pa
   await expectLocalPicker(page);
   const downloadSelect = page.locator("#download_selection");
   await expect(downloadSelect).toHaveCount(1, { timeout: 60000 });
+  const downloadButton = page.locator("#download_data");
+  await expect(downloadSelect).toHaveValue("Test Data");
+  await expect(downloadButton).toHaveAttribute("aria-label", "Download Test Data", {
+    timeout: 60000,
+  });
+  await downloadSelect.evaluate((select) => {
+    select.selectize.setValue("User Metadata");
+  });
+  await expect(downloadButton).toHaveText("Download User Metadata");
   await expect.poll(async () => downloadSelect.evaluate((select) =>
     Object.keys(select.selectize ? select.selectize.options : {}).includes(
       "SpecyPro Export"
@@ -3352,12 +3361,13 @@ test("SpecyPro export downloads the current committed Raman result", async ({ pa
   await waitForStableSelectizeGeneration(
     downloadSelect, "SpecyPro Export", { timeout: 180000 }
   );
+  await expect(downloadSelect).toHaveValue("Top Matches");
+  await expect(downloadButton).toHaveText("Download Top Matches");
   await downloadSelect.evaluate((select) => {
     select.selectize.setValue("SpecyPro Export");
   });
   await expect(downloadSelect).toHaveValue("SpecyPro Export");
-  await expect(page.locator("#download_data"))
-    .toHaveText("Download SpecyPro Export");
+  await expect(downloadButton).toHaveText("Download SpecyPro Export");
   await expect(page.locator(".openspecy-specypro-guidance"))
     .toContainText("sends no data");
 
@@ -3415,6 +3425,8 @@ test("SpecyPro export downloads the current committed Raman result", async ({ pa
     );
   }
 
+  await selectizeOption(page, "download_selection", "Processed Spectra");
+  await expect(downloadButton).toHaveText("Download Processed Spectra");
   await page.locator("#top_n_input").evaluate((input) => {
     input.value = "3";
     input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -3426,6 +3438,8 @@ test("SpecyPro export downloads the current committed Raman result", async ({ pa
       "SpecyPro Export"
     )
   ), { timeout: 60000 }).toBe(false);
+  await expect(downloadSelect).toHaveValue("Processed Spectra");
+  await expect(downloadButton).toHaveText("Download Processed Spectra");
   await expect(page.locator(".openspecy-specypro-guidance")).toHaveCount(0);
 
   expect(severeErrors).toEqual([]);

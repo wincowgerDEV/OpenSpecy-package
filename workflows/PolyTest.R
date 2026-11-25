@@ -1,7 +1,8 @@
 # From the package or its parent: Rscript --vanilla PolyTest.R
 # Optional arguments: derivative FTIR RDS, new output folder, unfiltered run folder.
 # Supplying the previous unfiltered run requests the faster forward-only check.
-# From RStudio: source("PolyTest.R"); result <- run_poly_test()
+# Add --balanced-seed 20261124 for an equal-size stratified bidirectional run.
+# From RStudio: source("PolyTest.R"); result <- run_poly_test(balanced_seed = 20261124)
 # Match scores are Pearson r for the cropped first derivatives.
 
 poly_log <- function(fmt, ...) {
@@ -39,6 +40,37 @@ poly_eligibility <- function(x, rows, cols, chunk_size = 25000L) {
     }
   }
   status
+}
+
+poly_balance_reference <- function(cols, libraries, target, seed) {
+  if (length(cols) < target) stop("Too few eligible computed spectra for an equal-size run.")
+  stopifnot(!anyNA(libraries), all(nzchar(trimws(libraries))))
+  groups <- split(cols, libraries)
+  available <- lengths(groups)
+  withr::with_seed(seed, {
+    allocated <- integer(length(groups))
+    remaining <- target
+    while (remaining > 0L) {
+      open <- which(allocated < available)
+      share <- remaining %/% length(open)
+      if (share == 0L) {
+        extra <- open[sample.int(length(open), remaining)]
+        allocated[extra] <- allocated[extra] + 1L
+        break
+      }
+      added <- pmin(available[open] - allocated[open], share)
+      allocated[open] <- allocated[open] + added
+      remaining <- remaining - sum(added)
+    }
+    chosen <- Map(function(group, n) group[sample.int(length(group), n)],
+                  groups, allocated)
+    # Keep archive order so ties have the same policy as the full run.
+    list(cols = sort(unlist(chosen, use.names = FALSE)),
+         allocation = data.table::data.table(
+           library_name = names(groups), eligible_count = unname(available),
+           sampled_count = allocated
+         ))
+  }, .rng_kind = "Mersenne-Twister", .rng_sample_kind = "Rejection")
 }
 
 poly_scale <- function(spectra) {
@@ -243,7 +275,15 @@ poly_histogram <- function(scores, path, review_cutoff = 0.90) {
 
 run_poly_test <- function(input = NULL, output = NULL, batch_size = 512L,
                           reference_block = 50000L, review_cutoff = 0.90,
-                          baseline = NULL) {
+                          baseline = NULL, balanced_seed = NULL) {
+  if (!is.null(balanced_seed)) {
+    stopifnot(is.numeric(balanced_seed), length(balanced_seed) == 1L,
+              is.finite(balanced_seed), balanced_seed >= 0,
+              balanced_seed <= .Machine$integer.max,
+              balanced_seed == trunc(balanced_seed))
+    if (!is.null(baseline)) stop("Balanced sampling requires a fresh bidirectional run.")
+    balanced_seed <- as.integer(balanced_seed)
+  }
   repo <- poly_repo()
   # The installed CRAN package may predate the bounded matcher. Load this checkout.
   pkgload::load_all(repo, quiet = TRUE)
@@ -310,6 +350,19 @@ run_poly_test <- function(input = NULL, output = NULL, batch_size = 512L,
   reference_cols <- ref_info$cols[!ref_info$cols %in% excluded]
   query_ids <- ids[query_info$cols]
   n_query <- length(query_ids)
+  n_reference_eligible <- length(reference_cols)
+  if (!is.null(balanced_seed)) {
+    sample <- poly_balance_reference(reference_cols, md$library_name[reference_cols],
+                                     n_query, balanced_seed)
+    reference_cols <- sample$cols
+    stopifnot(length(reference_cols) == n_query, !anyDuplicated(reference_cols))
+    data.table::fwrite(sample$allocation, file.path(output, "sampling_by_library.csv"))
+    data.table::fwrite(data.table::data.table(
+      object_id = ids[reference_cols], library_name = md$library_name[reference_cols]
+    ), file.path(output, "sampled_computed_spectra.csv"))
+    poly_log("Stratified sample, seed %d: %d of %d eligible computed spectra, across %d libraries.",
+             balanced_seed, n_query, n_reference_eligible, nrow(sample$allocation))
+  }
   n_reference <- length(reference_cols)
   if (!n_query || !n_reference) stop("An eligible cohort is empty.")
   best_score <- rep(-Inf, n_query)
@@ -564,6 +617,8 @@ run_poly_test <- function(input = NULL, output = NULL, batch_size = 512L,
 
   report <- list(input = input, sha256 = sha256, window = range(wn), points = length(wn),
                  query_count = n_query, reference_count = n_reference,
+                 reference_eligible_count = n_reference_eligible,
+                 balanced_seed = balanced_seed,
                  excluded_library = excluded_library, excluded_count = length(excluded),
                  baseline = baseline, baseline_matches_sha256 = baseline_checksum,
                  bidirectional = bidirectional,
@@ -586,9 +641,18 @@ run_poly_test <- function(input = NULL, output = NULL, batch_size = 512L,
 
 if (sys.nframe() == 0L) {
   args <- commandArgs(trailingOnly = TRUE)
+  seed_flag <- match("--balanced-seed", args)
+  seed <- NULL
+  if (!is.na(seed_flag)) {
+    if (seed_flag == length(args)) stop("Supply an integer after --balanced-seed.")
+    seed <- suppressWarnings(as.numeric(args[seed_flag + 1L]))
+    args <- args[-c(seed_flag, seed_flag + 1L)]
+  }
   labels <- c("input", "output", "baseline")
   if (length(args) > length(labels)) {
-    stop("Usage: Rscript PolyTest.R [input.rds] [new-output-directory] [unfiltered-run-directory]")
+    stop(paste("Usage: Rscript PolyTest.R [input.rds] [new-output-directory]",
+               "[unfiltered-run-directory | --balanced-seed SEED]"))
   }
-  do.call(run_poly_test, setNames(as.list(args), head(labels, length(args))))
+  do.call(run_poly_test,
+          c(setNames(as.list(args), head(labels, length(args))), list(balanced_seed = seed)))
 }

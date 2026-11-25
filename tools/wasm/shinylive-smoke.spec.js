@@ -778,12 +778,24 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     );
     await expect(runButton).toBeHidden();
 
-    // The Download card intentionally starts collapsed. Identification makes
-    // Top Matches the contextual default, and the native header download
-    // button remains usable without opening the hidden configuration body.
+    // Verify that the committed Run replaces the previous User Metadata
+    // selection and that the native header uses the new default.
+    await waitForStableDownloadGeneration(downloadSelection, "Top Matches");
     await expect(downloadSelection).toHaveValue("Top Matches");
-    await expect(appFrame.locator("#top_n_input")).toBeAttached({
-      timeout: 120000,
+    await expect(downloadLink).toHaveAccessibleName("Download Top Matches", {
+      timeout: 30000,
+    });
+    await expect(appFrame.locator("#download_panel_box"))
+      .toHaveClass(/\bcollapsed-card\b/);
+    await verifyNativeDownload({
+      page,
+      link: downloadLink,
+      label: "Top Matches",
+      filenamePattern: /^Top-Matches-.*\.csv$/i,
+      contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
+      contentPattern: /poly(?:\(ethylene\)|ethylene).*hdpe/i,
+      testInfo,
+      runtimeDiagnostics,
     });
 
     await selectDownload(downloadSelection, downloadLink, "Processed Spectra");
@@ -794,21 +806,6 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
       filenamePattern: /^Processed-Spectra-.*\.csv$/i,
       contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
       contentPattern: /signal_to_noise/i,
-      testInfo,
-      runtimeDiagnostics,
-    });
-
-    await selectDownload(downloadSelection, downloadLink, "Top Matches");
-    await expect(appFrame.locator("#top_n_input")).toBeAttached({
-      timeout: 120000,
-    });
-    await verifyNativeDownload({
-      page,
-      link: downloadLink,
-      label: "Top Matches",
-      filenamePattern: /^Top-Matches-.*\.csv$/i,
-      contentTypePattern: /^(?:text\/(?:csv|plain)|application\/octet-stream)/i,
-      contentPattern: /poly(?:\(ethylene\)|ethylene).*hdpe/i,
       testInfo,
       runtimeDiagnostics,
     });
@@ -1047,12 +1044,10 @@ test("landing page embeds a working OpenSpecy Shinylive app", async ({ page }, t
     downloadSelection,
     "Thresholded Particles"
   );
-  await selectDownload(
-    downloadSelection,
-    downloadLink,
-    "Thresholded Particles",
-    { timeout: 300000, stableFor: 1500 }
-  );
+  await expect(downloadSelection).toHaveValue("Thresholded Particles");
+  await expect(downloadLink).toHaveAccessibleName("Download Thresholded Particles", {
+    timeout: 30000,
+  });
   // Keep this hosted smoke bounded and explicit. Figure rendering is the
   // expensive optional branch of this archive in single-threaded webR; the
   // archive contract exercised here requires the two canonical CSV products.

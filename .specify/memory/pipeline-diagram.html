@@ -757,7 +757,8 @@
   Download: Top Matches
   <div class="depends">depends on: Identification OR AI, + Quantification</div>
   <div class="tip">Two branches in the same handler: real-library mode reads identification_matches() plus the Run-committed analysis-library metadata and truncates Top N globally by default, or within each Library Name when grouping is enabled; AI mode joins quantified metadata to ranked model predictions. Thresholds and model/library branch selection also come from committed settings, so editing controls cannot change a download until Run.
-  <span class="loc">server.R:2742-2780</span></div>
+  <p>The mounted Download type selector receives the choice list and default from one observer after Run settles. A new identified Run selects Top Matches unless the particle result takes precedence. Later menu updates preserve a valid selection.</p>
+  <span class="loc">Plan 016 &middot; server.R: download menu observer / download_data</span></div>
 </div>
 
 <div class="node output tip-left" style="left:2250px;top:2330px" tabindex="0">
